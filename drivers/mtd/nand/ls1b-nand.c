@@ -280,12 +280,12 @@ enum{
     STATE_BUSY  ,
 };
 
-struct ls1g_nand_platform_data{
+struct ls1b_nand_platform_data{
         int enable_arbiter;
         struct mtd_partition *parts;
         unsigned int nr_parts;
 };
-struct ls1g_nand_cmdset {
+struct ls1b_nand_cmdset {
         uint32_t    cmd_valid:1;
 	uint32_t    read:1;
 	uint32_t    write:1;
@@ -302,7 +302,7 @@ struct ls1g_nand_cmdset {
         uint32_t    nand_ce:4;//20-23
         uint32_t    resv2:8;//24-32 reserved
 };
-struct ls1g_nand_dma_desc{
+struct ls1b_nand_dma_desc{
         uint32_t    orderad;
         uint32_t    saddr;
         uint32_t    daddr;
@@ -311,7 +311,7 @@ struct ls1g_nand_dma_desc{
         uint32_t    step_times;
         uint32_t    cmd;
 };
-struct ls1g_nand_dma_cmd{
+struct ls1b_nand_dma_cmd{
         uint32_t    dma_int_mask:1;
         uint32_t    dma_int:1;
         uint32_t    dma_sl_tran_over:1;
@@ -322,7 +322,7 @@ struct ls1g_nand_dma_cmd{
         uint32_t    dma_cmd:2;
         uint32_t    revl:17;
 };
-struct ls1g_nand_desc{
+struct ls1b_nand_desc{
         uint32_t    cmd;
         uint32_t    addrl;
         uint32_t    addrh;
@@ -333,7 +333,7 @@ struct ls1g_nand_desc{
         uint32_t    op_num;
         uint32_t    cs_rdy_map;
 };
-struct ls1g_nand_info {
+struct ls1b_nand_info {
 	struct nand_chip	nand_chip;
 
 	struct platform_device	    *pdev;
@@ -342,7 +342,7 @@ struct ls1g_nand_info {
 	unsigned int		buf_count;
         /* NAND registers*/
 	void __iomem		*mmio_base;
-        struct ls1g_nand_desc   nand_regs;
+        struct ls1b_nand_desc   nand_regs;
         unsigned int            nand_addrl;
         unsigned int            nand_addrh;
         unsigned int            nand_timing;
@@ -352,7 +352,7 @@ struct ls1g_nand_info {
 
 	/* DMA information */
 
-        struct ls1g_nand_dma_desc  dma_regs;
+        struct ls1b_nand_dma_desc  dma_regs;
         unsigned int            order_reg_addr;  
         unsigned int            dma_orderad;
         unsigned int            dma_saddr;
@@ -418,7 +418,7 @@ static void show_data(void * base,int num)
 }
 
 
-static int ls1g_nand_init_buff(struct ls1g_nand_info *info)
+static int ls1b_nand_init_buff(struct ls1b_nand_info *info)
 {
         struct platform_device *pdev = info->pdev;
     	info->data_buff = dma_alloc_coherent(&pdev->dev, MAX_BUFF_SIZE,
@@ -432,15 +432,15 @@ static int ls1g_nand_init_buff(struct ls1g_nand_info *info)
        	info->data_buff_size = MAX_BUFF_SIZE;
         return 0;
 }
-static int ls1g_nand_ecc_calculate(struct mtd_info *mtd,
+static int ls1b_nand_ecc_calculate(struct mtd_info *mtd,
 		const uint8_t *dat, uint8_t *ecc_code)
 {
 	return 0;
 }
-static int ls1g_nand_ecc_correct(struct mtd_info *mtd,
+static int ls1b_nand_ecc_correct(struct mtd_info *mtd,
 		uint8_t *dat, uint8_t *read_ecc, uint8_t *calc_ecc)
 {
-	struct ls1g_nand_info *info = mtd->priv;
+	struct ls1b_nand_info *info = mtd->priv;
 	/*
 	 * Any error include ERR_SEND_CMD, ERR_DBERR, ERR_BUSERR, we
 	 * consider it as a ecc error which will tell the caller the
@@ -450,7 +450,7 @@ static int ls1g_nand_ecc_correct(struct mtd_info *mtd,
 	return 0;
 }
 
-static void ls1g_nand_ecc_hwctl(struct mtd_info *mtd, int mode)
+static void ls1b_nand_ecc_hwctl(struct mtd_info *mtd, int mode)
 {
 	return;
 }
@@ -458,22 +458,22 @@ static void ls1g_nand_ecc_hwctl(struct mtd_info *mtd, int mode)
 
 
 
-static int ls1g_nand_waitfunc(struct mtd_info *mtd, struct nand_chip *this)
+static int ls1b_nand_waitfunc(struct mtd_info *mtd, struct nand_chip *this)
 {
     udelay(50);
     return 0;
 }
-static void ls1g_nand_select_chip(struct mtd_info *mtd, int chip)
+static void ls1b_nand_select_chip(struct mtd_info *mtd, int chip)
 {
 	return;
 }
-static int ls1g_nand_dev_ready(struct mtd_info *mtd)
+static int ls1b_nand_dev_ready(struct mtd_info *mtd)
 {
 	return 1;
 }
-static void ls1g_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+static void ls1b_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 {
-        struct ls1g_nand_info *info = mtd->priv;
+        struct ls1b_nand_info *info = mtd->priv;
         int i,real_len = min_t(size_t, len, info->buf_count - info->buf_start);
 /*
         if(!(info->coherent)){
@@ -487,9 +487,9 @@ static void ls1g_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 
         info->buf_start += real_len;
 }
-static u16 ls1g_nand_read_word(struct mtd_info *mtd)
+static u16 ls1b_nand_read_word(struct mtd_info *mtd)
 {
-        struct ls1g_nand_info *info = mtd->priv;
+        struct ls1b_nand_info *info = mtd->priv;
         u16 retval = 0xFFFF;
 /*
         if(!(info->coherent)){
@@ -505,9 +505,9 @@ static u16 ls1g_nand_read_word(struct mtd_info *mtd)
 
 
 }
-static uint8_t ls1g_nand_read_byte(struct mtd_info *mtd)
+static uint8_t ls1b_nand_read_byte(struct mtd_info *mtd)
 {
-        struct ls1g_nand_info *info = mtd->priv;
+        struct ls1b_nand_info *info = mtd->priv;
 	char retval = 0xFF;
 /*
         if(!(info->coherent)){
@@ -520,10 +520,10 @@ static uint8_t ls1g_nand_read_byte(struct mtd_info *mtd)
        // show_debug(info->data_buff,6);
 	return retval;
 }
-static void ls1g_nand_write_buf(struct mtd_info *mtd,const uint8_t *buf, int len)
+static void ls1b_nand_write_buf(struct mtd_info *mtd,const uint8_t *buf, int len)
 {
         int i;
-        struct ls1g_nand_info *info = mtd->priv;
+        struct ls1b_nand_info *info = mtd->priv;
 	int real_len = min_t(size_t, len, info->buf_count - info->buf_start);
 
 	memcpy(info->data_buff + info->buf_start, buf, real_len);
@@ -531,42 +531,42 @@ static void ls1g_nand_write_buf(struct mtd_info *mtd,const uint8_t *buf, int len
  //           show_debug(info->data_buff+2048,0x20);
 	info->buf_start += real_len;
 }
-static int ls1g_nand_verify_buf(struct mtd_info *mtd,const uint8_t *buf, int len)
+static int ls1b_nand_verify_buf(struct mtd_info *mtd,const uint8_t *buf, int len)
 {
        int i=0; 
-        struct ls1g_nand_info *info = mtd->priv;
+        struct ls1b_nand_info *info = mtd->priv;
             show_debug(info->data_buff,0x20);
         while(len--){
-            if(buf[i++] != ls1g_nand_read_byte(mtd) ){
+            if(buf[i++] != ls1b_nand_read_byte(mtd) ){
 //                printk("?????????????????????????????????????????????????????verify error...\n\n");
                 return -1;
             }
         }
 	return 0;
 }
-static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column, int page_addr);
-static void ls1g_nand_init_mtd(struct mtd_info *mtd,struct ls1g_nand_info *info)
+static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column, int page_addr);
+static void ls1b_nand_init_mtd(struct mtd_info *mtd,struct ls1b_nand_info *info)
 {
 	struct nand_chip *this = &info->nand_chip;
 
 
 	this->options = 8;//(f->flash_width == 16) ? NAND_BUSWIDTH_16: 0;
 
-	this->waitfunc		= ls1g_nand_waitfunc;
-	this->select_chip	= ls1g_nand_select_chip;
-	this->dev_ready		= ls1g_nand_dev_ready;
-	this->cmdfunc		= ls1g_nand_cmdfunc;
-	this->read_word		= ls1g_nand_read_word;
-	this->read_byte		= ls1g_nand_read_byte;
-	this->read_buf		= ls1g_nand_read_buf;
-	this->write_buf		= ls1g_nand_write_buf;
-	this->verify_buf	= ls1g_nand_verify_buf;
+	this->waitfunc		= ls1b_nand_waitfunc;
+	this->select_chip	= ls1b_nand_select_chip;
+	this->dev_ready		= ls1b_nand_dev_ready;
+	this->cmdfunc		= ls1b_nand_cmdfunc;
+	this->read_word		= ls1b_nand_read_word;
+	this->read_byte		= ls1b_nand_read_byte;
+	this->read_buf		= ls1b_nand_read_buf;
+	this->write_buf		= ls1b_nand_write_buf;
+	this->verify_buf	= ls1b_nand_verify_buf;
 
 //        this->ecc.mode		= NAND_ECC_NONE;
 	this->ecc.mode		= NAND_ECC_SOFT;
-//	this->ecc.hwctl		= ls1g_nand_ecc_hwctl;
-//	this->ecc.calculate	= ls1g_nand_ecc_calculate;
-//	this->ecc.correct	= ls1g_nand_ecc_correct;
+//	this->ecc.hwctl		= ls1b_nand_ecc_hwctl;
+//	this->ecc.calculate	= ls1b_nand_ecc_calculate;
+//	this->ecc.correct	= ls1b_nand_ecc_correct;
 //	this->ecc.size		= 2048;
 //        this->ecc.bytes         = 24;
 
@@ -588,7 +588,7 @@ static void show_dma_regs(void *dma_regs,int flag)
     if(flag)
     printk("0xbfd01160:0x%08x\n",*(volatile unsigned int *)0xbfd01160);
 }
-static unsigned ls1g_nand_status(struct ls1g_nand_info *info)
+static unsigned ls1b_nand_status(struct ls1b_nand_info *info)
 {
     return(*((volatile unsigned int*)0xbfe78000) & (0x1<<10));
 }
@@ -598,12 +598,12 @@ static unsigned ls1g_nand_status(struct ls1g_nand_info *info)
             *((volatile unsigned int *)(0xbfe78000)) = 400; \
     }while(0)
 static int nand_num=0;
-static irqreturn_t ls1g_nand_irq(int irq,void *devid)
+static irqreturn_t ls1b_nand_irq(int irq,void *devid)
 {
     int status_time;
-    struct ls1g_nand_info *info = devid;
-    struct ls1g_nand_dma_desc *dma_regs = (volatile struct ls1g_nand_dma_desc *)(info->drcmr_dat);
-    struct ls1g_nand_dma_cmd *dma_cmd = (struct ls1g_nand_dma_cmd *)(&(dma_regs->cmd));
+    struct ls1b_nand_info *info = devid;
+    struct ls1b_nand_dma_desc *dma_regs = (volatile struct ls1b_nand_dma_desc *)(info->drcmr_dat);
+    struct ls1b_nand_dma_cmd *dma_cmd = (struct ls1b_nand_dma_cmd *)(&(dma_regs->cmd));
     switch(info->cmd){
         case NAND_CMD_READOOB:
         case NAND_CMD_READ0:
@@ -612,7 +612,7 @@ static irqreturn_t ls1g_nand_irq(int irq,void *devid)
             break;
         case NAND_CMD_PAGEPROG:
             status_time=STATUS_TIME_LOOP_WS;
-            while(!(ls1g_nand_status(info))){
+            while(!(ls1b_nand_status(info))){
                 if(!(status_time--)){
                     write_z_cmd;
                     nand_num++;
@@ -639,9 +639,9 @@ static irqreturn_t ls1g_nand_irq(int irq,void *devid)
  *  flags & 0x20  step_times
  *  flags & 0x40  cmd
  ***/
-static void dma_setup(unsigned int flags,struct ls1g_nand_info *info)
+static void dma_setup(unsigned int flags,struct ls1b_nand_info *info)
 {
-    struct ls1g_nand_dma_desc *dma_base = (volatile struct ls1g_nand_dma_desc *)(info->drcmr_dat);
+    struct ls1b_nand_dma_desc *dma_base = (volatile struct ls1b_nand_dma_desc *)(info->drcmr_dat);
     dma_base->orderad = (flags & DMA_ORDERAD)== DMA_ORDERAD ? info->dma_regs.orderad : info->dma_orderad;
     dma_base->saddr = (flags & DMA_SADDR)== DMA_SADDR ? info->dma_regs.saddr : info->dma_saddr;
     dma_base->daddr = (flags & DMA_DADDR)== DMA_DADDR ? info->dma_regs.daddr : info->dma_daddr;
@@ -674,10 +674,10 @@ static void dma_setup(unsigned int flags,struct ls1g_nand_info *info)
  *  flags & 0x80    op_num
  *  flags & 0x100   cs_rdy_map
  ****/
-static void nand_setup(unsigned int flags ,struct ls1g_nand_info *info)
+static void nand_setup(unsigned int flags ,struct ls1b_nand_info *info)
 {
     int i,val1,val2,val3;
-    struct ls1g_nand_desc *nand_base = (struct ls1g_nand_desc *)(info->mmio_base);
+    struct ls1b_nand_desc *nand_base = (struct ls1b_nand_desc *)(info->mmio_base);
     nand_base->cmd = 0;
     nand_base->addrl = (flags & NAND_ADDRL)==NAND_ADDRL ? info->nand_regs.addrl: info->nand_addrl;
     nand_base->addrh = (flags & NAND_ADDRH)==NAND_ADDRH ? info->nand_regs.addrh: info->nand_addrh;
@@ -690,7 +690,7 @@ static void nand_setup(unsigned int flags ,struct ls1g_nand_info *info)
 #if 0
             if(info->nand_regs.cmd & 0x20){
             i = 100;
-            while(!ls1g_nand_status(info)){
+            while(!ls1b_nand_status(info)){
                 if(!(i--)){
                     write_z_cmd;
                     break;
@@ -705,9 +705,9 @@ static void nand_setup(unsigned int flags ,struct ls1g_nand_info *info)
         nand_base->cmd = info->nand_cmd;
     
 }
-static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column, int page_addr)
+static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column, int page_addr)
 {
-        struct ls1g_nand_info *info = mtd->priv;
+        struct ls1b_nand_info *info = mtd->priv;
         unsigned cmd_prev;
         int status_time,page_prev;
         int timeout = CHIP_DELAY_TIMEOUT;
@@ -737,12 +737,12 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 info->nand_regs.op_num = info->buf_count;
                /*nand cmd set */ 
                 info->nand_regs.cmd = 0; 
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->read = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->op_spare = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->read = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->op_spare = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1;
                 /*dma regs config*/
                 info->dma_regs.length =ALIGN_DMA(info->buf_count);
-                ((struct ls1g_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
+                ((struct ls1b_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
                 /*dma GO set*/       
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
                 dma_setup(DMA_LENGTH|DMA_CMD,info);
@@ -766,13 +766,13 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                /*nand cmd set */ 
                 info->nand_regs.cmd = 0; 
                 info->dma_regs.cmd = 0;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->read = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->op_spare = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->op_main = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1; 
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->read = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->op_spare = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->op_main = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1; 
                 /*dma regs config*/
                 info->dma_regs.length = ALIGN_DMA(info->buf_count);
-                ((struct ls1g_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
+                ((struct ls1b_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
                 dma_setup(DMA_LENGTH|DMA_CMD,info);
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
                 break;
@@ -814,15 +814,15 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 /*nand cmd set */ 
                 info->nand_regs.cmd = 0; 
                 info->dma_regs.cmd = 0;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->write = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->write = 1;
                 if(info->seqin_column < mtd->writesize)
-                    ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->op_main = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->op_spare = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1; 
+                    ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->op_main = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->op_spare = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1; 
                 /*dma regs config*/
                 info->dma_regs.length = ALIGN_DMA(info->buf_start);
-                ((struct ls1g_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
-                ((struct ls1g_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_r_w = 1;
+                ((struct ls1b_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
+                ((struct ls1b_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_r_w = 1;
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
                 dma_setup(DMA_LENGTH|DMA_CMD,info);
                 break;
@@ -831,11 +831,11 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 //                info->state = STATE_BUSY;
                /*nand cmd set */ 
                 info->nand_regs.cmd = 0; 
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->reset = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1; 
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->reset = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1; 
                 nand_setup(NAND_CMD,info);
                 status_time = STATUS_TIME_LOOP_R;
-                while(!ls1g_nand_status(info)){
+                while(!ls1b_nand_status(info)){
                     if(!(status_time--)){
                         write_z_cmd;
                         break;
@@ -856,13 +856,13 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 info->nand_regs.addrl =  NO_SPARE_ADDRL(page_addr) ;
                /*nand cmd set */
                 info->nand_regs.cmd = 0; 
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->erase_one = 1;
-                ((struct ls1g_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->erase_one = 1;
+                ((struct ls1b_nand_cmdset*)&(info->nand_regs.cmd))->cmd_valid = 1;
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
 //                show_dma_regs(0xbfe78000,0);
                 status_time = STATUS_TIME_LOOP_E;
 //                udelay(3000);    
-                while(!ls1g_nand_status(info)){
+                while(!ls1b_nand_status(info)){
                     if(!(status_time--)){
                         write_z_cmd;
                         break;
@@ -880,7 +880,7 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 info->state = STATE_BUSY;
                 info->buf_count = 0x1;
                 info->buf_start = 0x0;
-                *(unsigned char *)info->data_buff=ls1g_nand_status(info) | 0x80;
+                *(unsigned char *)info->data_buff=ls1b_nand_status(info) | 0x80;
                 complete(&info->cmd_complete);
                 break;
             case NAND_CMD_READID:
@@ -927,7 +927,7 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
             case NAND_CMD_READ1:
                 complete(&info->cmd_complete);
                 break;
-			case NAND_CMD_RNDOUT:
+			case NAND_CMD_RNDOUT:	//lxy
 				info->buf_count = mtd->oobsize + mtd->writesize;
                 info->buf_start = column;         
 				complete(&info->cmd_complete);
@@ -944,7 +944,7 @@ static void ls1g_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
         info->state = STATE_READY;
 
 }
-static int ls1g_nand_detect(struct mtd_info *mtd)
+static int ls1b_nand_detect(struct mtd_info *mtd)
 {
         return (mtd->erasesize != 1<<17 || mtd->writesize != 1<<11 || mtd->oobsize != 1<<6);
 
@@ -955,7 +955,7 @@ static void test_handler(unsigned long data)
     u32 val;
 
 //    printk("%s.\n",__func__);
-    struct ls1g_nand_info *s = (struct ls1g_nand_info *)data;
+    struct ls1b_nand_info *s = (struct ls1b_nand_info *)data;
     mod_timer(&s->test_timer, jiffies+1);
     val = s->dma_ask_phy | 0x4;
     *((volatile unsigned int *)0xbfd01160) = val;
@@ -963,7 +963,7 @@ static void test_handler(unsigned long data)
 }
 
 
-static void ls1g_nand_init_info(struct ls1g_nand_info *info)
+static void ls1b_nand_init_info(struct ls1b_nand_info *info)
 {
 
 
@@ -1002,10 +1002,10 @@ static void ls1g_nand_init_info(struct ls1g_nand_info *info)
 
     info->order_reg_addr = ORDER_REG_ADDR;
 }
-static int ls1g_nand_probe(struct platform_device *pdev)
+static int ls1b_nand_probe(struct platform_device *pdev)
 {	
-        struct ls1g_nand_platform_data *pdata;
-	struct ls1g_nand_info *info;
+        struct ls1b_nand_platform_data *pdata;
+	struct ls1b_nand_info *info;
 	struct nand_chip *this;
 	struct mtd_info *mtd;
 	struct resource *r;
@@ -1018,13 +1018,13 @@ static int ls1g_nand_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	mtd = kzalloc(sizeof(struct mtd_info) + sizeof(struct ls1g_nand_info), GFP_KERNEL);
+	mtd = kzalloc(sizeof(struct mtd_info) + sizeof(struct ls1b_nand_info), GFP_KERNEL);
 	if (!mtd) {
 		dev_err(&pdev->dev, "failed to allocate memory\n");
 		return -ENOMEM;
 	}
 
-	info = (struct ls1g_nand_info *)(&mtd[1]);
+	info = (struct ls1b_nand_info *)(&mtd[1]);
 	info->pdev = pdev;
 
 	this = &info->nand_chip;
@@ -1060,7 +1060,7 @@ static int ls1g_nand_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto fail_free_res;
 	}
-        ret = ls1g_nand_init_buff(info);
+        ret = ls1b_nand_init_buff(info);
 	if (ret)
 		goto fail_free_io;
         
@@ -1070,15 +1070,15 @@ static int ls1g_nand_probe(struct platform_device *pdev)
 		ret = -ENXIO;
 		goto fail_put_clk;
 	}
-	ret = request_irq(irq, ls1g_nand_irq, IRQF_DISABLED,pdev->name, info);
+	ret = request_irq(irq, ls1b_nand_irq, IRQF_DISABLED,pdev->name, info);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to request IRQ\n");
 		goto fail_free_buf;
 	}
 
-        ls1g_nand_init_mtd(mtd, info);
+        ls1b_nand_init_mtd(mtd, info);
 
-         ls1g_nand_init_info(info);
+         ls1b_nand_init_info(info);
         platform_set_drvdata(pdev, mtd);   
 
         if (nand_scan(mtd, 1)) {
@@ -1086,7 +1086,7 @@ static int ls1g_nand_probe(struct platform_device *pdev)
 		ret = -ENXIO;
 		goto fail_free_irq;
 	}
-        if(ls1g_nand_detect(mtd)){
+        if(ls1b_nand_detect(mtd)){
                 dev_err(&pdev->dev, "driver don't support the Flash!\n");
                 ret = -ENXIO;
                 goto fail_free_irq;
@@ -1117,10 +1117,10 @@ fail_free_mtd:
 	return ret;
 }
 
-static int ls1g_nand_remove(struct platform_device *pdev)
+static int ls1b_nand_remove(struct platform_device *pdev)
 {
     	struct mtd_info *mtd = platform_get_drvdata(pdev);
-	struct ls1g_nand_info *info = mtd->priv;
+	struct ls1b_nand_info *info = mtd->priv;
 
 	platform_set_drvdata(pdev, NULL);
 
@@ -1129,7 +1129,7 @@ static int ls1g_nand_remove(struct platform_device *pdev)
 	nand_release(mtd);
 	free_irq(13, info);
         kfree(info->drcmr_dat);
-struct ls1g_nand_platform_data{
+struct ls1b_nand_platform_data{
     int enable_arbiter;
     struct mtd_partition *parts;
     unsigned int nr_parts;
@@ -1138,10 +1138,10 @@ struct ls1g_nand_platform_data{
 
 	return 0;
 }
-static int ls1g_nand_suspend(struct platform_device *pdev)
+static int ls1b_nand_suspend(struct platform_device *pdev)
 {
 	struct mtd_info *mtd = (struct mtd_info *)platform_get_drvdata(pdev);
-	struct ls1g_nand_info *info = mtd->priv;
+	struct ls1b_nand_info *info = mtd->priv;
 
 	if (info->state != STATE_READY) {
 		dev_err(&pdev->dev, "driver busy, state = %d\n", info->state);
@@ -1150,37 +1150,37 @@ static int ls1g_nand_suspend(struct platform_device *pdev)
 
 	return 0;
 }
-static int ls1g_nand_resume(struct platform_device *pdev)
+static int ls1b_nand_resume(struct platform_device *pdev)
 {
         return 0;
 }
-static struct platform_driver ls1g_nand_driver = {
+static struct platform_driver ls1b_nand_driver = {
 	.driver = {
-		.name	= "ls1g-nand",
+		.name	= "ls1b-nand",
                 .owner	= THIS_MODULE,
 	},
-	.probe		= ls1g_nand_probe,
-	.remove		= ls1g_nand_remove,
-	.suspend	= ls1g_nand_suspend,
-	.resume		= ls1g_nand_resume,
+	.probe		= ls1b_nand_probe,
+	.remove		= ls1b_nand_remove,
+	.suspend	= ls1b_nand_suspend,
+	.resume		= ls1b_nand_resume,
 };
 
-static int __init ls1g_nand_init(void)
+static int __init ls1b_nand_init(void)
 {
     int ret = 0;
 
     *((volatile unsigned int *)0xbfd00420) = 0x0a000000;
-    ret = platform_driver_register(&ls1g_nand_driver);
+    ret = platform_driver_register(&ls1b_nand_driver);
     if(ret){
         printk(KERN_ERR "failed to register loongson_1g_nand_driver");
     }
     return ret;
 }
-static void __exit ls1g_nand_exit(void)
+static void __exit ls1b_nand_exit(void)
 {
-    platform_driver_unregister(&ls1g_nand_driver);
+    platform_driver_unregister(&ls1b_nand_driver);
 }
-module_init(ls1g_nand_init);
-module_exit(ls1g_nand_exit);
+module_init(ls1b_nand_init);
+module_exit(ls1b_nand_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Loongson_1g NAND controller driver");

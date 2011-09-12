@@ -188,6 +188,12 @@ config VIRTIO_CONSOLE
 	  the port which can be used by udev scripts to create a
 	  symlink to the device.
 
+
+config BUZZER	
+        tristate "loongson1b-bsp buzzer"
+        help
+          buzzer driver.
+
 config IBM_BSR
 	tristate "IBM POWER Barrier Synchronization Register support"
 	depends on PPC_PSERIES

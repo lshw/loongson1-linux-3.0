@@ -15,3 +15,6 @@ config USB_VIDEO_CLASS_INPUT_EVDEV
 	  to report button events.
 
 	  If you are in doubt, say Y.
+	  
+	  
+source "drivers/media/video/uvc/gc0303/Kconfig"

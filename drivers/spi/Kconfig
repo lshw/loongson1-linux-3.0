@@ -53,6 +53,15 @@ if SPI_MASTER
 
 comment "SPI Master Controller Drivers"
 
+
+config LS1B_SPI0
+	tristate "loongson 1B SPI master 0"
+	depends on LS1B_MACH
+	select SPI_BITBANG
+	help
+	  SPI driver for loongson 1B soc
+	  
+
 config SPI_ALTERA
 	tristate "Altera SPI Controller"
 	select SPI_BITBANG

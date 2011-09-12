@@ -721,6 +721,11 @@ config RTC_DRV_NUC900
 
 comment "on-CPU RTC drivers"
 
+config RTC_DRV_LS1B
+	tristate "SOC LS1B"
+	depends on RTC_CLASS
+	help
+
 config RTC_DRV_DAVINCI
 	tristate "TI DaVinci RTC"
 	depends on ARCH_DAVINCI_DM365

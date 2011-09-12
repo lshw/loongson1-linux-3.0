@@ -13,12 +13,12 @@
 #define REG_I2C_TXR		0x3	//发送寄存器
 #define REG_I2C_RXR		0x3	//接收寄存器
 #define REG_I2C_CR		0X4	//命令寄存器（写时）
-#define	REG_I2C_SR		0X4	//状态寄存器（读时）
+#define REG_I2C_SR		0X4	//状态寄存器（读时）
 
 /*control 命令寄存器 位描述*/
 #define I2C_C_START		0x80	//产生 START 信号
 #define I2C_C_STOP		0x40	//产生 STOP 信号
-#define	I2C_C_READ		0x20	//产生读信号
+#define I2C_C_READ		0x20	//产生读信号
 #define I2C_C_WRITE		0x10	//产生写信号
 #define I2C_C_WACK		0x8		//产生应答信号
 #define I2C_C_IACK		0x1		//产生中断应答信号
@@ -30,7 +30,7 @@
 #define	I2C_S_IF		0x1		//中断标志位，一个数据传输完，或另外一个器件发起数据传输，该位置1
 
 
-struct gs2fsb_i2c {
+struct ls1b_i2c {
 	void __iomem *base;
 	u32 interrupt;
 	wait_queue_head_t queue;
@@ -39,130 +39,25 @@ struct gs2fsb_i2c {
 	u32 flags;
 };
 
-static void i2c_writeb(struct gs2fsb_i2c *i2c, unsigned int reg, unsigned char  data)
+static void i2c_writeb(struct ls1b_i2c *i2c, unsigned int reg, unsigned char  data)
 {
-//	udelay(100);
 	(*(volatile unsigned char *)(i2c->base + reg)) = data;
 }
 
-static unsigned char i2c_readb (struct gs2fsb_i2c *i2c, unsigned char reg)
+static unsigned char i2c_readb (struct ls1b_i2c *i2c, unsigned char reg)
 {
 	unsigned char data;
-//	udelay(100);
 	data = (*(volatile unsigned char *)(i2c->base + reg));
 	return data;
 }
 
-#if 0
-static int gs2fsb_xfer_read(struct gs2fsb_i2c *i2c, unsigned char *buf, int len) 
+static int ls1b_xfer_read(struct ls1b_i2c *i2c, unsigned char *buf, int len) 
 {
-	while(len--) {	
-		i2c_writeb(i2c, REG_I2C_CR, I2C_C_READ);
-		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
-
-		*buf++ = (i2c_readb(i2c,REG_I2C_TXR) & 0xff);
-
-		if(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK)
-			return len;
-	}
-
-	i2c_writeb(i2c,REG_I2C_CR, I2C_C_STOP);
-
-	return 0;
-}
-
-static int gs2fsb_xfer_write(struct gs2fsb_i2c *i2c, unsigned char *buf, int len)
-{
-	do {
-		len--;
-		if(len > 0) {
-			i2c_writeb(i2c, REG_I2C_CR, I2C_C_WRITE);
-			i2c_writeb(i2c, REG_I2C_TXR, *buf++);
-			while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
-		}
-	} while(len);
-
-	i2c_writeb(i2c, REG_I2C_CR, I2C_C_STOP);
-	while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_BUSY);
-
-	return 0;
-}
-
-static int gs2fsb_xfer(struct i2c_adapter *adap, struct i2c_msg *pmsg, int num)
-{
-	int i, ret;
-	struct gs2fsb_i2c *i2c = adap->algo_data;
-
-	dev_dbg(&adap->dev, "gs2fsb_xfer: processing %d messages:\n", num);
-
-/*set slave addr*/
-	i2c_writeb(i2c, REG_I2C_TXR, pmsg->addr);
-	//#define I2C_C_WRITE		0x10	//产生写信号
-	//#define I2C_C_START		0x80	//产生 START 信号
-	i2c_writeb(i2c, REG_I2C_CR, (I2C_C_WRITE | I2C_C_START));
-	
-	//#define	REG_I2C_SR		0X4	//状态寄存器（读时）
-	while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
-	udelay(1000);
-	if (i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
-		printk("no ack !!\n");
-		return 0;
-	}
-	
-	if (pmsg->flags & I2C_M_RD) {
-		
-	}
-	else{
-	/*set slave register*/
-		i2c_writeb(i2c, REG_I2C_TXR, *pmsg->buf);
-		i2c_writeb(i2c, REG_I2C_CR,  I2C_C_WRITE);//产生写信号
-	
-		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
-		udelay(1000);
-		if (i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
-			printk("in the gs2fsb_xfer noack\n\n");
-			return 0;
-		}
-	}
-
-/*set read or write option*/
-	for (i=0; i<num; i++) {
-		if (pmsg->flags & I2C_M_RD) { 
-			i2c_writeb(i2c, REG_I2C_TXR, (pmsg->addr | 1));
-			i2c_writeb(i2c, REG_I2C_CR, (I2C_C_WRITE | I2C_C_START));
-
-			while (i2c_readb(i2c,REG_I2C_SR) & I2C_S_RUN);
-			udelay(1000);
-			if (i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
-				printk("no ack!!\n");
-				return 0;
-			}
-		}
- 
-/*data option*/
-		if (pmsg->len && pmsg->buf) {
-			if (pmsg->flags & I2C_M_RD) 
-				ret = gs2fsb_xfer_read(i2c, pmsg->buf, pmsg->len);
-			else
-				ret = gs2fsb_xfer_write(i2c, pmsg->buf, pmsg->len);
-			if (ret)
-				return 0;
-		}
-		pmsg++;
-	}
-	return i;
-}
-#endif
-
-static int gs2fsb_xfer_read(struct gs2fsb_i2c *i2c, unsigned char *buf, int len) 
-{
-
 	int x;
 
 	for(x=0; x<len; x++) {
-
 		i2c_writeb(i2c, REG_I2C_CR, I2C_C_READ);
-//send ACK last not send ACK
+		//send ACK last not send ACK
 		if(x != (len -1)) 
 			i2c_writeb(i2c, REG_I2C_CR,   I2C_C_READ);
 		else
@@ -171,134 +66,139 @@ static int gs2fsb_xfer_read(struct gs2fsb_i2c *i2c, unsigned char *buf, int len)
 		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
 
 		buf[x] = i2c_readb(i2c,REG_I2C_TXR);
-
 	}
-	
 	i2c_writeb(i2c,REG_I2C_CR, I2C_C_STOP);
 		
 	return 0;
 }
 
-static int gs2fsb_xfer_write(struct gs2fsb_i2c *i2c, unsigned char *buf, int len)
+static int ls1b_xfer_write(struct ls1b_i2c *i2c, unsigned char *buf, int len)
 {
 
 	int j;
 
 	for(j=0; j< len; j++) {
-			i2c_writeb(i2c, REG_I2C_TXR, buf[j]);
-			i2c_writeb(i2c, REG_I2C_CR, I2C_C_WRITE);
-			while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
-			if(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
-
+		i2c_writeb(i2c, REG_I2C_TXR, buf[j]);
+		i2c_writeb(i2c, REG_I2C_CR, I2C_C_WRITE);
+		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
+		if(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
 			i2c_writeb(i2c, REG_I2C_CR, I2C_C_STOP);
-				return len;
-			}
- 
+			return len;
 		}
-
+	}
 	i2c_writeb(i2c, REG_I2C_CR, I2C_C_STOP);
 
 	return 0;
-
 }
 
-static int gs2fsb_xfer(struct i2c_adapter *adap, struct i2c_msg *pmsg, int num)
+static int ls1b_xfer(struct i2c_adapter *adap, struct i2c_msg *pmsg, int num)
 {
 	int i,ret;
-//	int j, ret0;
-	struct gs2fsb_i2c *i2c = adap->algo_data;
+	struct ls1b_i2c *i2c = adap->algo_data;
 
-	dev_dbg(&adap->dev, "gs2fsb_xfer: processing %d messages:\n", num);
+	dev_dbg(&adap->dev, "ls1b_xfer: processing %d messages:\n", num);
 
 /*set slave addr*/
-	for(i=0;i<num;i++) {
+	for (i=0; i<num; i++) {
 
 		char flags;
 		
-		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_BUSY)
-//			printk ("ls1b-i2c controler is busy .......\n");
+		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_BUSY);
 		
 		flags = (pmsg->flags & I2C_M_RD)?1:0;
 		i2c_writeb(i2c, REG_I2C_TXR, ((pmsg->addr << 1 ) | flags));
-		i2c_writeb(i2c, REG_I2C_CR, (I2C_C_WRITE | I2C_C_START | I2C_C_WACK));
+//		i2c_writeb(i2c, REG_I2C_CR, (I2C_C_WRITE | I2C_C_START | I2C_C_WACK));
+		i2c_writeb(i2c, REG_I2C_CR, (I2C_C_WRITE | I2C_C_START));
 
 
 		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
 
 		if (i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
 			printk(" slave addr no ack !!\n");
-			i2c_writeb(i2c, REG_I2C_CR, I2C_C_STOP); 
+			i2c_writeb(i2c, REG_I2C_CR, I2C_C_STOP);
 			return 0;
 		}
 
-
  		if(flags )
- 		{
-// 			printk ("lxy: reading data....\n");
-			ret = gs2fsb_xfer_read(i2c, pmsg->buf, pmsg->len);
- 		}
+			ret = ls1b_xfer_read(i2c, pmsg->buf, pmsg->len);
   		else
-  		{
-//  			printk ("lxy: writing data.....\n");
-			ret = gs2fsb_xfer_write(i2c, pmsg->buf, pmsg->len);
-  		}
-
-	++pmsg;
-
+			ret = ls1b_xfer_write(i2c, pmsg->buf, pmsg->len);
+		if (ret)
+			return ret;
+			
+		dev_dbg(&adap->dev, "transfer complete\n");
+		++pmsg;
 	}
-
 	return num;
 }
 
 
-static u32 gs2fsb_functionality(struct i2c_adapter *adap)
+static u32 ls1b_functionality(struct i2c_adapter *adap)
 {
 	return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL;
 }
 
-static const struct i2c_algorithm gs2fsb_algo = {
-	.master_xfer = gs2fsb_xfer,
-	.functionality = gs2fsb_functionality,
+static const struct i2c_algorithm ls1b_algo = {
+	.master_xfer = ls1b_xfer,
+	.functionality = ls1b_functionality,
 };
 
-static struct i2c_adapter gs2fsb_ops = {
+static struct i2c_adapter ls1b_ops = {
 	.owner	= THIS_MODULE,
-	.name	= "LS1B_adapter",
-	.algo	= &gs2fsb_algo,
-	.timeout= 5,
-	.retries= 2,
+	.name	= "ls1b_adapter",
+	.algo	= &ls1b_algo,
+	.class = I2C_CLASS_HWMON,
+	.timeout= 1,
+	.retries= 1,
 };
 
+#if 0
 //中断处理函数
-static irqreturn_t gs2fsb_i2c_isr(int irqno, void *dev_id)
+static irqreturn_t ls1b_i2c_isr(int irqno, void *dev_id)
 {
-	struct gs2fsb_i2c *i2c = dev_id;
+	struct ls1b_i2c *i2c = dev_id;
 
 	i2c_writeb(i2c, REG_I2C_CR, 1);
 	
 	return IRQ_HANDLED;
 }
+#endif
 
-static int gs2fsb_i2c_probe(struct platform_device *pdev)
+static int ls1b_i2c_probe(struct platform_device *pdev)
 {
-	int result = 0;
-	struct gs2fsb_i2c *i2c;
+	struct ls1b_i2c *i2c;
 	struct resource *res;
-	int ret;
-	printk(KERN_EMERG "i2c-gs2fsb probe\n");
+	int result;
+	
+	printk(KERN_EMERG "i2c-ls1b probe\n");
+	
 	/* map the registers */
 	res =  platform_get_resource(pdev,	IORESOURCE_MEM, 0);  //通过platform_device 获取i2c IO资源
 	if (res == NULL) {
 		dev_err(&pdev->dev, "cannot find IO resource\n");
-		ret = -ENOENT;
-		goto out;
+		return -ENOENT;
 	}
 	
-	//分配struct gs2fsb_i2c结构体内存
-	if (!(i2c = kzalloc(sizeof(*i2c), GFP_KERNEL))) {
-		return -ENOMEM;
+	//分配struct ls1b_i2c结构体内存
+	if (!(i2c = kzalloc(sizeof(struct ls1b_i2c), GFP_KERNEL))) {
+		dev_err(&pdev->dev, "can't allocate inteface!\n");
+		result = -ENOMEM;
+		goto fail2;
 	}
 	
+	if (!request_mem_region(res->start, res->end - res->start + 1, "sb2f-i2c"))
+		return -EBUSY;
+	
+	//ioremap把一个物理地址范围重新映射到处理器的虚拟地址空间，以供内核使用。
+	//龙芯 在/include/asm-mips/io.h中定义
+	i2c->base = ioremap(res->start, res->end - res->start + 1);
+	if (!i2c->base) {
+		printk(KERN_ERR "i2c-ls1b - failed to map controller\n");
+		result = -ENOMEM;
+		goto fail1;
+	}
+
+#if 0	
 	i2c->irq = platform_get_irq(pdev, 0);
 	if (i2c->irq < 0) {
 		result = -ENXIO;
@@ -307,87 +207,114 @@ static int gs2fsb_i2c_probe(struct platform_device *pdev)
 	//初始化等待队列头
 	init_waitqueue_head(&i2c->queue);
 
-	//ioremap把一个物理地址范围重新映射到处理器的虚拟地址空间，以供内核使用。
-	//龙芯 在/include/asm-mips/io.h中定义
-	i2c->base = ioremap(res->start, res->end - res->start + 1);
-	if (!i2c->base) {
-		printk(KERN_ERR "i2c-gs2fsb - failed to map controller\n");
-		result = -ENOMEM;
-		goto fail_map;
-	}
 	
 	if (i2c->irq != 0){
-		if ((result = request_irq(i2c->irq, gs2fsb_i2c_isr, IRQF_SHARED, "i2c-gs2fsb", i2c)) < 0) {
-			printk(KERN_ERR "i2c-gs2fsb - failed to attach interrupt\n");
+		if ((result = request_irq(i2c->irq, ls1b_i2c_isr, IRQF_SHARED, "i2c-ls1b", i2c)) < 0) {
+			printk(KERN_ERR "i2c-ls1b - failed to attach interrupt\n");
 			goto fail_irq;
 		}
 	}
+#endif
 
-	platform_set_drvdata(pdev, i2c);
-
-	i2c->adap = gs2fsb_ops;
+	i2c->adap = ls1b_ops;
 	i2c_set_adapdata(&i2c->adap, i2c);
 	i2c->adap.algo_data = i2c;
 	i2c->adap.dev.parent = &pdev->dev;
+	
+	//设置分频锁存器高低字节
 	i2c_writeb(i2c, REG_I2C_PRER_LO, 0x64);
-	i2c_writeb(i2c, REG_I2C_PRER_HI, 0x01);
+	i2c_writeb(i2c, REG_I2C_PRER_HI, 0x00);
+	//设置控制寄存器值[7:6]EN:IEN 模块工作使能 中断使能
 	i2c_writeb(i2c, REG_I2C_CTR, 0xc0);
-	i2c->adap.nr = pdev->id;
-//	result = i2c_add_adapter(&i2c->adap);		//lxy
-	result = i2c_add_numbered_adapter(&i2c->adap);
-	if ((result < 0)) {
-		printk(KERN_ERR "i2c-gs2fsb - failed to add adapter\n");
-		goto fail_add;
+	
+	platform_set_drvdata(pdev, i2c);
+	
+	if ((result = i2c_add_numbered_adapter(&i2c->adap) < 0)) {
+		printk(KERN_ERR "i2c-ls1b - failed to add adapter\n");
+		goto fail0;
 	}
-	printk(KERN_EMERG "i2c-gs2fsb probe ok\n");
-	return result;
+	printk(KERN_EMERG "i2c-ls1b probe ok\n");
+	return 0;
 
+#if 0
 fail_irq:
 fail_get_irq:
 		if (i2c->irq != 0)
 			free_irq(i2c->irq, NULL);
-fail_map:
-		iounmap(i2c->base);
-fail_add:
-		kfree(i2c);
-out:
-	;
-	return result;
+#endif
 
-};
-static int __exit gs2fsb_i2c_remove(struct platform_device *pdev)
+fail0:
+	platform_set_drvdata(pdev, NULL);
+fail1:
+	iounmap(i2c->base);
+	release_mem_region(res->start, res->end - res->start + 1);
+fail2:
+	kfree(i2c);
+
+	return result;
+}
+
+static int __devexit ls1b_i2c_remove(struct platform_device *pdev)
 {
+	struct ls1b_i2c *i2c = platform_get_drvdata(pdev);
+	struct resource *res;
+	int rc;
+
+	rc = i2c_del_adapter(&i2c->adap);
+	platform_set_drvdata(pdev, NULL);
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	iounmap(i2c->base);
+	release_mem_region(res->start, res->end - res->start + 1);
+
+	return rc;
+}
+
+#ifdef CONFIG_PM
+
+
+static int ls1b_i2c_suspend(struct platform_device *pdev, pm_message_t mesg)
+{
+//	clk_disable(twi_clk);
 	return 0;
 }
 
-static struct platform_driver gs2fsb_i2c_driver = {
-	.probe		= gs2fsb_i2c_probe,
-	.remove		= gs2fsb_i2c_remove,
-	.driver		= {
+static int ls1b_i2c_resume(struct platform_device *pdev)
+{
+//	return clk_enable(twi_clk);
+	return 0;
+}
+
+#else
+#define ls1b_i2c_suspend	NULL
+#define ls1b_i2c_resume	NULL
+#endif
+
+static struct platform_driver ls1b_i2c_driver = {
+	.probe		= ls1b_i2c_probe,
+	.remove	= __devexit_p(ls1b_i2c_remove),
+	.suspend	= ls1b_i2c_suspend,
+	.resume	= ls1b_i2c_resume,
+	.driver	= {
 		.owner	= THIS_MODULE,
 		.name	= "ls1b-i2c",
 	},
 };
 
-static int __init i2c_gs2fsb_init (void)
+static int __init i2c_ls1b_init (void)
 {
-	int ret;
-	printk(KERN_EMERG "i2c-gs2fsb init\n");
-	ret = platform_driver_register(&gs2fsb_i2c_driver);
-//	if(ret == 0){
-//		platform_driver_unregister(&gs2fsb_i2c_driver);
-//	}
-	return ret;
+	printk(KERN_EMERG "i2c-ls1b init\n");
+	return platform_driver_register(&ls1b_i2c_driver);
 }
 
-static void __exit i2c_gs2fsb_exit(void)
+static void __exit i2c_ls1b_exit(void)
 {
-	return platform_driver_unregister(&gs2fsb_i2c_driver);
+	return platform_driver_unregister(&ls1b_i2c_driver);
 }
 
-module_init (i2c_gs2fsb_init);
-module_exit (i2c_gs2fsb_exit);
+module_init(i2c_ls1b_init);
+module_exit(i2c_ls1b_exit);
 
-MODULE_AUTHOR("ninglichen <ninglichen@loongson.cn>");
-MODULE_DESCRIPTION("loongson 2F south borad i2c bus driver");
+MODULE_AUTHOR("tanghaifeng <tanghaifeng-gz@loongson.cn>");
+MODULE_DESCRIPTION("loongson 1b i2c bus driver");
 MODULE_LICENSE("GPL");

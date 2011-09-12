@@ -32,13 +32,13 @@ static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
 
 
-struct ls1g_nand_platform_data{
+struct ls1b_nand_platform_data{
     int enable_arbiter;
     struct mtd_partition *parts;
     unsigned int nr_parts;
 };
 
-static struct mtd_partition ls1g_nand_partitions[]={
+static struct mtd_partition ls1b_nand_partitions[]={
 #if 1
 	[0] = {
         .name   ="kernel",
@@ -74,10 +74,10 @@ static struct mtd_partition ls1g_nand_partitions[]={
 #endif
 };
 
-static struct ls1g_nand_platform_data ls1g_nand_parts = {
+static struct ls1b_nand_platform_data ls1b_nand_parts = {
         .enable_arbiter =   1,
-        .parts          =   ls1g_nand_partitions,
-        .nr_parts       =   ARRAY_SIZE(ls1g_nand_partitions),
+        .parts          =   ls1b_nand_partitions,
+        .nr_parts       =   ARRAY_SIZE(ls1b_nand_partitions),
     
 };
 
@@ -221,7 +221,7 @@ static struct resource ls1b_wat_resource[] = {
 };
 
 static struct platform_device ls1b_wat_device = {
-	.name       = "gs2fsb_wdt",
+	.name       = "ls1b-wdt",
 	.id         = -1,
 	.num_resources  = ARRAY_SIZE(ls1b_wat_resource),
 	.resource   = ls1b_wat_resource,
@@ -399,7 +399,7 @@ static struct platform_device ls1b_gmac2_device = {
  .num_resources  = ARRAY_SIZE(ls1b_gmac2_resources),
  .resource       = ls1b_gmac2_resources,
 };
-static struct resource ls1g_nand_resources[] = {
+static struct resource ls1b_nand_resources[] = {
     [0] = {
         .start      =0,
         .end        =0,
@@ -422,14 +422,14 @@ static struct resource ls1g_nand_resources[] = {
     },
 };
 
-struct platform_device ls1g_nand_device = {
-    .name       ="ls1g-nand",
+struct platform_device ls1b_nand_device = {
+    .name       ="ls1b-nand",
     .id         =-1,
     .dev        ={
-        .platform_data = &ls1g_nand_parts,
+        .platform_data = &ls1b_nand_parts,
     },
-    .num_resources  =ARRAY_SIZE(ls1g_nand_resources),
-    .resource       =ls1g_nand_resources,
+    .num_resources  =ARRAY_SIZE(ls1b_nand_resources),
+    .resource       =ls1b_nand_resources,
 };
 
 static struct platform_device ls1b_audio_device = {
@@ -486,7 +486,7 @@ static struct flash_platform_data flash = {
 	};
 	
 	static struct platform_device ls1b_spi0_device = {
-		.name		= "ls1b-spi",
+		.name		= "ls1b-spi0",
 		.id 		= -1,
 		.num_resources	= ARRAY_SIZE(ls1b_spi0_resource),
 		.resource	= ls1b_spi0_resource,
@@ -497,7 +497,7 @@ static struct flash_platform_data flash = {
 #endif
 
 /************************************************/	//GPIO && buzzer && button
-static struct gpio_keys_button ls1g_gpio_button[] = {
+static struct gpio_keys_button ls1b_gpio_button[] = {
 	[0] = {
 		.keycode	= 'A',
 		.gpio	 	= 37,
@@ -525,8 +525,8 @@ static struct gpio_keys_button ls1g_gpio_button[] = {
 	},
 };
 
-static struct gpio_keys_platform_data ls1g_gpio_key_dat = {
-	.buttons 	= ls1g_gpio_button,
+static struct gpio_keys_platform_data ls1b_gpio_key_dat = {
+	.buttons 	= ls1b_gpio_button,
 	.nbuttons 	= 5, 
 };
 
@@ -534,18 +534,18 @@ static struct platform_device ls1b_gpio_key_device = {
 	.name 	= "gpio-keys",
 	.id	= -1,
 	.dev	= {
-		.platform_data = &ls1g_gpio_key_dat,
+		.platform_data = &ls1b_gpio_key_dat,
 	},
 };
 
-static struct gpio_keys_button ls1g_gpio_buzzer[] = {
+static struct gpio_keys_button ls1b_gpio_buzzer[] = {
 	[0] = {
-		.gpio	= 57,
+		.gpio	= 3,	//57
 	},	
 };
 
-static struct gpio_keys_platform_data ls1g_gpio_buzzer_data = {
-	.buttons	= ls1g_gpio_buzzer,
+static struct gpio_keys_platform_data ls1b_gpio_buzzer_data = {
+	.buttons	= ls1b_gpio_buzzer,
 	.nbuttons	= 1,
 };
 
@@ -553,16 +553,48 @@ static struct platform_device ls1b_gpio_buzzer_device = {
 	.name	= "buzzer_gpio",
 	.id	= -1,
 	.dev	= {
-		.platform_data = &ls1g_gpio_buzzer_data,
+		.platform_data = &ls1b_gpio_buzzer_data,
 	},
+};
+
+
+static struct resource ls1b_pwm0_resource[] = {
+	[0]={
+		.start	= LS1B_PWM0_BASE,
+		.end	= (LS1B_PWM0_BASE + 0x0f),
+		.flags	= IORESOURCE_MEM,
+	},
+	[1]={
+		.start	= LS1B_PWM1_BASE,
+		.end	= (LS1B_PWM1_BASE + 0x0f),
+		.flags	= IORESOURCE_MEM,
+	},
+	[2]={
+		.start	= LS1B_PWM2_BASE,
+		.end	= (LS1B_PWM2_BASE + 0x0f),
+		.flags	= IORESOURCE_MEM,
+	},
+	[3]={
+		.start	= LS1B_PWM3_BASE,
+		.end	= (LS1B_PWM3_BASE + 0x0f),
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device ls1b_pwm_device = {
+	.name	= "ls1b-pwm",
+	.id	= -1,
+	.num_resources	= ARRAY_SIZE(ls1b_pwm0_resource),
+	.resource	= ls1b_pwm0_resource,
 };
 
 /***********************************************/
 
 
 
+
 static struct platform_device *ls1b_platform_devices[] __initdata = {
-    &ls1g_nand_device,
+    &ls1b_nand_device,
 	&uart8250_device,
 //	&ls1b_ahci_device,
 	&ls1b_ohci_device,
@@ -575,8 +607,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_i2c_device,
 	&ls1b_audio_device,
 	&ls1b_spi0_device,	//lxy
-//	&ls1b_gpio_key_device,
-//	&ls1b_gpio_buzzer_device,
+	&ls1b_gpio_key_device,
+	&ls1b_gpio_buzzer_device,
+	&ls1b_pwm_device,
 };
 
 #define AHCI_PCI_BAR  5
@@ -627,6 +660,31 @@ int ls1b_platform_init(void)
 #endif
 	for(i=0; i<12; i++)
 		uart8250_data[i].uartclk = ddr_clk/2;
+
+#if 0
+//	clk = *(volatile unsigned int *)(0xbfd010c0);
+//	*(volatile unsigned int *)(0xbfd010c0) = clk | x01;
+
+	*(volatile unsigned int *)(0xbfe5c000 + 0xc) = 0x80;
+	*(volatile unsigned int *)(0xbfe5c000 + 0x0) = 0x0; 
+	*(volatile unsigned int *)(0xbfe5c000 + 0x4) = 0x2;
+	*(volatile unsigned int *)(0xbfe5c000 + 0x8) = 0x5;
+	*(volatile unsigned int *)(0xbfe5c000 + 0xc) = 0x1;
+	
+
+	*(volatile unsigned int *)(0xbfe5c010 + 0xc) = 0x80;
+	*(volatile unsigned int *)(0xbfe5c010 + 0x0) = 0; 
+	*(volatile unsigned int *)(0xbfe5c010 + 0x4) = 19;
+	*(volatile unsigned int *)(0xbfe5c010 + 0x8) = 19 + 320 * 8 *6;
+	*(volatile unsigned int *)(0xbfe5c010 + 0xc) = 0x1;
+
+	*(volatile unsigned int *)(0xbfe5c020 + 0xc) = 0x80;
+	*(volatile unsigned int *)(0xbfe5c020 + 0x0) = 0; 
+	*(volatile unsigned int *)(0xbfe5c020 + 0x4) = (1 + 8) * 240 * (19 + 320 * 8 *6) -1;
+	*(volatile unsigned int *)(0xbfe5c020 + 0x8) = (1 + 8 + 1) * 240 * (19 + 320 * 8 *6) -1;
+	*(volatile unsigned int *)(0xbfe5c020 + 0xc) = 0x1;
+
+#endif
 
 	i2c_register_board_info(0, ls1b_i2c_devs, ARRAY_SIZE(ls1b_i2c_devs));
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));

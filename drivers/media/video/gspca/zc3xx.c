@@ -7023,6 +7023,8 @@ static const struct usb_device_id device_table[] = {
 	{USB_DEVICE(0x10fd, 0x0128)},
 	{USB_DEVICE(0x10fd, 0x804d)},
 	{USB_DEVICE(0x10fd, 0x8050)},
+//	{USB_DEVICE(0x1e4e, 0x0102)},		//lxy
+	{USB_DEVICE(0x1e4e, 0x0102), .driver_info = SENSOR_GC0303},
 	{}			/* end of entry */
 };
 MODULE_DEVICE_TABLE(usb, device_table);

@@ -881,6 +881,12 @@ config M54xx_WATCHDOG
 
 # MIPS Architecture
 
+config LS1B_WDT
+	bool "loongSon 1B Watchdog Timer"
+	depends on WATCHDOG 
+	help
+		Hardware driver for the built-in watchdog timer on the Loongson 1B
+
 config ATH79_WDT
 	tristate "Atheros AR71XX/AR724X/AR913X hardware watchdog"
 	depends on ATH79
