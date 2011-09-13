@@ -1169,7 +1169,7 @@ static int __init ls1b_nand_init(void)
 {
     int ret = 0;
 
-    *((volatile unsigned int *)0xbfd00420) = 0x0a000000;
+//    *((volatile unsigned int *)0xbfd00420) = 0x0a000000;
     ret = platform_driver_register(&ls1b_nand_driver);
     if(ret){
         printk(KERN_ERR "failed to register loongson_1g_nand_driver");

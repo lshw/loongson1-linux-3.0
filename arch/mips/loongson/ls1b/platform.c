@@ -440,22 +440,24 @@ static struct platform_device ls1b_audio_device = {
 
 #if 1		//lxy
 static struct mtd_partition partitions[] = { 
-	{
-		.name		= "pmon",
-		.offset		= 0,
-		.size		= 512 * 1024,	//512KB
-	//	.mask_flags	= MTD_WRITEABLE,
-	}, 
-	{
-		.name		= "kernel",	
-		.offset		= 512 * 1024,
-		.size		= 0x320000,
-	},
-	{
-		.name		= "system",
-		.offset		= 0x3a0000,
-		.size		= 0x460000,
-	}
+	[0] = {
+        .name   ="kernel",
+        .offset =0,
+        .size   =0xe00000,
+//        .mask_flags =   MTD_WRITEABLE,
+    },
+    [1] = {
+        .name   ="os",
+        .offset = 0xe00000,
+        .size   = 0x6700000,
+    
+    },
+    [2] = {
+        .name   ="data",
+        .offset = 0x7500000,
+        .size   = 0xb00000,
+    
+    },
 };
 
 static struct flash_platform_data flash = {
