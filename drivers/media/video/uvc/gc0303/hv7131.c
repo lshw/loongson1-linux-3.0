@@ -70,7 +70,7 @@
 #define VAL_INT_TIME_GC303  0x0050
 #define VAL_INT_TIME  35
 #define VAL_PAG       0x30
-#define VAL_DIV       16		//360Mhz
+#define VAL_DIV       16	//16		//360Mhz
 /* cam2 */
 
 /* integration time */
