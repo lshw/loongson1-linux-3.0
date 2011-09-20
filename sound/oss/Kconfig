@@ -541,3 +541,9 @@ config SOUND_KAHLUA
 
 endif	# SOUND_OSS
 
+
+
+config SND_LS1B
+	tristate "loongson ls1b soundcard"
+	depends on SOUND_PRIME 
+	select SND_PCM

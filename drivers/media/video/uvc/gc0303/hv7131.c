@@ -486,6 +486,7 @@ int sensor_init(int left, int top, int width, int height, int FPReaderOpt)
                 printk("Found GC303\n");
                 return sensor_init_GC303(left, top ,width, height);
         }
+        
         /*
 	else if(ret==0x29)
 	{
@@ -514,6 +515,19 @@ int sensor_init(int left, int top, int width, int height, int FPReaderOpt)
         }*/
 	else
 	{
+		i2c_set_addr(0x42);
+		sensor_write_reg(0xfe, 0x00);	//lxy
+		ret = sensor_read_reg(0x00);
+		printk("Device ID: 0x00 = %2x\n",ret);
+		ret = sensor_read_reg(0x80);
+		printk("Device ID: 0x80 = %2x\n",ret);
+		if(ret == 0x9b)
+		{
+		        printk("Found GC307\n");
+		        return ;
+		}
+		
+		
 		printk("No CMOS!!!\n");
 		return -1;
 	}

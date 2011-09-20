@@ -27,6 +27,9 @@
 #include <asm/mach-loongson/ls1b/ls1b_board_int.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
+#include <media/gc0308_platform.h>		//lxy
+#include <linux/videodev2.h>
+
 
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
@@ -317,6 +320,65 @@ static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
 	 .platform_data	= &tsc2007_info,
 	 },
 };
+
+#ifdef CONFIG_VIDEO_GC0308
+#define GC0308_ENABLED
+#endif
+
+#ifdef GC0308_ENABLED
+static struct gc0308_platform_data gc0308_plat = {
+	.default_width = 640,
+	.default_height = 480,
+	.pixelformat = V4L2_PIX_FMT_YUYV,
+	.freq = 24000000,
+	.is_mipi = 0,
+};
+
+static struct i2c_board_info __initdata gc0308_i2c_info[] = {
+	{
+		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
+		.platform_data = &gc0308_plat,
+	},
+};
+#if 0
+static struct s3c_platform_camera gc0308 = {
+//#ifdef CAM_ITU_CH_A
+	.id		= CAMERA_PAR_A,
+//#else
+//	.id		= CAMERA_PAR_B,
+//#endif
+	.type		= CAM_TYPE_ITU,
+	.fmt		= ITU_601_YCBCR422_8BIT,
+	.order422	= CAM_ORDER422_8BIT_CBYCRY,
+	.i2c_busnum	= 1,
+	.info		= &gc0308_i2c_info,
+	.pixelformat	= V4L2_PIX_FMT_YUYV,
+	.srclk_name	= "mout_mpll",
+	.clk_name	= "sclk_cam1",
+	.clk_rate	= 24000000,             /* 24MHz */
+	.line_length	= 640,              /* 640*480 */
+	/* default resol for preview kind of thing */
+	.width		= 640,
+	.height		= 480,
+	.window		= {
+		.left   = 16,
+		.top    = 0,
+		.width  = 640 - 16,
+		.height = 480,
+	},
+
+	/* Polarity */
+	.inv_pclk	= 0,
+	.inv_vsync	= 1,
+	.inv_href	= 0,
+	.inv_hsync	= 0,
+
+	.initialized	= 0,
+};
+#endif
+#endif
+
+
 
 
 static struct resource ls1b_i2c_resource[] = {
@@ -669,11 +731,11 @@ int ls1b_platform_init(void)
 
 	*(volatile unsigned int *)(0xbfe5c000 + 0xc) = 0x80;
 	*(volatile unsigned int *)(0xbfe5c000 + 0x0) = 0x0; 
-	*(volatile unsigned int *)(0xbfe5c000 + 0x4) = 0x2;
-	*(volatile unsigned int *)(0xbfe5c000 + 0x8) = 0x5;
+	*(volatile unsigned int *)(0xbfe5c000 + 0x4) = 0x1;
+	*(volatile unsigned int *)(0xbfe5c000 + 0x8) = 0x3;
 	*(volatile unsigned int *)(0xbfe5c000 + 0xc) = 0x1;
 	
-
+#if 0
 	*(volatile unsigned int *)(0xbfe5c010 + 0xc) = 0x80;
 	*(volatile unsigned int *)(0xbfe5c010 + 0x0) = 0; 
 	*(volatile unsigned int *)(0xbfe5c010 + 0x4) = 19;
@@ -685,10 +747,13 @@ int ls1b_platform_init(void)
 	*(volatile unsigned int *)(0xbfe5c020 + 0x4) = (1 + 8) * 240 * (19 + 320 * 8 *6) -1;
 	*(volatile unsigned int *)(0xbfe5c020 + 0x8) = (1 + 8 + 1) * 240 * (19 + 320 * 8 *6) -1;
 	*(volatile unsigned int *)(0xbfe5c020 + 0xc) = 0x1;
-
+#endif
 #endif
 
 	i2c_register_board_info(0, ls1b_i2c_devs, ARRAY_SIZE(ls1b_i2c_devs));
+#ifdef GC0308_ENABLED
+	i2c_register_board_info(0, gc0308_i2c_info, ARRAY_SIZE(gc0308_i2c_info));
+#endif
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 
