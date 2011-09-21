@@ -407,7 +407,7 @@ static struct platform_device ls1b_i2c_device = {
  */
 
 static struct platform_device ls1b_dc_device = {
- .name           = "ls1b-fb",
+ .name           = "ls1b-lcd",
  .id             = -1,
 };
 
