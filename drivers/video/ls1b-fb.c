@@ -1,5 +1,5 @@
 /*
- *  linux/drivers/video/sb2f_fb.c -- Virtual frame buffer device
+ *  linux/drivers/video/ls1b_fb.c -- Virtual frame buffer device
  *
  *      Copyright (C) 2002 James Simmons
  *
@@ -26,11 +26,13 @@
 
 #include <asm/uaccess.h>
 #include <ls1b_board.h>
+#include "ls1b-fb.h"
 
 #undef DEBUG
 //#define DEBUG
 //#define DEFAULT_VIDEO_MODE "1024x768-16@60"
 #define DEFAULT_VIDEO_MODE "320x240-16@60"
+//#define DEFAULT_VIDEO_MODE "800x480-16@60"
 
 /* LCD Register define */
 #define LS1B_LCD_ADDR KSEG1ADDR(LS1B_LCD_BASE)	//0xbc301240
@@ -511,9 +513,19 @@ static int __init ls1b_lcd_probe(struct platform_device *dev)
 	info->par = NULL;
 	info->flags = FBINFO_FLAG_DEFAULT;
 	var = info->var = ls1b_lcd_default;	//可变参数结构体 当前var
-
-	if(mode_option)
+	
+	if(mode_option){
 		retval = fb_find_mode(&info->var, info, mode_option, NULL, 0, NULL, 32);
+//		printk("----------  %x\n", retval);
+		if(retval != 3){
+			if(!strncmp("480x272", mode_option, 7)){
+				var = info->var = LS1B_480x272_16;
+			}
+			else if(!strncmp("800x480", mode_option, 7)){
+				var = info->var = LS1B_800x480_16;
+			}
+		}
+	}
 
 	//计算视频缓冲区大小？
     if (!videomemorysize) {
@@ -551,7 +563,7 @@ static int __init ls1b_lcd_probe(struct platform_device *dev)
 	*(volatile int *)0xbc301580 = dma_A;
 //	*(volatile int *)0xbc301590 = dma_A;	//loongson 1A LCD(VGA)控制器
 	/*disable fb0,board only use fb1 now*/
-#ifdef CONFIG_MACH_SB2F
+#ifdef CONFIG_MACH_LS1B
 	SB_FB_BUF_CONFIG_REG(0) &= ~0x100;
 #endif
 	
@@ -595,7 +607,7 @@ static struct platform_driver ls1b_lcd_driver = {
 	.probe		= ls1b_lcd_probe,
 	.remove	= ls1b_lcd_remove,
 	.driver	= {
-		.name	= "ls1b-fb",
+		.name	= "ls1b-lcd",
 		.owner = THIS_MODULE,
 	},
 };
@@ -610,7 +622,7 @@ static int __init ls1b_lcd_init(void)
 	printk(KERN_DEBUG "ls1b_lcd Initialization\n");
 #endif
 #ifndef MODULE
-	if (fb_get_options("ls1b_lcd", &option))
+	if (fb_get_options("ls1bfb", &option))
 		return -ENODEV;
 	ls1b_lcd_setup(option);
 #endif

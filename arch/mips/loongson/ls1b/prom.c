@@ -113,6 +113,7 @@ void __init prom_init(void)
 #endif
 	if (memsize == 0) 
 		memsize = 256;
+//		memsize = 128;
 
 	prom_printf("Booting Linux kernel...\n");
 	system_state = SYSTEM_BOOTING;
