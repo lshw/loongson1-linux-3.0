@@ -29,6 +29,9 @@
 #include <linux/i2c/tsc2007.h>
 #include <media/gc0308_platform.h>		//lxy
 #include <linux/videodev2.h>
+#include <linux/spi/ads7846.h>
+#include <asm/mach-loongson/ls1b/spi.h>
+
 
 
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
@@ -528,14 +531,88 @@ static struct flash_platform_data flash = {
 	.nr_parts	= ARRAY_SIZE(partitions),
 	.type		= "w25x64",
 };
-	static struct spi_board_info ls1b_spi_devices[] = {
-		{	/* DataFlash chip */
+
+
+
+	//-----------------SPI-0---------------------------
+#define GPIO_IRQ 60
+//	static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
+//		= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
+	
+	int ads7846_pendown_state(unsigned int pin)
+	{
+		unsigned int ret;
+		ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_IN1)); //读回的数值是反码？
+		ret = ((ret >> (GPIO_IRQ & 0x1f)) & 0x01);
+	//	printk("ret = %x \n", !ret);
+		return !ret;
+	}
+	
+	int ads7846_detect_penirq(void)
+	{
+		unsigned int ret;
+		//配置GPIO0
+		ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)); //GPIO0 0xbfd010c0 使能GPIO
+		ret |= (1 << (GPIO_IRQ & 0x1f)); //GPIO50
+		*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)) = ret;
+		
+		ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1));//GPIO0 设置GPIO输入使能
+		ret |= (1 << (GPIO_IRQ & 0x1f));
+		*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1)) = ret;
+		(ls1b_board_hw0_icregs + 3) -> int_edge &= ~(1 << (GPIO_IRQ & 0x1f));
+	//	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (GPIO_IRQ & 0x1f));
+		(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_IRQ & 0x1f));
+		(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_IRQ & 0x1f));
+		(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_IRQ & 0x1f));
+		(ls1b_board_hw0_icregs + 3) -> int_en		|= (1 << (GPIO_IRQ & 0x1f));
+		
+		return (LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IRQ);
+	}
+	
+	static struct ads7846_platform_data ads_info = {
+		.model				= 7846,
+		.vref_delay_usecs		= 1,
+	//	.vref_mv			= 0,
+		.keep_vref_on			= 0,
+	//	.settle_delay_usecs 	= 150,
+	//	.penirq_recheck_delay_usecs = 1,
+		.x_plate_ohms			= 800,
+		.pressure_min		 = 0,//需要定义采用0
+		.pressure_max		 = 15000,//需要定义采用15000
+		.debounce_rep			= 3,
+		.debounce_max			= 10,
+		.debounce_tol			= 50,
+		.get_pendown_state		= ads7846_pendown_state,
+		.filter_init			= NULL,
+		.filter 			= NULL,
+		.filter_cleanup 		= NULL,
+	};
+
+
+	static struct spi_board_info ls1b_spi0_devices[] = {
+		[0]={	/* DataFlash chip */
 			.modalias	= "m25p80",
 			.chip_select	= 0,
 			.max_speed_hz	= 80 * 1000 * 1000,
 			.platform_data	= &flash,
-		}
+		},
+		[1]={	/* DataFlash chip */
+			.modalias	= "mcp3201",
+			.chip_select	= 0,
+			.max_speed_hz	= 80 * 1000 * 1000,
+		},
+		[2]={
+			.modalias = "ads7846",
+			.platform_data = &ads_info,
+//			.irq = LS1B_BOARD_I2C0_IRQ, //LS1B_BOARD_PCI_INTA_IRQ,	//PCF8574A I2C扩展IO口中断
+			.bus_num 		= 0,
+			.chip_select 	= SPI0_CS1,
+			.max_speed_hz 	= 500*1000,
+			.mode 			= SPI_MODE_1,
+//			.irq			= ads7846_detect_penirq(),
+		},
 	};
+	
 	static struct resource ls1b_spi0_resource[] = {
 		[0]={
 			.start	= LS1B_BOARD_SPI0_BASE,
@@ -548,6 +625,12 @@ static struct flash_platform_data flash = {
 			.flags	= IORESOURCE_IRQ,
 		},
 	};
+
+	static struct ls1b_spi_info ls1b_spi0_platdata = {
+	//	.pin_cs = SPI0_CS0,// CS 片选
+		.board_size = ARRAY_SIZE(ls1b_spi0_devices),
+		.board_info = ls1b_spi0_devices,
+	};
 	
 	static struct platform_device ls1b_spi0_device = {
 		.name		= "ls1b-spi0",
@@ -555,7 +638,7 @@ static struct flash_platform_data flash = {
 		.num_resources	= ARRAY_SIZE(ls1b_spi0_resource),
 		.resource	= ls1b_spi0_resource,
 		.dev		= {
-			.platform_data	= &ls1b_spi_devices,
+			.platform_data	= &ls1b_spi0_platdata,//&ls1b_spi_devices,
 		},
 	};
 #endif
@@ -754,6 +837,9 @@ int ls1b_platform_init(void)
 #ifdef GC0308_ENABLED
 	i2c_register_board_info(0, gc0308_i2c_info, ARRAY_SIZE(gc0308_i2c_info));
 #endif
+
+	
+	ls1b_spi0_devices[2].irq = ads7846_detect_penirq();
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 

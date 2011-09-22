@@ -193,6 +193,10 @@ config BUZZER
         tristate "loongson1b-bsp buzzer"
         help
           buzzer driver.
+          
+config LS1B_PWM_DRIVER
+	bool	"ls1b pwm driver"
+	default	y
 
 config IBM_BSR
 	tristate "IBM POWER Barrier Synchronization Register support"
