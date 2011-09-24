@@ -53,6 +53,7 @@ static int __devinit buzzer_gpio_probe(struct platform_device *pdev)
 
 	for(i = 0;i < pkb->nbuttons;i++)
 	{
+		gpio_request(pkb->buttons[i].gpio,"buzzer");
 		gpio_direction_output(pkb->buttons[i].gpio, 0);
 	}
 
@@ -89,7 +90,11 @@ static int __init buzzer_init(void)
 
 static void __exit buzzer_exit(void)
 {
+	int i;
 	misc_deregister(&buzzer_misc_device);
+	for(i = 0;i < pkb->nbuttons;i++){
+		gpio_free(pkb->buttons[i].gpio);
+	}
 }
 
 module_init(buzzer_init);

@@ -596,7 +596,7 @@ static struct flash_platform_data flash = {
 			.max_speed_hz	= 80 * 1000 * 1000,
 			.platform_data	= &flash,
 		},
-		[1]={	/* DataFlash chip */
+		[1]={	/* ADC chip */
 			.modalias	= "mcp3201",
 			.chip_select	= 0,
 			.max_speed_hz	= 80 * 1000 * 1000,
@@ -630,6 +630,7 @@ static struct flash_platform_data flash = {
 	//	.pin_cs = SPI0_CS0,// CS 片选
 		.board_size = ARRAY_SIZE(ls1b_spi0_devices),
 		.board_info = ls1b_spi0_devices,
+		.num_cs		= SPI0_CS3 + 1,
 	};
 	
 	static struct platform_device ls1b_spi0_device = {
