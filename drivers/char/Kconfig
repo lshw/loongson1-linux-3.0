@@ -194,6 +194,11 @@ config BUZZER
         help
           buzzer driver.
           
+config 74LV165_BUTTON	
+        tristate "loongson1b-bsp 74LV165_BUTTON"
+        help
+          key button driver.
+          
 config LS1B_PWM_DRIVER
 	bool	"ls1b pwm driver"
 	default	y
