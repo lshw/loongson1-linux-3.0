@@ -1011,6 +1011,7 @@ static int ls1b_nand_probe(struct platform_device *pdev)
 	struct resource *r;
 	int ret = 0, irq;
 
+	printk ("lxy: ls1b_nand_probe.....\n");
 	pdata = pdev->dev.platform_data;
 
 	if (!pdata) {

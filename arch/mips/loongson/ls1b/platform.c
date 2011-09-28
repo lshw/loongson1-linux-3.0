@@ -504,32 +504,54 @@ static struct platform_device ls1b_audio_device = {
 
 
 #if 1		//lxy
-static struct mtd_partition partitions[] = { 
+static struct mtd_partition partitions[] = {
+#if 1
 	[0] = {
-        .name   ="kernel",
-        .offset =0,
-        .size   =0xe00000,
-//        .mask_flags =   MTD_WRITEABLE,
-    },
-    [1] = {
-        .name   ="os",
-        .offset = 0xe00000,
-        .size   = 0x6700000,
-    
-    },
-    [2] = {
-        .name   ="data",
-        .offset = 0x7500000,
-        .size   = 0xb00000,
-    
-    },
+		.name		= "pmon",
+		.offset		= 0,
+		.size		= 512 * 1024,	//512KB
+	//	.mask_flags	= MTD_WRITEABLE,
+	}, 
+	[1] = {
+		.name		= "kernel",	
+		.offset		= 512 * 1024,
+		.size		= 0x4a0000,
+	},
+	[2] = {
+		.name		= "data",
+		.offset		= 0x520000,
+		.size		= 0x800000 - 0x520000,
+	},
+#else
+	[0] = {
+		.name		= "pmon",
+		.offset		= 0,
+		.size		= 512 * 1024,	//512KB
+	//	.mask_flags	= MTD_WRITEABLE,
+	}, 
+	[1] = {
+		.name		= "kernel",	
+		.offset		= 512 * 1024,
+		.size		= 0x2c0000,
+	},
+	[2] = {
+		.name		= "system",
+		.offset		= 0x340000,
+		.size		= 0x180000,
+	},
+	[3] = {
+		.name		= "data",
+		.offset		= 0x520000,
+		.size		= 0x800000 - 0x520000,
+	},
+#endif
 };
 
 static struct flash_platform_data flash = {
 	.name		= "ls1b_norflash",
 	.parts		= partitions,
 	.nr_parts	= ARRAY_SIZE(partitions),
-	.type		= "w25x64",
+	.type		= "w25q64",
 };
 
 
@@ -591,7 +613,7 @@ static struct flash_platform_data flash = {
 
 	static struct spi_board_info ls1b_spi0_devices[] = {
 		[0]={	/* DataFlash chip */
-			.modalias	= "m25p80",
+			.modalias	= "w25q64",		//"m25p80",
 			.chip_select	= 0,
 			.max_speed_hz	= 80 * 1000 * 1000,
 			.platform_data	= &flash,
