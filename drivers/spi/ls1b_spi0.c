@@ -390,7 +390,14 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 	}
 
 	/* register all the devices associated */
-
+/*
+#if 1
+	if (spi_register_master(master)) {
+		dev_err(&pdev->dev, "cannot register SPI master\n");
+		err = -EBUSY;
+		goto err_register;
+	}
+#else
 	bi = &hw->pdata->board_info[0];
 	for (i = 0; i < hw->pdata->board_size; i++, bi++) {
 		dev_info(hw->dev, "registering %s\n", bi->modalias);
@@ -398,6 +405,8 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 		bi->controller_data = hw;
 		spi_new_device(master, bi);
 	}
+#endif
+*/
 
 	printk(KERN_EMERG "loongson 1B spi probe done\n");
 	return 0;

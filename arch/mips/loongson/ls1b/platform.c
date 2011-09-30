@@ -612,18 +612,22 @@ static struct flash_platform_data flash = {
 
 
 	static struct spi_board_info ls1b_spi0_devices[] = {
-		[0]={	/* DataFlash chip */
+#if CONFIG_MTD_M25P80
+		{	/* DataFlash chip */
 			.modalias	= "w25q64",		//"m25p80",
+			.bus_num 		= 0,
 			.chip_select	= 0,
 			.max_speed_hz	= 80 * 1000 * 1000,
 			.platform_data	= &flash,
 		},
-		[1]={	/* ADC chip */
+#endif
+		{	/* ADC chip */
 			.modalias	= "mcp3201",
+			.bus_num 		= 0,
 			.chip_select	= 0,
 			.max_speed_hz	= 80 * 1000 * 1000,
 		},
-		[2]={
+		{
 			.modalias = "ads7846",
 			.platform_data = &ads_info,
 //			.irq = LS1B_BOARD_I2C0_IRQ, //LS1B_BOARD_PCI_INTA_IRQ,	//PCF8574A I2C扩展IO口中断
@@ -631,7 +635,7 @@ static struct flash_platform_data flash = {
 			.chip_select 	= SPI0_CS1,
 			.max_speed_hz 	= 500*1000,
 			.mode 			= SPI_MODE_1,
-//			.irq			= ads7846_detect_penirq(),
+			.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IRQ,
 		},
 	};
 	
@@ -657,7 +661,7 @@ static struct flash_platform_data flash = {
 	
 	static struct platform_device ls1b_spi0_device = {
 		.name		= "ls1b-spi0",
-		.id 		= -1,
+		.id 		= 0,
 		.num_resources	= ARRAY_SIZE(ls1b_spi0_resource),
 		.resource	= ls1b_spi0_resource,
 		.dev		= {
@@ -861,8 +865,10 @@ int ls1b_platform_init(void)
 	i2c_register_board_info(0, gc0308_i2c_info, ARRAY_SIZE(gc0308_i2c_info));
 #endif
 
+	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
 	
-	ls1b_spi0_devices[2].irq = ads7846_detect_penirq();
+//	ls1b_spi0_devices[2].irq = ads7846_detect_penirq();
+	ads7846_detect_penirq();
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 
