@@ -1324,6 +1324,8 @@ static int mmc_spi_probe(struct spi_device *spi)
 	struct mmc_spi_host	*host;
 	int			status;
 
+	printk("mmc_spi_probe...\n");
+
 	/* We rely on full duplex transfers, mostly to reduce
 	 * per-transfer overheads (by making fewer transfers).
 	 */
@@ -1363,7 +1365,6 @@ static int mmc_spi_probe(struct spi_device *spi)
 	mmc = mmc_alloc_host(sizeof(*host), &spi->dev);
 	if (!mmc)
 		goto nomem;
-
 	mmc->ops = &mmc_spi_ops;
 	mmc->max_blk_size = MMC_SPI_BLOCKSIZE;
 	mmc->max_segs = MMC_SPI_BLOCKSATONCE;
@@ -1444,6 +1445,8 @@ static int mmc_spi_probe(struct spi_device *spi)
 		status = host->pdata->init(&spi->dev, mmc_spi_detect_irq, mmc);
 		if (status != 0)
 			goto fail_glue_init;
+	}else{
+		mmc_spi_detect_irq(0, mmc);
 	}
 
 	/* pass platform capabilities, if any */

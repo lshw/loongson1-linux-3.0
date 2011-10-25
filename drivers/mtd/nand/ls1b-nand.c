@@ -900,16 +900,17 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 
                {
 
-                   unsigned int id_val_l=0,id_val_h=0;
-                   unsigned int timing = 0;
-                   unsigned char *data = (unsigned char *)(info->data_buff);
-                   _NAND_READ_REG(0xc,timing);
-                   _NAND_SET_REG(0xc,0x30f0); 
-                   _NAND_SET_REG(0x0,0x21); 
+                   	unsigned int id_val_l=0,id_val_h=0;
+                   	unsigned int timing = 0;
+                   	unsigned char *data = (unsigned char *)(info->data_buff);
+                   	_NAND_READ_REG(0xc,timing);
+					_NAND_SET_REG(0xc,0x30f0); 		//lxy: origin
+//					_NAND_SET_REG(0xc,0x20ff); 
+                   	_NAND_SET_REG(0x0,0x21); 
 
-                   while(((id_val_l |= _NAND_IDL) & 0xff)  == 0){
-                       id_val_h = _NAND_IDH;
-                   }
+                   	while(((id_val_l |= _NAND_IDL) & 0xff)  == 0){
+                       	id_val_h = _NAND_IDH;
+                   	}
 
 //                   printk("id_val_l=0x%08x\nid_val_h=0x%08x\n",id_val_l,id_val_h);
                    _NAND_SET_REG(0xc,timing);

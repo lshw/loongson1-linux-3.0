@@ -994,8 +994,8 @@ MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE ("GPL");
 
 #ifdef CONFIG_USB_OHCI_HCD_LS1B		//lxy
-#include "ohci-sb2f.c"
-#define	PLATFORM_DRIVER		ohci_hcd_sb2f_driver
+#include "ohci-ls1b.c"
+#define	PLATFORM_DRIVER		ohci_hcd_ls1b_driver
 #endif
 
 #ifdef CONFIG_PCI

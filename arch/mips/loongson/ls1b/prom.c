@@ -65,6 +65,10 @@ void __init prom_init_cmdline(void)
 void __init prom_init(void)
 {
 	long l;
+	int pll,ctrl,clk;
+#define PLL_FREQ_REG(x) *(volatile unsigned int *)(0xbfe78030+x)
+
+	
   	argc=fw_arg0;
 	arg=(int *)fw_arg1;
 	env=(int *)fw_arg2;
@@ -105,6 +109,14 @@ void __init prom_init(void)
 		}
 		env++;
 		l=(long)*env;
+	}
+
+	if (bus_clock == 0){
+		pll = PLL_FREQ_REG(0);
+		ctrl = PLL_FREQ_REG(4);
+		clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
+		ls1b_cpu_clock = ((ctrl&0x300)==0x300)?33333333:(ctrl&(1<<25))?clk/((ctrl>>20)&0x1f):clk/2;
+		bus_clock = ((ctrl&0xc00)==0xc00)?33333333:(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
 	}
 #else
 	strcat(arcs_cmdline, " root=/dev/hda3 console=tty");

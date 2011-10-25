@@ -21,9 +21,10 @@
 #include <linux/mtd/partitions.h>
 #include <linux/delay.h>
 #include <linux/spi/spi.h>		//lxy
+#include <linux/spi/mmc_spi.h>		//lqx
 #include <linux/mtd/partitions.h>
 #include <linux/spi/flash.h>
-#include <asm/mach-loongson/ls1b/gpio_keys.h>	//lqx
+//#include <asm/mach-loongson/ls1b/gpio_keys.h>	//lqx
 #include <asm/mach-loongson/ls1b/ls1b_board_int.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
@@ -31,6 +32,7 @@
 #include <linux/videodev2.h>
 #include <linux/spi/ads7846.h>
 #include <asm/mach-loongson/ls1b/spi.h>
+#include <linux/gpio_keys.h>
 
 
 
@@ -555,6 +557,9 @@ static struct flash_platform_data flash = {
 };
 
 
+static struct mmc_spi_platform_data mmc_spi = {
+	.detect_delay = 100,
+};	
 
 	//-----------------SPI-0---------------------------
 #define GPIO_IRQ 60
@@ -612,7 +617,7 @@ static struct flash_platform_data flash = {
 
 
 	static struct spi_board_info ls1b_spi0_devices[] = {
-#if CONFIG_MTD_M25P80
+#ifdef CONFIG_MTD_M25P80
 		{	/* DataFlash chip */
 			.modalias	= "w25q64",		//"m25p80",
 			.bus_num 		= 0,
@@ -636,6 +641,13 @@ static struct flash_platform_data flash = {
 			.max_speed_hz 	= 500*1000,
 			.mode 			= SPI_MODE_1,
 			.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IRQ,
+		},
+		{	/* mmc/sd card */
+			.modalias	= "mmc_spi",		//mmc spi,
+			.bus_num 		= 0,
+			.chip_select	= SPI0_CS2,
+			.max_speed_hz	= 25 * 1000 * 1000,
+			.platform_data	= &mmc_spi,
 		},
 	};
 	
@@ -673,39 +685,40 @@ static struct flash_platform_data flash = {
 /************************************************/	//GPIO && buzzer && button
 static struct gpio_keys_button ls1b_gpio_button[] = {
 	[0] = {
-		.keycode	= 'A',
+		.code		= 'A',
 		.gpio	 	= 37,
 		.desc		= "SW1",
 	},
 	[1] = {
-		.keycode	= 'B',
+		.code		= 'B',
 		.gpio	 	= 38,
 		.desc		= "SW2",
 	},
 	[2] = {
-		.keycode	= 'C',
+		.code		= 'C',
 		.gpio	 	= 39,
 		.desc		= "SW3",
 	},
 	[3] = {
-		.keycode	= 'D',
+		.code		= 'D',
 		.gpio	 	= 40,
 		.desc		= "SW4",
 	},
 	[4] = {
-		.keycode	= 'E',
+		.code		= 'E',
 		.gpio	 	= 41,
 		.desc		= "SW5",
 	},
 };
 
 static struct gpio_keys_platform_data ls1b_gpio_key_dat = {
-	.buttons 	= ls1b_gpio_button,
-	.nbuttons 	= 5, 
+	.buttons 		= ls1b_gpio_button,
+	.nbuttons 		= 5, 
+	.poll_interval	= 200,
 };
 
 static struct platform_device ls1b_gpio_key_device = {
-	.name 	= "gpio-keys",
+	.name 	= "gpio-keys-polled",
 	.id	= -1,
 	.dev	= {
 		.platform_data = &ls1b_gpio_key_dat,
@@ -716,6 +729,13 @@ static struct gpio_keys_button ls1b_gpio_buzzer[] = {
 	[0] = {
 		.gpio	= 3,	//57
 	},	
+/*
+	[1] = {
+		.gpio	= 34,
+	},	
+	[2] = {
+		.gpio	= 35,
+	},	*/
 };
 
 static struct gpio_keys_platform_data ls1b_gpio_buzzer_data = {
