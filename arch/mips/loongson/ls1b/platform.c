@@ -822,11 +822,11 @@ int ls1b_platform_init(void)
 	/*ls1f usb reset stop*/
 	*(volatile int *)0xbff10204 = 0x40000000;
 #else
-	*(volatile int *)0xbfd00424 = 0;
+	*(volatile int *)0xbfd00424 &= ~0x80000000;
 	*(volatile int *)0xbfd00424;
 	mdelay(1);
 	/*ls1g usb reset stop*/
-	*(volatile int *)0xbfd00424 = 0x80000000;
+	*(volatile int *)0xbfd00424 |= 0x80000000;
 #endif
 
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
