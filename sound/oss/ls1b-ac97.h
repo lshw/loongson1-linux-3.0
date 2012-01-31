@@ -10,7 +10,6 @@
 
 #ifndef FCR_AC97_H__
 #define FCR_AC97_H__
-//typedef unsigned int U32;
 
 #define _REG(x) 	((volatile u32 *)(x))
 #define _REG2(b,o) 	((volatile u32 *)((b)+(o)))
@@ -18,22 +17,11 @@
 #define LSON_AC_FMT  		AFM_S16_LE
 #define LSON_AC_MAXCHNL 	2
 
-/*
- * 2x4 个DMA DESC
- */
 
 #define DMA_FROMAC_DESCs 4
 #define DMA_TOAC_DESCs 4
 
 
-/*
- * NOTE 3:
- * registers define
- */
-
-//#define Lson_AC97_IOBASE 0x00000000L
-#if 0
-#else
 //AC97_controler
 #define AC97_REG(off)       _REG2(KSEG1ADDR(SB2F_AC97_REGS_BASE),(off))
 #define CSR			AC97_REG(0x00)
@@ -69,7 +57,6 @@
 #define OC_DATA     OC0_DATA            /*DEFAULT */
 #define IN_DATA     IC1_DATA            /*SETTING */
 
-#endif
 
 #define 	INPUT_CHANNELS	8
 #define 	OUTPUT_CHANNELS	9
@@ -83,7 +70,6 @@
 #define OCCR	    OCCR0
 #define OUT_CHANNEL OC[0]
 #define IN_CHANNEL  IC[0]
-//interrupt state reg;
 #define INTS_CRAC_MASK	0x3
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -124,81 +110,83 @@
 #define AUD_READ_ADDR		0x9fe74c4c
 
 #define BLANK_SIZE		0x20
-#if 0
-/*control and status regs*/
-#define DMA_STATUS  		 DMA_REG(0x2C)
-#define DMA_INT_STATUS	 	 DMA_REG(0x2C)
-#define DMA_INT_CLEAN		 DMA_REG(0x2C)
-//#define DMA_CONTROL 		 DMA_REG(0x0)   /*NOT this reg*/
-#define DMA_INT_MASK		 DMA_REG(0x28)  /*INT_MASK*/
-/*channel control regs*/
-#define DMA_ADDR_TODEV	 	 DMA_REG(0x0)   /*hardware define as RD_FIFO*/
-#define DMA_SIZE_TODEV   	 DMA_REG(0x4)   /*RD_FIFO_SIZE*/
-#define DMA_TODEV_RDPT       DMA_REG(0x8)   /*RD_FIFO_RD_PT*/               
-#define DMA_TODEV_WRPT       DMA_REG(0xc)   /*RD_FIFO_WR_PT*/               
-#define DMA_ADDR_FROMDEV 	 DMA_REG(0x10)  /*WR_FIFO*/
-#define DMA_SIZE_FROMDEV 	 DMA_REG(0x14)  /*WR_FIFO_SIZE*/
-#define DMA_FROMDEV_RDPT     DMA_REG(0x18)  /*RD_FIFO_RD_PT*/               
-#define DMA_FROMDEV_WRPT     DMA_REG(0x1c)  /*RD_FIFO_WR_PT*/               
-#define DMA_SET_TODEV        DMA_REG(0x20)  /*RD_MODE*/
-#define DMA_SET_FRMDEV       DMA_REG(0x24)   /*WR_MODE*/
 
-//status
-#define DESC_TODEV_COMPELE	(0x1)           /**/
-#define DESC_TODEV_EMPTY	(0x2)
-#define DESC_TODEV_FULL		(0x4)
-#define DESC_FRMDEV_COMPELE	(0x8)
-#define DESC_FRMDEV_EMPTY	(0x10)
-#define DESC_FRMDEV_FULL	(0x20)
-#define DESC_EMPTY          (DESC_TODEV_EMPTY|DESC_FRMDEV_EMPTY)
-#define DESC_FULL           (DESC_TODEV_FULL|DESC_FRMDEV_FULL)
-//IRQ status
-#define IRQ_TODEV_STANS     DESC_TODEV_COMPELE 
-#define IRQ_TODEV_EMPTY		DESC_TODEV_EMPTY    
-#define IRQ_FRMDEV_STANS	DESC_FRMDEV_COMPELE	
-#define IRQ_FRMDEV_EMPTY	DESC_FRMDEV_EMPTY	
-#define IRQ_TODEV	        IRQ_TODEV_STANS     		
-#define IRQ_FRMDEV	        IRQ_FRMDEV_STANS			
+#define ZERO_BUF_SIZE 128
+#define DESC_VALID 1
 
-//IRQ clear
-#define CLS_IN_STANS       	0x00000001
-#define CLS_IN_EMPTY		0x00000002
-#define CLS_OUT_STANS	 	0x00000004
-#define CLS_OUT_EMPTY		0x00000008
-#define CLEAN_ALL		    0x0000003F
+typedef struct _audio_dma_desc {
+	u32 ordered;
+	u32 saddr;
+	u32 daddr;
+	u32 length;
+	u32 step_length;
+	u32 step_times;
+	u32 cmd;
+	u32 stats;
+} _audio_dma_desc;//用来描述DMA控制器
 
-/*
-enable a dma channel after desc write;
-*/
-#define DMA_CHNN_IN 	0
-#define DMA_CHNN_OUT	1
+typedef struct audio_dma_desc {
+	_audio_dma_desc snd;
+	_audio_dma_desc null;
+	struct audio_dma_desc *next;
+	struct list_head link;
+	struct list_head all;
+	dma_addr_t snd_dma_handle;
+	dma_addr_t snd_dma;
+	u32 pos;
+	char *snd_buffer;
+} audio_dmadesc_t;//描述每个DMA缓冲区
 
-#define TO_DEV_DESC_FULL    (((*DMA_STATUS)&DESC_TODEV_FULL)==DESC_TODEV_FULL) 
-#define TO_DEV_DESC_EMPTY   (((*DMA_STATUS)&DESC_TODEV_EMPTY)==DESC_TODEV_EMPTY)
-#define FROM_DEV_DESC_FULL  (((*DMA_STATUS)&DESC_FRMDEV_FULL)==DESC_FRMDEV_FULL)
-#define FROM_DEV_DESC_EMPTY (((*DMA_STATUS)&DESC_FRMDEV_EMPTY)==DESC_FRMDEV_EMPTY)
 
-#define DMA_ENABLE(ch)	do{}while(0)
+typedef struct audio_stream {
+	char *name;		//in or out
+	u32 buffer_size;
+	_audio_dma_desc *ask_dma;
+	struct list_head free_list;
+	struct list_head run_list;
+	struct list_head done_list;
+	struct list_head all_list;
+	spinlock_t lock;
+#ifdef CONFIG_SND_SB2F_TIMER
+	struct timer_list	timer;		/* "no irq" timer */
+#endif
+	u32 nbfrags;
+	u32 fragsize;
+	u32 descs_per_frag;
+	struct semaphore sem;
+	wait_queue_head_t frag_wq;
+	char *null_buffer;
+	dma_addr_t null_dma;
+	dma_addr_t ask_dma_handle;
 
-#if 1
-#define DMA_DESC_ISFULL(channel)  ({int __ret;\
-				if (channel==DMA_CHNN_OUT)\
-				  __ret=TO_DEV_DESC_FULL;\
-				else \
-				  __ret=FROM_DEV_DESC_FULL;\
-				__ret;\
-				})
+	u32 output:1;
+	u32 single:1;
+	u32 fmt;
+	u32 rate;
+	u32 state;
+} audio_stream_t;
 
-#define DMA_DESC_ISEMPTY(channel)  ({int __ret;\
-				if (channel==DMA_CHNN_OUT)\
-				  __ret=TO_DEV_DESC_EMPTY;\
-				else \
-				  __ret=FROM_DEV_DESC_EMPTY; \
-				__ret; \
-				})
+enum {
+STOP = 0,
+RUN = 1
+};
+
+typedef struct audio_state {
+	audio_stream_t *input_stream;
+	audio_stream_t *output_stream;
+	u32 dev_dsp;
+	u32 rd_ref:1;
+	u32 wr_ref:1;
+	struct semaphore sem;
+} audio_state_t;
+
+#define DEBUG 1
+#define REC_DEBUG 1
+#undef REC_DEBUG
+#define DMA_DESC		0x5
+#define REC_NBFRAGS		DMA_DESC
+#define PLAY_NBFRAGS		DMA_DESC
+#define AUDIO_FRAGSIZE_DEFAULT  0x2000
+
 #endif
 
-
-
-#endif
-#endif
