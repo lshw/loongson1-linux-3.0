@@ -32,6 +32,7 @@
 #include <linux/videodev2.h>
 #include <linux/spi/ads7846.h>
 #include <asm/mach-loongson/ls1b/spi.h>
+#include <asm/mach-loongson/ls1b/fb.h>
 #include <linux/gpio_keys.h>
 
 
@@ -411,9 +412,26 @@ static struct platform_device ls1b_i2c_device = {
  * dc
  */
 
-static struct platform_device ls1b_dc_device = {
- .name           = "ls1b-lcd",
- .id             = -1,
+//static struct platform_device ls1b_dc_device = {
+// .name           = "ls1b-lcd",
+// .id             = -1,
+//};
+
+static struct resource ls1b_lcd_resource[] = {
+	[0] = {
+		.start = LS1B_LCD_BASE,
+		.end   = LS1B_LCD_BASE + 0x00100000 - 1,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+struct platform_device ls1b_dc_device = {
+	.name		  = "ls1b-lcd",
+	.id		  = -1,
+	.num_resources	  = ARRAY_SIZE(ls1b_lcd_resource),
+	.resource	  = ls1b_lcd_resource,
+	.dev              = {
+	}
 };
 
 /*

@@ -1,649 +1,992 @@
 /*
- *  linux/drivers/video/ls1b_fb.c -- Virtual frame buffer device
- *
- *      Copyright (C) 2002 James Simmons
- *
- *	Copyright (C) 1997 Geert Uytterhoeven
- *
- *  This file is subject to the terms and conditions of the GNU General Public
- *  License. See the file COPYING in the main directory of this archive for
- *  more details.
+ *loongson1B LCD driver
  */
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/mm.h>
-#include <linux/dma-mapping.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
 #include <linux/delay.h>
-#include <linux/interrupt.h>
-#include <linux/platform_device.h>
 #include <linux/fb.h>
 #include <linux/init.h>
+#include <linux/dma-mapping.h>
+#include <linux/interrupt.h>
+#include <linux/workqueue.h>
+#include <linux/wait.h>
+#include <linux/platform_device.h>
+#include <linux/clk.h>
 
+//#include <asm/io.h>
 #include <asm/uaccess.h>
+//#include <asm/div64.h>
+
+//#include <asm/mach/map.h>
+//#include <asm/arch/regs-lcd.h>
+//#include <asm/arch/regs-gpio.h>
+//#include <asm/arch/fb.h>
+#include <fb.h>
 #include <ls1b_board.h>
+
+#ifdef CONFIG_PM
+#include <linux/pm.h>
+#endif
+
 #include "ls1b-fb.h"
 
-#undef DEBUG
-//#define DEBUG
-//#define DEFAULT_VIDEO_MODE "1024x768-16@60"
-#define DEFAULT_VIDEO_MODE "320x240-16@60"
-//#define DEFAULT_VIDEO_MODE "800x480-16@60"
+#define DEFAULT_VIDEO_MODE "480x272-16@60"
+static char *mode_option = DEFAULT_VIDEO_MODE;
+static struct ls1bfb_mach_info *mach_info;
 
-/* LCD Register define */
-#define LS1B_LCD_ADDR KSEG1ADDR(LS1B_LCD_BASE)	//0xbc301240
+/* Debugging stuff */
+#ifdef CONFIG_FB_LS1B_DEBUG
+static int debug	   = 1;
+#else
+static int debug	   = 0;
+#endif
 
-#define SB_FB_BUF_CONFIG_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+n*16)				//0xbc301240
-#define SB_FB_BUF_ADDRESS_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32+n*16)			//0xbc301260
-#define SB_FB_BUF_STRIDE_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*2+n*16)			//0xbc301280
-#define SB_FB_BUF_ORIGIN_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*3+n*16)			//0xbc3012a0
+#define dprintk(msg...)	if (debug) { printk(KERN_DEBUG "ls1bfb: " msg); }
 
-#define SB_FB_OVLY_CONFIG_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*4+n*16)		//0xbc3012c0
-#define SB_FB_OVLY_ADDRESS_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*5++n*16)		//0xbc3012e0
-#define SB_FB_OVLY_STRIDE_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*6++n*16)		//0xbc301300
-#define SB_FB_OVLY_TOPLEFT_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*7+n*16)		//0xbc301320
-#define SB_FB_OVLY_BOTRIGHT_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*8+n*16)		//0xbc301340
+/* useful functions */
 
-#define SB_FB_DITHER_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*9+n*16)				//0xbc301360
-#define SB_FB_DITHER_TABLE_REG_LOW(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*10+n*16)	//0xbc301380
-#define SB_FB_DITHER_TABLE_REG_HIG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*11+n*16)	//0xbc3013a0
-
-#define SB_FB_PANEL_CONFIG_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*12+n*16)		//0xbc3013c0
-#define SB_FB_PANEL_TIMING_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*13+n*16)		//0xbc3013e0
-
-#define SB_FB_HDISP_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*14+n*16)				//0xbc301400
-#define SB_FB_HSYNC_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*15+n*16)				//0xbc301420
-#define SB_FB_HCNT1_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*16+n*16)				//0xbc301440
-#define SB_FB_HCNT2_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*17+n*16)				//0xbc301460
-
-#define SB_FB_VDISP_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*18+n*16)				//0xbc301480
-#define SB_FB_VSYNC_REG(n) *(volatile unsigned int *)(LS1B_LCD_ADDR+32*19+n*16)				//0xbc3014a0
-
-static char *mode_option  = DEFAULT_VIDEO_MODE;
-static void *videomemory;
-static	dma_addr_t dma_A;
-static u_long videomemorysize = 0;
-module_param(videomemorysize, ulong, 0);
-
-struct vga_struc{
-	long pclk;
-	int hr,hss,hse,hfl;
-	int vr,vss,vse,vfl;
-}
-
-vgamode[] =
-{
-	{/*"640x480_70.00"*/    14280,  320,    332,    364,    432,    240,    248,    254,    276,},//THF
-	{/*"640x480_70.00"*/    28560,  640,    664,    728,    816,    480,    481,    484,    500,},
-	{/*"640x640_60.00"*/	33100,	640,	672,	736,	832,	640,	641,	644,	663,	},
-	{/*"640x768_60.00"*/	39690,	640,	672,	736,	832,	768,	769,	772,	795,	},
-	{/*"640x800_60.00"*/	42130,	640,	680,	744,	848,	800,	801,	804,	828,	},
-	{/*"800x480_70.00"*/ 35840,  800,    832,    912,    1024,   480,    481,    484,    500,    },
-	{/*"800x600_60.00"*/	38220,	800,	832,	912,	1024,	600,	601,	604,	622,	},
-	{/*"800x640_60.00"*/	40730,	800,	832,	912,	1024,	640,	641,	644,	663,	},
-	{/*"832x600_60.00"*/	40010,	832,	864,	952,	1072,	600,	601,	604,	622,	},
-	{/*"832x608_60.00"*/	40520,	832,	864,	952,	1072,	608,	609,	612,	630,	},
-	{/*"1024x480_60.00"*/	38170,	1024,	1048,	1152,	1280,	480,	481,	484,	497,	},
-	{/*"1024x600_60.00"*/	48960,	1024,	1064,	1168,	1312,	600,	601,	604,	622,	},
-	{/*"1024x640_60.00"*/	52830,	1024,	1072,	1176,	1328,	640,	641,	644,	663,	},
-	{/*"1024x768_60.00"*/	64110,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},
-	{/*"1152x764_60.00"*/   71380,  1152,   1208,   1328,   1504,   764,    765,    768,    791,    },
-	{/*"1280x800_60.00"*/   83460,  1280,   1344,   1480,   1680,   800,    801,    804,    828,    },
-	{/*"1280x1024_55.00"*/  98600,  1280,   1352,   1488,   1696,   1024,   1025,   1028,   1057,   },
-	{/*"1440x800_60.00"*/   93800,  1440,   1512,   1664,   1888,   800,    801,    804,    828,    },
-	{/*"1440x900_67.00"*/   120280, 1440,   1528,   1680,   1920,   900,    901,    904,    935,    },
-};
-
-//fb_var_screeninfoÁªìÊûÑ‰Ωì‰∏ªË¶ÅËÆ∞ÂΩïÁî®Êà∑ÂèØ‰ª•‰øÆÊîπÁöÑ(var)ÊéßÂà∂Âô®ÁöÑÂèÇÊï∞ÔºåÊØîÂ¶ÇÂ±èÂπïÁöÑÂàÜËæ®ÁéáÂíåÊØè‰∏™ÂÉèÁ¥†ÁöÑÊØîÁâπÊï∞Á≠â
-static struct fb_var_screeninfo ls1b_lcd_default __initdata = {
-	.xres =		320,
-	.yres =		240,
-	.xres_virtual =	320,
-	.yres_virtual =	240,
-	.bits_per_pixel = 16,
-	.red =		{ 11, 5 ,0},
-	.green =	{ 5, 6, 0 },
-	.blue =	{ 0, 5, 0 },
-	.activate =	FB_ACTIVATE_NOW,
-	.height =	-1,
-	.width =	-1,
-	.pixclock =	20000,
-	.left_margin =	64,
-	.right_margin =	64,
-	.upper_margin =	32,
-	.lower_margin =	32,
-	.hsync_len =	64,
-	.vsync_len =	2,
-	.vmode =	FB_VMODE_NONINTERLACED,
-};
-
-//fb_fix_screeninfoÁªìÊûÑ‰ΩìÂèà‰∏ªË¶ÅËÆ∞ÂΩïÁî®Êà∑‰∏çÂèØ‰ª•‰øÆÊîπÁöÑÊéßÂà∂Âô®ÁöÑÂèÇÊï∞ÔºåÊØîÂ¶ÇÂ±èÂπïÁºìÂÜ≤Âå∫ÁöÑÁâ©ÁêÜÂú∞ÂùÄÂíåÈïøÂ∫¶Á≠â
-static struct fb_fix_screeninfo ls1b_lcd_fix __initdata = {
-	.id			=	"Virtual FB",				//ËØÜÂà´Á¨¶
-	.type		=	FB_TYPE_PACKED_PIXELS,	//ÊòæÁ§∫Á±ªÂûã
-	.visual	=	FB_VISUAL_TRUECOLOR,		//ÊòæÁ§∫ÁöÑÈ¢úËâ≤Á±ªÂûã
-	.xpanstep	=	1,
-	.ypanstep	=	1,
-	.ywrapstep	=	1,
-	.accel		=	FB_ACCEL_NONE,			//Âä†ÈÄüÈÄâÈ°π
-};
-
-static int ls1b_lcd_enable __initdata = 0;	/* disabled by default */
-module_param(ls1b_lcd_enable, bool, 0);
-
-static int ls1b_lcd_check_var(struct fb_var_screeninfo *var, struct fb_info *info);
-static int ls1b_lcd_set_par(struct fb_info *info);
-static int ls1b_lcd_setcolreg(u_int regno, u_int red, u_int green, u_int blue, u_int transp, struct fb_info *info);
-static int ls1b_lcd_pan_display(struct fb_var_screeninfo *var, struct fb_info *info);
-
-static struct fb_ops ls1b_lcd_ops = {
-	.fb_check_var		= ls1b_lcd_check_var,		/*Ê£ÄÊµãÂèØÂèòÂèÇÊï∞ÔºåÂπ∂Ë∞ÉÊï¥Âà∞ÊîØÊåÅÁöÑÂÄº*/
-	.fb_set_par		= ls1b_lcd_set_par,		/*ËÆæÁΩÆfb_info‰∏≠ÁöÑÂèÇÊï∞Ôºå‰∏ªË¶ÅÊòØLCDÁöÑÊòæÁ§∫Ê®°Âºè*/
-	.fb_setcolreg		= ls1b_lcd_setcolreg,		/*ËÆæÁΩÆÈ¢úËâ≤Ë°®*/
-	.fb_pan_display	= ls1b_lcd_pan_display,
-	/*‰ª•‰∏ã‰∏â‰∏™ÂáΩÊï∞ÊòØÂèØÈÄâÁöÑÔºå‰∏ªË¶ÅÊòØÊèê‰æõfb_consoleÁöÑÊîØÊåÅÔºåÂú®ÂÜÖÊ†∏‰∏≠Â∑≤ÁªèÂÆûÁé∞ÔºåËøôÈáåÁõ¥Êé•Ë∞ÉÁî®Âç≥ÂèØ*/
-	.fb_fillrect		= cfb_fillrect,
-	.fb_copyarea		= cfb_copyarea,
-	.fb_imageblit		= cfb_imageblit,
-};
-
-/*
-*  Internal routines
+/* ls1bfb_set_lcdaddr
+ *
+ * initialise lcd controller address pointers
 */
-/*ËÆæÁΩÆfb_info‰∏≠Âõ∫ÂÆöÂèÇÊï∞‰∏≠‰∏ÄË°åÁöÑÂ≠óËäÇÊï∞ÔºåÂÖ¨ÂºèÔºö1Ë°åÂ≠óËäÇÊï∞=(1Ë°åÂÉèÁ¥†‰∏™Êï∞*ÊØèÂÉèÁ¥†‰ΩçÊï∞BPP)/8 */
-static u_long get_line_length(int xres_virtual, int bpp)
+static void ls1bfb_set_lcdaddr(struct ls1bfb_info *fbi)
 {
-	u_long length;
+	unsigned long saddr1, saddr2;
 
-	length = xres_virtual * bpp;
-	length = (length + 31) & ~31;
-	length >>= 3;
-	return (length);
+	saddr1	= fbi->fb->fix.smem_start;
+	saddr2	= fbi->fb->fix.smem_start;
+
+	dprintk("LCDSADDR1 = 0x%08lx\n", saddr1);
+	dprintk("LCDSADDR2 = 0x%08lx\n", saddr2);
+
+	SB_FB_BUF_ADDRESS_REG(0) = saddr1;
+	SB_FB_BUF_ADDRESS1_REG(0) = saddr2;
+//	*(volatile int *)0xbc301580 = saddr2;
 }
 
-/*
- *  Setting the video mode has been split into two parts.
- *  First part, xxxfb_check_var, must not write anything
- *  to hardware, it should only verify and adjust var.
- *  This means it doesn't alter par but it does use hardware
- *  data from it to check this var. 
- */
-/*Ê£ÄÊü•fb_info‰∏≠ÁöÑÂèØÂèòÂèÇÊï∞*/
-static int ls1b_lcd_check_var(struct fb_var_screeninfo *var,
-			 struct fb_info *info)
-{
-	u_long line_length;
-
-	/*
-	 *  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
-	 *  as FB_VMODE_SMOOTH_XPAN is only used internally
-	 */
-
-	if (var->vmode & FB_VMODE_CONUPDATE) {
-		var->vmode |= FB_VMODE_YWRAP;
-		var->xoffset = info->var.xoffset;
-		var->yoffset = info->var.yoffset;
-	}
-
-	/*
-	 *  Some very basic checks
-	 */
-	if (!var->xres)
-		var->xres = 1;
-	if (!var->yres)
-		var->yres = 1;
-	if (var->xres > var->xres_virtual)
-		var->xres_virtual = var->xres;
-	if (var->yres > var->yres_virtual)
-		var->yres_virtual = var->yres;
-	if (var->bits_per_pixel <= 1)
-		var->bits_per_pixel = 1;
-	else if (var->bits_per_pixel <= 8)
-		var->bits_per_pixel = 8;
-	else if (var->bits_per_pixel <= 16)
-		var->bits_per_pixel = 16;
-	else if (var->bits_per_pixel <= 24)
-		var->bits_per_pixel = 24;
-	else if (var->bits_per_pixel <= 32)
-		var->bits_per_pixel = 32;
-	else
-		return -EINVAL;
-
-	if (var->xres_virtual < var->xoffset + var->xres)
-		var->xres_virtual = var->xoffset + var->xres;
-	if (var->yres_virtual < var->yoffset + var->yres)
-		var->yres_virtual = var->yoffset + var->yres;
-
-	/*
-	 *  Memory limit
-	 */
-	line_length =
-	    get_line_length(var->xres_virtual, var->bits_per_pixel);
-	if (videomemorysize &&  line_length * var->yres_virtual > videomemorysize)
-		return -ENOMEM;
-
-	/*
-	 * Now that we checked it we alter var. The reason being is that the video
-	 * mode passed in might not work but slight changes to it might make it 
-	 * work. This way we let the user know what is acceptable.
-	 */
-	/*Ê†πÊçÆËâ≤‰ΩçÊ®°Âºè(BPP)Êù•ËÆæÁΩÆÂèØÂèòÂèÇÊï∞‰∏≠R„ÄÅG„ÄÅBÁöÑÈ¢úËâ≤‰ΩçÂüü„ÄÇÂØπ‰∫éËøô‰∫õÂèÇÊï∞ÂÄºÁöÑËÆæÁΩÆËØ∑ÂèÇËÄÉCPUÊï∞ÊçÆ
-    ÊâãÂÜå‰∏≠"ÊòæÁ§∫ÁºìÂÜ≤Âå∫‰∏éÊòæÁ§∫ÁÇπÂØπÂ∫îÂÖ≥Á≥ªÂõæ"Ôºå‰æãÂ¶ÇÂú®‰∏ä‰∏ÄÁØáÁ´†‰∏≠ÊàëÂ∞±ÁîªÂá∫‰∫Ü8BPPÂíå16BPPÊó∂ÁöÑÂØπÂ∫îÂÖ≥Á≥ªÂõæ*/
-	switch (var->bits_per_pixel) {
-	case 1:
-	case 8:
-		var->red.offset = 0;
-		var->red.length = 8;
-		var->green.offset = 0;
-		var->green.length = 8;
-		var->blue.offset = 0;
-		var->blue.length = 8;
-		var->transp.offset = 0;
-		var->transp.length = 0;
-		break;
-	case 16:		/* RGBA 5551 */
-		if (var->transp.length) {
-			var->red.offset = 0;
-			var->red.length = 5;
-			var->green.offset = 5;
-			var->green.length = 5;
-			var->blue.offset = 10;
-			var->blue.length = 5;
-			var->transp.offset = 15;
-			var->transp.length = 1;
-		} else {	/* BGR 565 */
-			var->red.offset = 11;
-			var->red.length = 5;
-			var->green.offset = 5;
-			var->green.length = 6;
-			var->blue.offset = 0;
-			var->blue.length = 5;
-			var->transp.offset = 0;
-			var->transp.length = 0;
-		}
-		break;
-	case 24:		/* RGB 888 */
-		var->red.offset = 0;
-		var->red.length = 8;
-		var->green.offset = 8;
-		var->green.length = 8;
-		var->blue.offset = 16;
-		var->blue.length = 8;
-		var->transp.offset = 0;
-		var->transp.length = 0;
-		break;
-	case 32:		/* RGBA 8888 */
-		var->red.offset = 0;
-		var->red.length = 8;
-		var->green.offset = 8;
-		var->green.length = 8;
-		var->blue.offset = 16;
-		var->blue.length = 8;
-		var->transp.offset = 24;
-		var->transp.length = 8;
-		break;
-	}
-	var->red.msb_right = 0;
-	var->green.msb_right = 0;
-	var->blue.msb_right = 0;
-	var->transp.msb_right = 0;
-
-	return 0;
-}
-
-//Â¶ÇÊûúÈúÄË¶ÅË∞ÉÁî®implicit declaration of function()ÂáΩÊï∞ ÂàôÂèñÊ∂àÂ±èËîΩ
 #if 0
-static int config_ls1blcd_controller(void)
+/* s3c2410fb_calc_pixclk()
+ *
+ * calculate divisor for clk->pixclk
+*/
+
+static unsigned int s3c2410fb_calc_pixclk(struct s3c2410fb_info *fbi,
+					  unsigned long pixclk)
 {
-	int i,mode=-1;
-	
-	//Ê†πÊçÆÂÆö‰πâÁöÑFB_XSIZEÂíåFB_YSIZE ÂØªÊâæÂêàÈÄÇÁöÑmode(ÂàÜËæ®Áéá)
-	for(i=0; i<sizeof(vgamode)/sizeof(struct vga_struc); i++)
-	{
-		if(vgamode[i].hr == ls1b_lcd_default.xres && vgamode[i].vr == ls1b_lcd_default.yres){
-			mode = i;
-			break;
-		}
-	}
-	if(mode<0)
-	{
-		printk(KERN_DEBUG "\n\n\nunsupported framebuffer resolution\n\n\n");
-		return -EINVAL;
-	}
-	
-	SB_FB_BUF_CONFIG_REG(0)			= 0x00000000;
-	SB_FB_BUF_CONFIG_REG(0)			= 0x00000003;
-//	SB_FB_BUF_ADDRESS_REG(0)			= dma_A;
-//	SB_FB_BUF_ADDRESS_REG1(0)		= dma_A;
-//	*(volatile int *)0xbc301580		= dma_A;
-	SB_FB_DITHER_REG(0)				= 0x00000000;
-	SB_FB_DITHER_TABLE_REG_LOW(0)	= 0x00000000;	//low
-	SB_FB_DITHER_TABLE_REG_HIG(0)	= 0x00000000;	//high
-	SB_FB_PANEL_CONFIG_REG(0)		= 0x80000102;
-	SB_FB_PANEL_TIMING_REG(0)		= 0x00000000;
-	
-	SB_FB_HDISP_REG(0)				= (vgamode[mode].hfl<<16) | vgamode[mode].hr;
-	SB_FB_HSYNC_REG(0)				= 0x40000000 | (vgamode[mode].hse<<16) | vgamode[mode].hss;
-	SB_FB_VDISP_REG(0)				= (vgamode[mode].vfl<<16) | vgamode[mode].vr;
-	SB_FB_VSYNC_REG(0)				= 0x40000000 | (vgamode[mode].vse<<16) | vgamode[mode].vss;
-	
-	SB_FB_BUF_CONFIG_REG(0)			= 0x00100103;
-	SB_FB_BUF_STRIDE_REG(0)			= (ls1b_lcd_default.xres * 2 + 255) & ~255;
-	SB_FB_BUF_ORIGIN_REG(0)			= 0x00000000;
-	
-	SB_FB_BUF_CONFIG_REG(0)			= 0x00100113;
-	mdelay(20);
-	SB_FB_BUF_CONFIG_REG(0)			= 0x00100103;
+	unsigned long clk = clk_get_rate(fbi->clk);
+	unsigned long long div;
+
+	/* pixclk is in picoseoncds, our clock is in Hz
+	 *
+	 * Hz -> picoseconds is / 10^-12
+	 */
+
+	div = (unsigned long long)clk * pixclk;
+	/* 64 bit division Ω·π˚±£¥Ê‘⁄x÷–£ª”‡ ˝±£¥Ê‘⁄∑µªÿΩ·π˚÷–°£ */
+	do_div(div,1000000UL);
+	do_div(div,1000000UL);
+
+	dprintk("pixclk %ld, divisor is %ld\n", pixclk, (long)div);
+	return div;
 }
 #endif
 
-/* This routine actually sets the video mode. It's in here where we
- * the hardware state info->par and fix which can be affected by the 
- * change in par. For this driver it doesn't do much. 
+/*
+ *	ls1bfb_check_var():
+ *	Get the video params out of 'var'. If a value doesn't fit, round it up,
+ *	if it's too big, return -EINVAL.
+ *
  */
-/*ËÆæÁΩÆfb_info‰∏≠ÁöÑÂèÇÊï∞ÔºåËøôÈáåÊ†πÊçÆÁî®Êà∑ËÆæÁΩÆÁöÑÂèØÂèòÂèÇÊï∞varË∞ÉÊï¥Âõ∫ÂÆöÂèÇÊï∞fix*/
-static int ls1b_lcd_set_par(struct fb_info *info)
+static int ls1bfb_check_var(struct fb_var_screeninfo *var,
+			       struct fb_info *info)
 {
-	/*ËÆæÁΩÆfb_info‰∏≠Âõ∫ÂÆöÂèÇÊï∞‰∏≠‰∏ÄË°åÁöÑÂ≠óËäÇÊï∞ÔºåÂÖ¨ÂºèÔºö1Ë°åÂ≠óËäÇÊï∞=(1Ë°åÂÉèÁ¥†‰∏™Êï∞*ÊØèÂÉèÁ¥†‰ΩçÊï∞BPP)/8 */
-	info->fix.line_length = get_line_length(info->var.xres_virtual, info->var.bits_per_pixel);
+	/*¥”lcd_fb_probeÃΩ≤‚∫Ø ˝…Ë÷√µƒ∆ΩÃ® ˝æ›÷–‘ŸªÒµ√LCDœ‡πÿ–≈œ¢µƒ ˝æ›*/
+	struct ls1bfb_info *fbi = info->par;
+
+	dprintk("check_var(var=%p, info=%p)\n", var, info);
+
+	/* validate x/y resolution */
+	/*—È÷§X/YΩ‚Œˆ∂»*/
+	if (var->yres > fbi->mach_info->yres.max)
+		var->yres = fbi->mach_info->yres.max;
+	else if (var->yres < fbi->mach_info->yres.min)
+		var->yres = fbi->mach_info->yres.min;
+
+	if (var->xres > fbi->mach_info->xres.max)
+		var->xres = fbi->mach_info->xres.max;
+	else if (var->xres < fbi->mach_info->xres.min)
+		var->xres = fbi->mach_info->xres.min;
+
+	/* validate bpp */
+
+	if (var->bits_per_pixel > fbi->mach_info->bpp.max)
+		var->bits_per_pixel = fbi->mach_info->bpp.max;
+	else if (var->bits_per_pixel < fbi->mach_info->bpp.min)
+		var->bits_per_pixel = fbi->mach_info->bpp.min;
+
+	/* set r/g/b positions */
+	switch (var->bits_per_pixel) {
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		default:
+		case 15:
+			/* 16 bpp, 5551 format */
+			var->red.offset		= 11;
+			var->green.offset	= 6;
+			var->blue.offset	= 0;
+			var->red.length	= 5;
+			var->green.length	= 5;
+			var->blue.length	= 5;
+			var->transp.offset   = 0;
+			var->transp.length	= 0;
+		case 16:
+			if ((fbi->regs.fb_conf & 0x7) == 0x3) {
+				/* 16 bpp, 565 format */
+				var->red.offset		= 11;
+				var->green.offset	= 5;
+				var->blue.offset	= 0;
+				var->transp.offset   = 0;
+				var->red.length		= 5;
+				var->green.length	= 6;
+				var->blue.length	= 5;
+				var->transp.offset   = 0;
+				var->transp.length	= 0;
+			} 
+			else if ((fbi->regs.fb_conf & 0x7) == 0x02) {
+				/* 16 bpp, 5551 format */
+				var->red.offset		= 11;
+				var->green.offset	= 6;
+				var->blue.offset	= 0;
+				var->red.length		= 5;
+				var->green.length	= 5;
+				var->blue.length	= 5;
+				var->transp.offset   = 0;
+				var->transp.length	= 0;
+			}
+			else if ((fbi->regs.fb_conf & 0x7) == 0x01) {
+				/* 12 bpp 444 */
+				var->red.length		= 4;
+				var->red.offset		= 12;
+				var->green.length	= 4;
+				var->green.offset	= 7;
+				var->blue.length	= 4;
+				var->blue.offset	= 1;
+				var->transp.offset   = 0;
+				var->transp.length	= 0;
+			}
+			break;
+		case 24:
+			/* 24 bpp 888 */
+		case 32:
+			/* 32 bpp 888 */
+			var->red.length		= 8;
+			var->red.offset		= 16;
+			var->green.length	= 8;
+			var->green.offset	= 8;
+			var->blue.length	= 8;
+			var->blue.offset	= 0;
+			var->transp.offset   = 24;
+			var->transp.length	= 8;
+			break;
+
+	}
 	return 0;
 }
 
-/*
- *  Set a single color register. The values supplied are already
- *  rounded down to the hardware's capabilities (according to the
- *  entries in the var structure). Return != 0 for invalid regno.
- */
-/*ËÆæÁΩÆÈ¢úËâ≤Ë°®*/
-static int ls1b_lcd_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
-			 u_int transp, struct fb_info *info)
+
+/* ls1bfb_activate_var
+ *
+ * activate (set) the controller from the given framebuffer
+ * information
+*/
+static void ls1bfb_activate_var(struct ls1bfb_info *fbi,
+				   struct fb_var_screeninfo *var)
 {
-	if (regno >= 256)	/* no. of hw registers */
-		return 1;
-	/*
-	 * Program hardware... do anything you want with transp
-	 */
+	SB_FB_BUF_CONFIG_REG(0)	&= ~(1<<8);
 
-	/* grayscale works only partially under directcolor */
-	if (info->var.grayscale) {
-		/* grayscale = 0.30*R + 0.59*G + 0.11*B */
-		red = green = blue = (red * 77 + green * 151 + blue * 28) >> 8;
+	dprintk("%s: var->xres  = %d\n", __FUNCTION__, var->xres);
+	dprintk("%s: var->yres  = %d\n", __FUNCTION__, var->yres);
+	dprintk("%s: var->bpp   = %d\n", __FUNCTION__, var->bits_per_pixel);
+
+	switch (var->bits_per_pixel) {
+	case 1:
+	case 2:
+	case 4:
+	case 8:
+	case 12:
+		fbi->regs.fb_conf &= ~0x07;
+		fbi->regs.fb_conf |= 0x1;
+		break;
+	case 15:
+		fbi->regs.fb_conf &= ~0x07;
+		fbi->regs.fb_conf |= 0x2;
+		break;
+	case 16:
+		fbi->regs.fb_conf &= ~0x07;
+		fbi->regs.fb_conf |= 0x3;
+		if (fbi->mach_info->bpp.defval == 12){
+			fbi->regs.fb_conf &= ~0x07;
+			fbi->regs.fb_conf |= 0x1;
+		}
+		else if (fbi->mach_info->bpp.defval == 15){
+			fbi->regs.fb_conf &= ~0x07;
+			fbi->regs.fb_conf |= 0x2;
+		}
+		break;
+	case 24:
+	case 32:
+		fbi->regs.fb_conf &= ~0x07;
+		fbi->regs.fb_conf |= 0x4;
+		break;
+
+	default:
+		/* invalid pixel depth */
+		dev_err(fbi->dev, "invalid bpp %d\n", var->bits_per_pixel);
 	}
 
-	/* Directcolor:
-	 *   var->{color}.offset contains start of bitfield
-	 *   var->{color}.length contains length of bitfield
-	 *   {hardwarespecific} contains width of RAMDAC
-	 *   cmap[X] is programmed to (X << red.offset) | (X << green.offset) | (X << blue.offset)
-	 *   RAMDAC[X] is programmed to (red, green, blue)
-	 * 
-	 * Pseudocolor:
-	 *    uses offset = 0 && length = RAMDAC register width.
-	 *    var->{color}.offset is 0
-	 *    var->{color}.length contains widht of DAC
-	 *    cmap is not used
-	 *    RAMDAC[X] is programmed to (red, green, blue)
-	 * Truecolor:
-	 *    does not use DAC. Usually 3 are present.
-	 *    var->{color}.offset contains start of bitfield
-	 *    var->{color}.length contains length of bitfield
-	 *    cmap is programmed to (red << red.offset) | (green << green.offset) |
-	 *                      (blue << blue.offset) | (transp << transp.offset)
-	 *    RAMDAC does not exist
-	 */
-#define CNVT_TOHW(val,width) ((((val)<<(width))+0x7FFF-(val))>>16)
-	switch (info->fix.visual) {
-	case FB_VISUAL_TRUECOLOR:
-	case FB_VISUAL_PSEUDOCOLOR:
-		red = CNVT_TOHW(red, info->var.red.length);
-		green = CNVT_TOHW(green, info->var.green.length);
-		blue = CNVT_TOHW(blue, info->var.blue.length);
-		transp = CNVT_TOHW(transp, info->var.transp.length);
-		break;
-	case FB_VISUAL_DIRECTCOLOR:
-		red = CNVT_TOHW(red, 8);	/* expect 8 bit DAC */
-		green = CNVT_TOHW(green, 8);
-		blue = CNVT_TOHW(blue, 8);
-		/* hey, there is bug in transp handling... */
-		transp = CNVT_TOHW(transp, 8);
-		break;
+	/* check to see if we need to update sync/borders */
+
+//	if (!fbi->mach_info->fixed_syncs) {
+		dprintk("setting vert: up=%d, low=%d, sync=%d\n",
+			var->upper_margin, var->lower_margin,
+			var->vsync_len);
+
+		dprintk("setting horz: lft=%d, rt=%d, sync=%d\n",
+			var->left_margin, var->right_margin,
+			var->hsync_len);
+
+		fbi->regs.hdisplay	= ((var->xres + var->right_margin + var->left_margin + var->hsync_len) << 16) | var->xres;
+		fbi->regs.hsync		= 0x40000000 | ((var->xres + var->right_margin + var->hsync_len) << 16) | (var->xres + var->right_margin);
+		fbi->regs.vdisplay	= ((var->yres + var->upper_margin + var->lower_margin + var->vsync_len) << 16) | var->yres;
+		fbi->regs.vsync		= 0x40000000 | ((var->yres + var->lower_margin + var->vsync_len) << 16) | (var->yres + var->lower_margin);
+//	}
+
+	if (var->pixclock > 0) {
+		unsigned int pll,ctrl,div,clk;
+		unsigned long long clkdiv = 1000000000000ULL;
+		do_div(clkdiv, var->pixclock);
+		pll = PLL_FREQ_REG(0);
+		ctrl = PLL_FREQ_REG(4);
+		clk = (12 + (pll & 0x3f)) * 33333333 / 2;
+		div = clk / (unsigned int)clkdiv / 4; //≤Œøºlongson1Bµƒ ˝æ› ÷≤· LCD∑÷∆µ–Ë“™‘Ÿ≥˝“‘4
+		ctrl = (ctrl & ~(0x1f<<26)) | (div<<26) | (1<<31);
+		PLL_FREQ_REG(4) = ctrl;
 	}
-#undef CNVT_TOHW
-	/* Truecolor has hardware independent palette */
-	if (info->fix.visual == FB_VISUAL_TRUECOLOR) {
-		u32 v;
 
-		if (regno >= 16)
-			return 1;
+	/* write new registers */
 
-		v = (red << info->var.red.offset) |
-		    (green << info->var.green.offset) |
-		    (blue << info->var.blue.offset) |
-		    (transp << info->var.transp.offset);
-		switch (info->var.bits_per_pixel) {
-		case 8:
+	dprintk("new register set:\n");
+	dprintk("hdisplay = 0x%08x\n", fbi->regs.hdisplay);
+	dprintk("hsync = 0x%08x\n", fbi->regs.hsync);
+	dprintk("vdisplay = 0x%08x\n", fbi->regs.vdisplay);
+	dprintk("vsync = 0x%08x\n", fbi->regs.vsync);
+
+	SB_FB_HDISP_REG(0)	= fbi->regs.hdisplay;
+	SB_FB_HSYNC_REG(0)	= fbi->regs.hsync;
+	SB_FB_VDISP_REG(0)	= fbi->regs.vdisplay;
+	SB_FB_VSYNC_REG(0)	= fbi->regs.vsync;
+	switch(fbi->regs.fb_conf & 0x7){
+		case 1:	//12bpp R4G4B4
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay & 0xFFF) * 2 + 255) & ~255;
+			break;
+		case 2:	//15bpp R5G5B5
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay & 0xFFF) * 2 + 255) & ~255;
+			break;
+		case 3:	//16bpp R5G6B5
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay & 0xFFF) * 2 + 255) & ~255;
+			break;
+		case 4:	//24bpp R8G8B8
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay & 0xFFF) * 4 + 255) & ~255;
+			*(volatile int *)0xbfd00420 &= ~0x18;
+			*(volatile int *)0xbfd00420 |= 0x07;
+			break;
+		default:
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay & 0xFFF) * 2 + 255) & ~255;
+			break;
+	}
+	SB_FB_BUF_ORIGIN_REG(0)		= fbi->regs.fb_origin;
+
+	/* set lcd address pointers */
+	ls1bfb_set_lcdaddr(fbi);
+
+//	writel(fbi->regs.lcdcon1, S3C2410_LCDCON1);
+//	fbi->regs.fb_conf |= ((1<<20) | (1<<8));
+//	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+	
+	fbi->regs.fb_conf |= (1<<4);
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+//	mdelay(1);
+	fbi->regs.fb_conf &= ~(1<<4);
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+	
+	fbi->regs.fb_conf |= ((1<<20) | (1<<8));
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+}
+
+
+/*
+ *      ls1bfb_set_par - Optional function. Alters the hardware state.
+ *      @info: frame buffer structure that represents a single frame buffer
+ *
+ */
+/*…Ë÷√fb_info÷–µƒ≤Œ ˝£¨’‚¿Ô∏˘æ›”√ªß…Ë÷√µƒø…±‰≤Œ ˝varµ˜’˚πÃ∂®≤Œ ˝fix*/
+static int ls1bfb_set_par(struct fb_info *info)
+{
+	struct ls1bfb_info *fbi = info->par;
+	/*ªÒµ√fb_info÷–µƒø…±‰≤Œ ˝*/
+	/* ø…±‰≤Œ ˝ µ±«∞var */
+	struct fb_var_screeninfo *var = &info->var;
+
+	/* bits_per_pixel√øœÒÀÿŒª ˝ BPP */
+	/*≈–∂œø…±‰≤Œ ˝÷–µƒ…´Œªƒ£ Ω£¨∏˘æ›…´Œªƒ£ Ω¿¥…Ë÷√…´≤ ƒ£ Ω*/
+	switch (var->bits_per_pixel)
+	{
+		/* fix.visualº«¬º∆¡ƒª π”√µƒ…´≤ ƒ£ Ω */
+		case 32:
+		case 24:
+			fbi->fb->fix.line_length     = var->xres_virtual * 4;
+			fbi->fb->fix.visual = FB_VISUAL_TRUECOLOR;		//’Ê≤ …´
 			break;
 		case 16:
-			((u32 *) (info->pseudo_palette))[regno] = v;
+		case 15:
+		case 12:
+			fbi->fb->fix.line_length     = var->xres_virtual * 2;
+			fbi->fb->fix.visual = FB_VISUAL_TRUECOLOR;		//’Ê≤ …´
+			break;
+		case 1:
+			 fbi->fb->fix.visual = FB_VISUAL_MONO01;		//µ•…´
+			 break;
+		default:/*ƒ¨»œ…Ë÷√Œ™Œ±≤ …´£¨≤…”√À˜“˝—’…´œ‘ æ*/
+			 fbi->fb->fix.visual = FB_VISUAL_PSEUDOCOLOR;	//Œ±≤ …´
+			 break;
+	}
+	/*…Ë÷√fb_info÷–πÃ∂®≤Œ ˝÷–“ª––µƒ◊÷Ω⁄ ˝£¨π´ Ω£∫1––◊÷Ω⁄ ˝=(1––œÒÀÿ∏ˆ ˝*√øœÒÀÿŒª ˝BPP)/8 */
+//	fbi->fb->fix.line_length     = (var->width * var->bits_per_pixel)/8;
+
+	/* activate this new configuration */
+	/*–ﬁ∏ƒ“‘…œ≤Œ ˝∫Û£¨÷ÿ–¬º§ªÓfb_info÷–µƒ≤Œ ˝≈‰÷√(º¥£∫ π–ﬁ∏ƒ∫Ûµƒ≤Œ ˝‘⁄”≤º˛…œ…˙–ß)*/
+	ls1bfb_activate_var(fbi, var);
+	return 0;
+}
+
+static void schedule_palette_update(struct ls1bfb_info *fbi,
+				    unsigned int regno, unsigned int val)
+{
+	fbi->palette_buffer[regno] = val;
+
+	if (!fbi->palette_ready) {
+		fbi->palette_ready = 1;
+	}
+}
+
+/* from pxafb.c */
+static inline unsigned int chan_to_field(unsigned int chan, struct fb_bitfield *bf)
+{
+	chan &= 0xffff;
+	chan >>= 16 - bf->length;
+	return chan << bf->offset;
+}
+
+static int ls1bfb_setcolreg(unsigned regno,
+			       unsigned red, unsigned green, unsigned blue,
+			       unsigned transp, struct fb_info *info)
+{
+	struct ls1bfb_info *fbi = info->par;
+	unsigned int val;
+
+	/* dprintk("setcol: regno=%d, rgb=%d,%d,%d\n", regno, red, green, blue); */
+	/* fix.visualº«¬º∆¡ƒª π”√µƒ…´≤ ƒ£ Ω */
+	switch (fbi->fb->fix.visual) {
+	case FB_VISUAL_TRUECOLOR:	//’Ê≤ …´
+		/* true-colour, use pseuo-palette */
+
+		if (regno < 16) {
+			u32 *pal = fbi->fb->pseudo_palette;
+
+			val  = chan_to_field(red,   &fbi->fb->var.red);
+			val |= chan_to_field(green, &fbi->fb->var.green);
+			val |= chan_to_field(blue,  &fbi->fb->var.blue);
+
+			pal[regno] = val;
+		}
+		break;
+
+	case FB_VISUAL_PSEUDOCOLOR:	//Œ±≤ …´
+		if (regno < 256) {
+			/* currently assume RGB 5-6-5 mode */
+
+			val  = ((red   >>  0) & 0xf800);
+			val |= ((green >>  5) & 0x07e0);
+			val |= ((blue  >> 11) & 0x001f);
+
+//			writel(val, S3C2410_TFTPAL(regno));
+			schedule_palette_update(fbi, regno, val);
+		}
+
+		break;
+
+	default:
+		return 1;   /* unknown type */
+	}
+
+	return 0;
+}
+
+
+/**
+ *      s3c2410fb_blank
+ *	@blank_mode: the blank mode we want.
+ *	@info: frame buffer structure that represents a single frame buffer
+ *
+ *	Blank the screen if blank_mode != 0, else unblank. Return 0 if
+ *	blanking succeeded, != 0 if un-/blanking failed due to e.g. a
+ *	video mode which doesn't support it. Implements VESA suspend
+ *	and powerdown modes on hardware that supports disabling hsync/vsync:
+ *	blank_mode == 2: suspend vsync
+ *	blank_mode == 3: suspend hsync
+ *	blank_mode == 4: powerdown
+ *
+ *	Returns negative errno on error, or zero on success.
+ *
+ */
+static int ls1bfb_blank(int blank_mode, struct fb_info *info)
+{
+	dprintk("blank(mode=%d, info=%p)\n", blank_mode, info);
+
+//	if (mach_info == NULL)
+//		return -EINVAL;
+
+//	if (blank_mode == FB_BLANK_UNBLANK)
+//		writel(0x0, S3C2410_TPAL);
+//	else {
+//		dprintk("setting TPAL to output 0x000000\n");
+//		writel(S3C2410_TPAL_EN, S3C2410_TPAL);
+//	}
+
+	return 0;
+}
+
+static int ls1bfb_debug_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%s\n", debug ? "on" : "off");
+}
+
+static int ls1bfb_debug_store(struct device *dev, struct device_attribute *attr,
+					   const char *buf, size_t len)
+{
+	if (mach_info == NULL)
+		return -EINVAL;
+
+	if (len < 1)
+		return -EINVAL;
+
+	if (strnicmp(buf, "on", 2) == 0 ||
+	    strnicmp(buf, "1", 1) == 0) {
+		debug = 1;
+		printk(KERN_DEBUG "ls1bfb: Debug On");
+	} else if (strnicmp(buf, "off", 3) == 0 ||
+		   strnicmp(buf, "0", 1) == 0) {
+		debug = 0;
+		printk(KERN_DEBUG "ls1bfb: Debug Off");
+	} else {
+		return -EINVAL;
+	}
+
+	return len;
+}
+
+
+static DEVICE_ATTR(debug, 0666,
+		   ls1bfb_debug_show,
+		   ls1bfb_debug_store);
+
+static struct fb_ops ls1bfb_ops = {
+	.owner			= THIS_MODULE,
+	.fb_check_var	= ls1bfb_check_var,
+	.fb_set_par		= ls1bfb_set_par,
+	.fb_blank		= ls1bfb_blank,
+	.fb_setcolreg	= ls1bfb_setcolreg,
+	.fb_fillrect	= cfb_fillrect,
+	.fb_copyarea	= cfb_copyarea,
+	.fb_imageblit	= cfb_imageblit,
+};
+
+
+/*
+ * ls1bfb_map_video_memory():
+ *	Allocates the DRAM memory for the frame buffer.  This buffer is
+ *	remapped into a non-cached, non-buffered, memory region to
+ *	allow palette and pixel writes to occur without flushing the
+ *	cache.  Once this area is remapped, all virtual memory
+ *	access to the video memory should occur at the new region.
+ */
+static int __init ls1bfb_map_video_memory(struct ls1bfb_info *fbi)
+{
+	dprintk("map_video_memory(fbi=%p)\n", fbi);
+
+	fbi->map_size = PAGE_ALIGN(fbi->fb->fix.smem_len + PAGE_SIZE);
+//	fbi->map_cpu  = dma_alloc_writecombine(fbi->dev, fbi->map_size,
+//					       &fbi->map_dma, GFP_KERNEL);
+	fbi->map_cpu  = dma_alloc_coherent(fbi->dev, fbi->map_size,
+					       &fbi->map_dma, GFP_KERNEL);
+	
+	fbi->map_size = fbi->fb->fix.smem_len;
+
+	if (fbi->map_cpu) {
+		/* prevent initial garbage on screen */
+		dprintk("map_video_memory: clear %p:%08x\n",
+			fbi->map_cpu, fbi->map_size);
+		memset(fbi->map_cpu, 0x00, fbi->map_size);
+
+		fbi->screen_dma		= fbi->map_dma;
+		fbi->fb->screen_base	= fbi->map_cpu;
+		fbi->fb->fix.smem_start  = fbi->screen_dma;
+
+		dprintk("map_video_memory: dma=%08x cpu=%p size=%08x\n",
+			fbi->map_dma, fbi->map_cpu, fbi->fb->fix.smem_len);
+	}
+
+	return fbi->map_cpu ? 0 : -ENOMEM;
+}
+
+static inline void ls1bfb_unmap_video_memory(struct ls1bfb_info *fbi)
+{
+//	dma_free_writecombine(fbi->dev,fbi->map_size,fbi->map_cpu, fbi->map_dma);
+	dma_free_coherent(fbi->dev,fbi->map_size,fbi->map_cpu, fbi->map_dma);
+}
+
+/*
+ * ls1bfb_init_registers - Initialise all LCD-related registers
+ */
+static int ls1bfb_init_registers(struct ls1bfb_info *fbi)
+{
+	unsigned int pll,ctrl,div,clk;
+
+	/* modify the gpio(s) */
+	write_gpio_reg(REG_GPIO_CFG0, read_gpio_reg(REG_GPIO_CFG0) & 0xFF00000F);
+	
+	/* …Ë∂®LCDπ§◊˜∆µ¬  */
+	pll = PLL_FREQ_REG(0);
+	ctrl = PLL_FREQ_REG(4);
+	clk = (12 + (pll & 0x3f)) * 33333333 / 2;
+	div = clk / fbi->mach_info->pclk / 4; //≤Œøºlongson1Bµƒ ˝æ› ÷≤· LCD∑÷∆µ–Ë“™‘Ÿ≥˝“‘4
+	ctrl = (ctrl & ~(0x1f<<26)) | (div<<26) | (1<<31);
+	PLL_FREQ_REG(4) = ctrl;
+	printk("LCD pclk = %d\n", fbi->mach_info->pclk);
+	
+	/* ≈‰÷√LCDºƒ¥Ê∆˜ */
+//	SB_FB_BUF_CONFIG_REG(0)		= 0x00100000;
+	SB_FB_BUF_CONFIG_REG(0)		= fbi->regs.fb_conf;
+	SB_FB_PANEL_CONFIG_REG(0)	= fbi->regs.panel_conf;
+	SB_FB_HDISP_REG(0)			= fbi->regs.hdisplay;
+	SB_FB_HSYNC_REG(0)			= fbi->regs.hsync;
+	SB_FB_VDISP_REG(0)			= fbi->regs.vdisplay;
+	SB_FB_VSYNC_REG(0)			= fbi->regs.vsync;
+	switch(fbi->regs.fb_conf & 0x7){
+		case 1:	//12bpp R4G4B4
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay &0xFFF) * 2 + 255) & ~255;
+			break;
+		case 2:	//15bpp R5G5B5
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay &0xFFF) * 2 + 255) & ~255;
+			break;
+		case 3:	//16bpp R5G6B5
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay &0xFFF) * 2 + 255) & ~255;
+			break;
+		case 4:	//24bpp R8G8B8
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay &0xFFF) * 4 + 255) & ~255;
+			*(volatile int *)0xbfd00420 &= ~0x18;
+			*(volatile int *)0xbfd00420 |= 0x07;
+			break;
+		default:
+			SB_FB_BUF_STRIDE_REG(0) = ((fbi->regs.hdisplay &0xFFF) * 2 + 255) & ~255;
+			break;
+	}
+	SB_FB_BUF_ORIGIN_REG(0)		= fbi->regs.fb_origin;
+	
+ 	ls1bfb_set_lcdaddr(fbi);
+	printk("++++++= fbi->regs.fb_conf = %x\n", fbi->regs.fb_conf);
+	/* Enable video by setting the ENVID bit to 1 */
+//	fbi->regs.fb_conf |= ((1<<20) | (1<<8));
+//	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+	
+	fbi->regs.fb_conf |= (1<<4);
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+//	mdelay(1);
+	fbi->regs.fb_conf &= ~(1<<4);
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+	
+	fbi->regs.fb_conf |= ((1<<20) | (1<<8));
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
+	return 0;
+}
+
+#if 0
+static void s3c2410fb_write_palette(struct s3c2410fb_info *fbi)
+{
+	unsigned int i;
+	unsigned long ent;
+
+	fbi->palette_ready = 0;
+
+	for (i = 0; i < 256; i++) {
+		if ((ent = fbi->palette_buffer[i]) == PALETTE_BUFF_CLEAR)
+			continue;
+
+		writel(ent, S3C2410_TFTPAL(i));
+
+		/* it seems the only way to know exactly
+		 * if the palette wrote ok, is to check
+		 * to see if the value verifies ok
+		 */
+
+		if (readw(S3C2410_TFTPAL(i)) == ent)
+			fbi->palette_buffer[i] = PALETTE_BUFF_CLEAR;
+		else
+			fbi->palette_ready = 1;   /* retry */
+	}
+}
+#endif
+
+
+static int mach_mode_option(char *mode_option)
+{
+	struct ls1bfb_mach_info *pd = NULL;
+	char *p;
+	unsigned int frame_rate;
+	
+	if(strstr(mode_option, "320x240")){
+		pd = &LS1B_320x240;
+	}
+	else if(strstr(mode_option, "480x272")){
+		pd = &LS1B_480x272;
+	}
+	else if(strstr(mode_option, "640x480")){
+		pd = &LS1B_640x480;
+	}
+	else if(strstr(mode_option, "640x768")){
+		pd = &LS1B_640x768;
+	}
+	else if(strstr(mode_option, "800x600")){
+		pd = &LS1B_800x600;
+	}
+	else if(strstr(mode_option, "1024x768")){
+		pd = &LS1B_1024x768;
+	}
+	else if(strstr(mode_option, "1440x900")){
+		pd = &LS1B_1440x900;
+	}
+	else{
+		pd = &LS1B_480x272;
+	}
+	
+	mach_info = kmalloc(sizeof(*mach_info), GFP_KERNEL);
+	if (mach_info) {
+		memcpy(mach_info, pd, sizeof(*mach_info));
+	} else {
+		printk(KERN_ERR "no platform data for lcd, cannot attach\n");
+		return -EINVAL;
+	}
+	
+	p = strstr(mode_option, "vga");
+	if (p != NULL){
+		mach_info->regs.panel_conf = 0x80001311;
+	}
+	p = strchr(mode_option, '-');
+	switch (simple_strtoul(p+1, NULL, 0)){
+		case 12:
+			mach_info->regs.fb_conf = 0x01;
+			mach_info->bpp.defval = 16;
+			break;
+		case 15:
+			mach_info->regs.fb_conf = 0x02;
+			mach_info->bpp.defval = 16;
+			break;
+		case 16:
+			mach_info->regs.fb_conf = 0x03;
+			mach_info->bpp.defval = 16;
 			break;
 		case 24:
 		case 32:
-			((u32 *) (info->pseudo_palette))[regno] = v;
+			mach_info->regs.fb_conf = 0x04;
+			mach_info->bpp.defval = 32;
 			break;
-		}
-		return 0;
+		default :
+			mach_info->regs.fb_conf = 0x03;
+			mach_info->bpp.defval = 16;
+			break;
 	}
+	/* º∆À„÷°∆µ ∫ÕœÒÀÿ∆µ¬  */
+	p = strchr(mode_option, '@');
+	frame_rate = simple_strtoul(p+1, NULL, 0);
+	if ((frame_rate<10) || (frame_rate>300)){
+		frame_rate = 70;	//Hz
+	}
+	mach_info->pclk = frame_rate * (mach_info->regs.vdisplay>>16&0xfff) * (mach_info->regs.hdisplay>>16&0xfff);
 	return 0;
 }
 
-/*
- *  Pan or Wrap the Display
+static char driver_name[]="ls1bfb";
+
+static int __init ls1bfb_probe(struct platform_device *pdev)
+{
+	struct ls1bfb_info *info;
+	struct fb_info	   *fbinfo;
+	struct ls1bfb_hw *mregs;
+	struct resource *res;
+	int ret;
+	int i;
+	
+	/*ªÒ»°LCD”≤º˛œ‡πÿ–≈œ¢ ˝æ›£¨‘⁄«∞√ÊΩ≤π˝ƒ⁄∫À π”√s3c24xx_fb_set_platdata∫Ø ˝Ω´LCDµƒ”≤º˛œ‡πÿ–≈œ¢±£¥ÊµΩ
+	 ¡ÀLCD∆ΩÃ® ˝æ›÷–£¨À˘“‘’‚¿ÔŒ“√«æÕ¥”∆ΩÃ® ˝æ›÷–»°≥ˆ¿¥‘⁄«˝∂Ø÷– π”√*/
+//	mach_info = pdev->dev.platform_data;
+	if (mach_mode_option(mode_option)) {
+		return -EINVAL;
+	} 
+
+	mregs = &mach_info->regs;
+	
+	/*∏¯fb_info∑÷≈‰ø’º‰£¨¥Û–°Œ™ls1bfb_infoΩ·ππµƒƒ⁄¥Ê£¨framebuffer_alloc∂®“Â‘⁄fb.h÷–‘⁄fbsysfs.c÷– µœ÷*/
+	fbinfo = framebuffer_alloc(sizeof(struct ls1bfb_info), &pdev->dev);
+	if (!fbinfo) {
+		return -ENOMEM;
+	}
+
+	/*’‚¿Ôµƒ”√Õæ∆‰ µæÕ «Ω´fb_infoµƒ≥…‘±par(◊¢“‚ «“ª∏ˆvoid¿‡–Õµƒ÷∏’Î)÷∏œÚ’‚¿ÔµƒÀΩ”–±‰¡øΩ·ππÃÂinfo£¨
+     ƒøµƒ «µΩ∆‰À˚Ω”ø⁄∫Ø ˝÷–‘Ÿ»°≥ˆfb_infoµƒ≥…‘±par£¨¥”∂¯ƒ‹ºÃ–¯ π”√’‚¿ÔµƒÀΩ”–±‰¡ø*/
+	info = fbinfo->par;
+	info->fb = fbinfo;
+	info->dev = &pdev->dev;
+	
+	/*÷ÿ–¬Ω´LCD∆ΩÃ®…Ë±∏ ˝æ›…Ë÷√Œ™fbinfo£¨∫√‘⁄∫Û√Êµƒ“ª–©∫Ø ˝÷–¿¥ π”√*/
+	platform_set_drvdata(pdev, fbinfo);
+
+	dprintk("devinit\n");
+
+	strcpy(fbinfo->fix.id, driver_name);
+
+	memcpy(&info->regs, &mach_info->regs, sizeof(info->regs));
+
+//	info->mach_info = pdev->dev.platform_data;
+	info->mach_info = mach_info;
+	
+	/*œ¬√ÊæÕø™ º≥ı ºªØÃÓ≥‰fb_infoΩ·ππÃÂ*/
+	/* ◊œ»≥ı ºªØfb_info÷–¥˙±ÌLCDπÃ∂®≤Œ ˝µƒΩ·ππÃÂfb_fix_screeninfo*/
+    /*œÒÀÿ÷µ”Îœ‘ æƒ⁄¥Êµƒ”≥…‰πÿœµ”–5÷÷£¨∂®“Â‘⁄fb.h÷–°£œ÷‘⁄≤…”√FB_TYPE_PACKED_PIXELS∑Ω Ω£¨‘⁄∏√∑Ω Ωœ¬£¨
+    œÒÀÿ÷µ”Îƒ⁄¥Ê÷±Ω”∂‘”¶£¨±»»Á‘⁄œ‘ æƒ⁄¥Êƒ≥µ•‘™–¥»Î“ª∏ˆ"1" ±£¨∏√µ•‘™∂‘”¶µƒœÒÀÿ÷µ“≤Ω´ «"1"£¨’‚ πµ√”¶”√≤„
+    ∞—œ‘ æƒ⁄¥Ê”≥…‰µΩ”√ªßø’º‰±‰µ√∑«≥£∑Ω±„°£Linux÷–µ±LCDŒ™TFT∆¡ ±£¨œ‘ æ«˝∂Øπ‹¿Ìœ‘ æƒ⁄¥ÊæÕ «ª˘”⁄’‚÷÷∑Ω Ω*/
+	fbinfo->fix.type			= FB_TYPE_PACKED_PIXELS;
+	fbinfo->fix.type_aux		= 0;	/*“‘œ¬’‚–©∏˘æ›fb_fix_screeninfo∂®“Â÷–µƒ√Ë ˆ£¨µ±√ª”–”≤º˛ ±∂º…ËŒ™0*/
+	fbinfo->fix.xpanstep		= 0;
+	fbinfo->fix.ypanstep		= 0;
+	fbinfo->fix.ywrapstep	= 0;
+	fbinfo->fix.accel			= FB_ACCEL_NONE;	/* √ª”–”≤º˛º”ÀŸ∆˜ */
+	
+	/*Ω”◊≈£¨‘Ÿ≥ı ºªØfb_info÷–¥˙±ÌLCDø…±‰≤Œ ˝µƒΩ·ππÃÂfb_var_screeninfo*/
+	fbinfo->var.nonstd		= 0;	/* ±Í◊ºœÒÀÿ∏Ò Ω ∑«0 ±±Ì æ∑«±Í◊ºœÒÀÿ∏Ò Ω */
+//	fbinfo->var.nonstd		= FB_NONSTD_HAM;
+	fbinfo->var.activate		= FB_ACTIVATE_NOW;	/* ±Ì æ◊º±∏…Ë÷√±‰¡ø */
+	fbinfo->var.height		= mach_info->height;
+	fbinfo->var.width			= mach_info->width;
+	fbinfo->var.accel_flags	= 0;	/* º”ÀŸ±Íº« */
+	fbinfo->var.vmode			= FB_VMODE_NONINTERLACED; /* ≤ª π”√∏Ù––…®√Ë */
+	
+	/*÷∏∂®∂‘µ◊≤„”≤º˛≤Ÿ◊˜µƒ∫Ø ˝÷∏’Î*/
+	fbinfo->fbops				= &ls1bfb_ops;
+	fbinfo->flags				= FBINFO_FLAG_DEFAULT;
+	fbinfo->pseudo_palette	= &info->pseudo_pal;	//Œ±16…´—’…´±Ì
+
+	fbinfo->var.xres				= mach_info->xres.defval;
+	fbinfo->var.xres_virtual    = mach_info->xres.defval;
+	fbinfo->var.yres				= mach_info->yres.defval;
+	fbinfo->var.yres_virtual    = mach_info->yres.defval;
+	fbinfo->var.bits_per_pixel  = mach_info->bpp.defval;
+
+	fbinfo->var.upper_margin    = (mregs->vdisplay >> 16) - ((mregs->vsync >> 16) & 0xFFF);
+	fbinfo->var.lower_margin		= (mregs->vsync & 0xFFF) - (mregs->vdisplay & 0xFFF);
+	fbinfo->var.vsync_len		= ((mregs->vsync >> 16) & 0xFFF) - (mregs->vsync & 0xFFF);
+	
+	fbinfo->var.left_margin		= (mregs->hdisplay >> 16) - ((mregs->hsync >> 16) & 0xFFF);
+	fbinfo->var.right_margin		= (mregs->hsync & 0xFFF) - (mregs->hdisplay & 0xFFF);
+	fbinfo->var.hsync_len		= ((mregs->hsync >> 16) & 0xFFF) - (mregs->hsync & 0xFFF);
+//	fbinfo->var.pixclock			= (1000*1000*1000) / (mach_info->pclk/1000);
+	{
+	unsigned long long div;
+	div = 1000000000000ULL;
+	do_div(div,mach_info->pclk);
+	fbinfo->var.pixclock			= div;
+	}
+	fbinfo->fix.smem_len        =	mach_info->xres.max *
+					mach_info->yres.max *
+					mach_info->bpp.max / 8;
+	
+	/*≥ı ºªØ…´µ˜…´∞Â(—’…´±Ì)Œ™ø’*/
+	for (i = 0; i < 256; i++)
+		info->palette_buffer[i] = PALETTE_BUFF_CLEAR;
+	
+	/*…Í«ÎLCD IO∂Àø⁄À˘’º”√µƒIOø’º‰(◊¢“‚¿ÌΩ‚IOø’º‰∫Õƒ⁄¥Êø’º‰µƒ«¯±),request_mem_region∂®“Â‘⁄ioport.h÷–*/
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (res == NULL) {
+		dev_err(&pdev->dev, "no I/O memory resource defined\n");
+		ret = -ENODEV;
+		goto dealloc_fb;
+	}
+
+	res = request_mem_region(res->start, (res->end-res->start)+1, pdev->name);
+	if (res == NULL) {
+		dev_err(&pdev->dev, "failed to request I/O memory\n");
+		ret = -EBUSY;
+		goto dealloc_fb;
+	}
+
+	info->regbase = ioremap(res->start, (res->end-res->start)+1);
+	if (info->regbase == NULL) {
+		dev_err(&pdev->dev, "failed to map I/O memory\n");
+		ret = -EBUSY;
+		goto failed_free_res;
+	}
+
+	dprintk("got LCD region\n");
+
+	/* Initialize video memory */
+	/*…Í«Î÷°ª∫≥Â…Ë±∏fb_infoµƒœ‘ æª∫≥Â«¯ø’º‰*/
+	ret = ls1bfb_map_video_memory(info);
+	if (ret) {
+		printk( KERN_ERR "Failed to allocate video RAM: %d\n", ret);
+		ret = -ENOMEM;
+		goto failed_free_res;
+	}
+	dprintk("got video memory\n");
+	
+	/*≥ı ºªØÕÍfb_info∫Û£¨ø™ º∂‘LCD∏˜ºƒ¥Ê∆˜Ω¯––≥ı ºªØ*/
+	ret = ls1bfb_init_registers(info);
+	/*≥ı ºªØÕÍºƒ¥Ê∆˜∫Û£¨ø™ ººÏ≤Èfb_info÷–µƒø…±‰≤Œ ˝*/
+	ret = ls1bfb_check_var(&fbinfo->var, fbinfo);
+	
+	/*◊Ó∫Û£¨◊¢≤·’‚∏ˆ÷°ª∫≥Â…Ë±∏fb_infoµΩœµÕ≥÷–, register_framebuffer∂®“Â‘⁄fb.h÷–‘⁄fbmem.c÷– µœ÷*/
+	ret = register_framebuffer(fbinfo);
+	if (ret < 0) {
+		printk(KERN_ERR "Failed to register framebuffer device: %d\n", ret);
+		goto free_video_memory;
+	}
+
+	/* create device files */
+	/*∂‘…Ë±∏Œƒº˛œµÕ≥µƒ÷ß≥÷(∂‘…Ë±∏Œƒº˛œµÕ≥µƒ¿ÌΩ‚«Î≤Œ‘ƒ£∫«∂»Î ΩLinux÷ÆŒ“––°™°™…Ë±∏Œƒº˛œµÕ≥∆ Œˆ”Î π”√)
+     ¥¥Ω®frambuffer…Ë±∏Œƒº˛£¨device_create_file∂®“Â‘⁄linux/device.h÷–*/
+	device_create_file(&pdev->dev, &dev_attr_debug);
+
+	printk(KERN_INFO "fb%d: %s frame buffer device\n",
+		fbinfo->node, fbinfo->fix.id);
+
+	return 0;
+
+free_video_memory:
+	ls1bfb_unmap_video_memory(info);
+failed_free_res:
+	release_mem_region(res->start, (res->end-res->start)+1);
+dealloc_fb:
+	framebuffer_release(fbinfo);
+	return ret;
+}
+
+/* ls1bfb_stop_lcd
  *
- *  This call looks only at xoffset, yoffset and the FB_VMODE_YWRAP flag
- */
-static int ls1b_lcd_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
+ * shutdown the lcd controller
+*/
+static void ls1bfb_stop_lcd(struct ls1bfb_info *fbi)
 {
-	if (var->vmode & FB_VMODE_YWRAP) {
-		if (var->yoffset < 0
-		    || var->yoffset >= info->var.yres_virtual
-		    || var->xoffset)
-			return -EINVAL;
-	} else {
-		if (var->xoffset + var->xres > info->var.xres_virtual ||
-		    var->yoffset + var->yres > info->var.yres_virtual)
-			return -EINVAL;
-	}
-	info->var.xoffset = var->xoffset;
-	info->var.yoffset = var->yoffset;
-	if (var->vmode & FB_VMODE_YWRAP)
-		info->var.vmode |= FB_VMODE_YWRAP;
-	else
-		info->var.vmode &= ~FB_VMODE_YWRAP;
-	return 0;
+	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf & (~0x100);
 }
-
-#ifndef MODULE
-static int __init ls1b_lcd_setup(char *options)
-{
-	char *this_opt;
-
-	ls1b_lcd_enable = 1;
-
-	if (!options || !*options)
-		return 1;
-
-	while ((this_opt = strsep(&options, ",")) != NULL) {
-		if (!*this_opt)
-			continue;
-		if (!strncmp(this_opt, "disable", 7))
-			ls1b_lcd_enable = 0;
-		else
-			mode_option = this_opt;
-	}
-	return 1;
-}
-#endif  /*  MODULE  */
-
-
 
 /*
-*  Initialisation
-*/
-static int __init ls1b_lcd_probe(struct platform_device *dev)
+ *  Cleanup
+ */
+static int ls1bfb_remove(struct platform_device *pdev)
 {
-	struct fb_info *info;		/*FrameBufferÈ©±Âä®ÊâÄÂØπÂ∫îÁöÑfb_infoÁªìÊûÑ‰Ωì*/
-	int retval = -ENOMEM;
-	struct fb_var_screeninfo var;
+	struct fb_info	   *fbinfo = platform_get_drvdata(pdev);
+	struct ls1bfb_info *info = fbinfo->par;
+	struct resource *res;
 
-	var = ls1b_lcd_default;
+	ls1bfb_stop_lcd(info);
+	msleep(1);
 
-	/*Áªôfb_infoÂàÜÈÖçÁ©∫Èó¥ÔºåÂ§ßÂ∞è‰∏∫256ÁöÑÂÜÖÂ≠òÔºåframebuffer_allocÂÆö‰πâÂú®fb.h‰∏≠Âú®fbsysfs.c‰∏≠ÂÆûÁé∞*/
-	info = framebuffer_alloc(sizeof(u32) * 256, &dev->dev);
-	if (!info)
-		return retval;
+	ls1bfb_unmap_video_memory(info);
 
-	info->fix = ls1b_lcd_fix;				//Âõ∫ÂÆöÂèÇÊï∞
-	info->node = -1;
-	info->fbops = &ls1b_lcd_ops;			//fb_opsÂ∏ßÁºìÂÜ≤Êìç‰Ωú
-	info->pseudo_palette = info->par;	//‰º™16Ëâ≤È¢úËâ≤Ë°®
-	info->par = NULL;
-	info->flags = FBINFO_FLAG_DEFAULT;
-	var = info->var = ls1b_lcd_default;	//ÂèØÂèòÂèÇÊï∞ÁªìÊûÑ‰Ωì ÂΩìÂâçvar
-	
-	if(mode_option){
-		retval = fb_find_mode(&info->var, info, mode_option, NULL, 0, NULL, 32);
-//		printk("----------  %x\n", retval);
-		if(retval != 3){
-			if(!strncmp("480x272", mode_option, 7)){
-				var = info->var = LS1B_480x272_16;
-			}
-			else if(!strncmp("800x480", mode_option, 7)){
-				var = info->var = LS1B_800x480_16;
-			}
-		}
-	}
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	release_mem_region(res->start, (res->end-res->start)+1);
+	unregister_framebuffer(fbinfo);
 
-	//ËÆ°ÁÆóËßÜÈ¢ëÁºìÂÜ≤Âå∫Â§ßÂ∞èÔºü
-    if (!videomemorysize) {
-    	videomemorysize = info->var.xres_virtual *
-			  info->var.yres_virtual *
-			  info->var.bits_per_pixel / 8;
-    }
-
-	/*
-	 * For real video cards we use ioremap.
-	 */
-	videomemory = dma_alloc_coherent(&dev->dev,videomemorysize+PAGE_SIZE, &dma_A,GFP_ATOMIC); //use only bank A
-	if (!videomemory)
-		goto err;
-	memset(videomemory, 0, videomemorysize);
-#ifdef DEBUG
-	printk(KERN_DEBUG "videomemorysize = %lx \n", videomemorysize);
-//	prom_printf("%x::%x\n",videomemory,dma_A);
-#endif
-
-	info->screen_base = (char __iomem *)videomemory;
-	info->fix.smem_start = dma_A;
-	info->fix.smem_len = videomemorysize;
-
-	retval = fb_alloc_cmap(&info->cmap, 32, 0);
-	if (retval < 0)
-		goto err1;
-	
-	//Â¶ÇÊûúPMON Â∑≤ÂØπLCDÊéßÂà∂Âô®ËøõË°å‰∫ÜÂàùÂßãÂåñ ÂàôËøôÈáå‰∏çÈúÄË¶ÅÊâßË°åconfig_ls1blcd_controller()ÂáΩÊï∞
-//	config_ls1blcd_controller();
-
-	SB_FB_BUF_ADDRESS_REG(0)=dma_A;
-//	SB_FB_BUF_ADDRESS_REG(1)=dma_A;		//loongson 1A LCD(VGA)ÊéßÂà∂Âô®
-	/*set double flip buffer address*/
-	*(volatile int *)0xbc301580 = dma_A;
-//	*(volatile int *)0xbc301590 = dma_A;	//loongson 1A LCD(VGA)ÊéßÂà∂Âô®
-	/*disable fb0,board only use fb1 now*/
-#ifdef CONFIG_MACH_LS1B
-	SB_FB_BUF_CONFIG_REG(0) &= ~0x100;
-#endif
-	
-	//Ê£ÄÊü•ÂèØÂèòÂèÇÊï∞
-	ls1b_lcd_check_var(&var,info);
-	//Ê≥®ÂÜåfb_info
-	retval = register_framebuffer(info);
-	if (retval < 0)
-		goto err2;
-	platform_set_drvdata(dev, info);
-
-#ifdef DEBUG
-	printk(KERN_INFO
-	       "fb%d: Virtual frame buffer device, using %ldK of video memory\n",
-	       info->node, videomemorysize >> 10);
-	printk(KERN_DEBUG "ls1b_lcd Initialization Complete\n");
-#endif
-	return 0;
-err2:
-	fb_dealloc_cmap(&info->cmap);
-err1:
-	dma_free_coherent(&dev->dev,videomemorysize+PAGE_SIZE,videomemory,dma_A);
-err:
-	framebuffer_release(info);
-	return retval;
-}
-
-static int ls1b_lcd_remove(struct platform_device *dev)
-{
-	struct fb_info *info = platform_get_drvdata(dev);
-
-	if (info) {
-		unregister_framebuffer(info);
-		dma_free_coherent(&dev->dev,videomemorysize+PAGE_SIZE,videomemory,dma_A);
-		framebuffer_release(info);
-	}
 	return 0;
 }
 
-static struct platform_driver ls1b_lcd_driver = {
-	.probe		= ls1b_lcd_probe,
-	.remove	= ls1b_lcd_remove,
+#ifdef CONFIG_PM
+
+/* suspend and resume support for the lcd controller */
+static int ls1bfb_suspend(struct platform_device *dev, pm_message_t state)
+{
+	struct fb_info	   *fbinfo = platform_get_drvdata(dev);
+	struct ls1bfb_info *info = fbinfo->par;
+
+	ls1bfb_stop_lcd(info);
+
+	return 0;
+}
+
+static int ls1bfb_resume(struct platform_device *dev)
+{
+	struct fb_info	   *fbinfo = platform_get_drvdata(dev);
+	struct ls1bfb_info *info = fbinfo->par;
+
+	ls1bfb_init_registers(info);
+
+	return 0;
+}
+
+#else
+#define ls1bfb_suspend NULL
+#define ls1bfb_resume  NULL
+#endif
+
+static struct platform_driver ls1bfb_driver = {
+	.probe		= ls1bfb_probe,
+	.remove	= ls1bfb_remove,
+	.suspend	= ls1bfb_suspend,
+	.resume	= ls1bfb_resume,
 	.driver	= {
 		.name	= "ls1b-lcd",
-		.owner = THIS_MODULE,
+		.owner	= THIS_MODULE,
 	},
 };
 
-//static struct platform_device *ls1b_lcd_device;
-static int __init ls1b_lcd_init(void)
+
+int __devinit ls1bfb_init(void)
 {
-	int ret = 0;
+#ifndef MODULE
 	char *option = NULL;
 
-#ifdef DEBUG
-	printk(KERN_DEBUG "ls1b_lcd Initialization\n");
-#endif
-#ifndef MODULE
 	if (fb_get_options("ls1bfb", &option))
 		return -ENODEV;
-	ls1b_lcd_setup(option);
+
+	if (option && *option)
+		mode_option = option;
 #endif
-
-	if (!ls1b_lcd_enable)
-		return -ENXIO;
-
-	ret = platform_driver_register(&ls1b_lcd_driver);
-
-	return ret;
+	return platform_driver_register(&ls1bfb_driver);
 }
-module_init(ls1b_lcd_init);
 
-#ifdef MODULE
-static void __exit ls1b_lcd_exit(void)
+static void __exit ls1bfb_cleanup(void)
 {
-	platform_driver_unregister(&ls1b_lcd_driver);
+	platform_driver_unregister(&ls1bfb_driver);
 }
-module_exit(ls1b_lcd_exit);
 
-MODULE_DESCRIPTION("loongson 1B LCD Driver");
-MODULE_AUTHOR("loongson");
+
+module_init(ls1bfb_init);
+module_exit(ls1bfb_cleanup);
+
+MODULE_AUTHOR("loongson-gz tang <tanghaifeng-gz@loongson.cn>");
+MODULE_DESCRIPTION("Framebuffer driver for the loongson1B");
 MODULE_LICENSE("GPL");
-#endif				/* MODULE */
