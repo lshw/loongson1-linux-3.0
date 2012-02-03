@@ -174,6 +174,36 @@ static struct ls1bfb_mach_info LS1B_640x768 __initdata = {
 	},
 };
 
+static struct ls1bfb_mach_info LS1B_800x480 __initdata = {
+	.regs	= {
+		.fb_conf		= 0x00100003,
+		.fb_stride		= 0x00000000,
+		.fb_origin		= 0x00000000,
+		.panel_conf	= 0x00000101,
+		.hdisplay		= (1024 << 16) | 800,
+		.hsync			= 0x40000000 | (912 <<16) | 832,
+		.vdisplay		= (500 << 16) | 480,
+		.vsync			= 0x40000000 | (484 <<16) | 481,
+	},
+	.width		= 800,
+	.height	= 480,
+	.xres		= {
+		.min	= 800,
+		.max	= 800,
+		.defval	= 800,
+	},
+	.yres		= {
+		.min	= 480,
+		.max	= 480,
+		.defval = 480,
+	},
+	.bpp		= {
+		.min	= 16,
+		.max	= 32,
+		.defval = 16,
+	},
+};
+
 static struct ls1bfb_mach_info LS1B_800x600 __initdata = {
 	.regs	= {
 		.fb_conf		= 0x00100003,

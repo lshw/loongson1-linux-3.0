@@ -610,7 +610,7 @@ static int ls1bfb_init_registers(struct ls1bfb_info *fbi)
 	SB_FB_BUF_ORIGIN_REG(0)		= fbi->regs.fb_origin;
 	
  	ls1bfb_set_lcdaddr(fbi);
-	printk("++++++= fbi->regs.fb_conf = %x\n", fbi->regs.fb_conf);
+//	printk("++++++= fbi->regs.fb_conf = %x\n", fbi->regs.fb_conf);
 	/* Enable video by setting the ENVID bit to 1 */
 //	fbi->regs.fb_conf |= ((1<<20) | (1<<8));
 //	SB_FB_BUF_CONFIG_REG(0) = fbi->regs.fb_conf;
@@ -671,6 +671,9 @@ static int mach_mode_option(char *mode_option)
 	}
 	else if(strstr(mode_option, "640x768")){
 		pd = &LS1B_640x768;
+	}
+	else if(strstr(mode_option, "800x480")){
+		pd = &LS1B_800x480;
 	}
 	else if(strstr(mode_option, "800x600")){
 		pd = &LS1B_800x600;
