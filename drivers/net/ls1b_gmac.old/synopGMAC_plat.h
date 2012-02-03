@@ -14,7 +14,6 @@
 #ifndef SYNOP_GMAC_PLAT_H
 #define SYNOP_GMAC_PLAT_H 1
 
-//#define DEBUG 0
 
 #include <linux/kernel.h>
 #include <asm/io.h>

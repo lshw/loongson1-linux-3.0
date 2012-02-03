@@ -25,13 +25,14 @@ enum GMACPhyBase
 	PHY31 = 31,
 };
 
-#define DEFAULT_PHY_BASE PHY0//PHY1		//We use First Phy 
+//#define	ENH_DESC	//lxy
+#define DEFAULT_PHY_BASE PHY1		//We use First Phy 
 #define MACBASE 0x0000			// The Mac Base address offset is 0x0000
 #define DMABASE 0x1000			// Dma base address starts with an offset 0x1000
 
 
-#define TRANSMIT_DESC_SIZE  1024		//Tx Descriptors needed in the Descriptor pool/queue
-#define RECEIVE_DESC_SIZE   1024	//Rx Descriptors needed in the Descriptor pool/queue
+#define TRANSMIT_DESC_SIZE  512//256		//Tx Descriptors needed in the Descriptor pool/queue
+#define RECEIVE_DESC_SIZE   512//256 	//Rx Descriptors needed in the Descriptor pool/queue
 //#define TRANSMIT_DESC_SIZE  13	//Tx Descriptors needed in the Descriptor pool/queue
 //#define RECEIVE_DESC_SIZE   13	//Rx Descriptors needed in the Descriptor pool/queue
 
@@ -1595,6 +1596,7 @@ void synopGMAC_tx_activate_flow_control(synopGMACdevice * gmacdev);
 void synopGMAC_tx_deactivate_flow_control(synopGMACdevice * gmacdev);
 void synopGMAC_pause_control(synopGMACdevice *gmacdev);
 s32 synopGMAC_mac_init(synopGMACdevice * gmacdev);
+s32 synopGMAC_check_phy_init (synopGMACdevice * gmacdev);
 s32 synopGMAC_set_mac_addr(synopGMACdevice *gmacdev, u32 MacHigh, u32 MacLow, u8 *MacAddr);
 s32 synopGMAC_get_mac_addr(synopGMACdevice *gmacdev, u32 MacHigh, u32 MacLow, u8 *MacAddr);
 s32 synopGMAC_attach (synopGMACdevice * gmacdev, void *macBase, void *dmaBase, u32 phyBase,u8 *MacAddr); 

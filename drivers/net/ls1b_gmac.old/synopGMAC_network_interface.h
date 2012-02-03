@@ -28,9 +28,4 @@ s32 synopGMAC_linux_change_mtu(struct net_device *,s32);
 s32 synopGMAC_linux_do_ioctl(struct net_device *,struct ifreq *,s32);
 void synopGMAC_linux_tx_timeout(struct net_device *);
 
-s32 synopGMAC_check_phy_init(synopGMACPciNetworkAdapter *);
-static int gmac_get_settings(struct net_device *dev, struct ethtool_cmd *cmd);
-
-
-
 #endif /* End of file */

@@ -812,8 +812,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_ohci_device,
 	&ls1b_ehci_device,
 	&ls1b_dc_device,
-	&ls1b_gmac1_device,
-//    &ls1b_gmac2_device,
+#ifdef CONFIG_LS1B_GMAC0_OPEN   //lv
+        &ls1b_gmac1_device,
+#endif
+#ifdef CONFIG_LS1B_GMAC1_OPEN  //lv
+        &ls1b_gmac2_device,
+#endif
 	&ls1b_wat_device,
 	&ls1b_rtc_device,
 	&ls1b_i2c_device,
@@ -907,6 +911,26 @@ int ls1b_platform_init(void)
 	
 //	ls1b_spi0_devices[2].irq = ads7846_detect_penirq();
 	ads7846_detect_penirq();
+	
+//modify by lvling
+#if CONFIG_LS1B_GMAC0_OPEN && CONFIG_LS1B_GMAC1_OPEN//open gmac0 and gmac1  
+  printk("open gmac0 and gmac1.\n");
+  (*(volatile unsigned int *)0xbfd00420) |= (1 << 4 | 1 << 3);
+  (*(volatile unsigned int *)0xbfd00424) |= (0xf);
+
+#elif (CONFIG_LS1B_GMAC0_OPEN) && (~CONFIG_LS1B_GMAC1_OPEN)//open gmac0,close gmac1
+  printk("open gmac0 close gmac1.\n");
+  (*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
+  (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
+  (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);  //open uart0/1
+
+#elif (~CONFIG_LS1BGMAC0_OPEN) && (CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
+  printk("close gmac0 open gmac1.\n");
+  (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
+  (*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
+  (*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
+#endif
+	
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 

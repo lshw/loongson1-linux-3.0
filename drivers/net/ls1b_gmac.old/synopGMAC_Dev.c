@@ -8,9 +8,7 @@
  * \internal
  * ------------------------REVISION HISTORY---------------------------------
  * Synopsys                 01/Aug/2007                              Created
- * lvling(loongson)	    01/Dec/2011				     Modify
  */
-
 #include "synopGMAC_Dev.h"
 #include "synopGMAC_Host.h"
 
@@ -71,9 +69,8 @@ synopGMACWriteReg(RegBase,GmacGmiiAddr,addr); //write the address from where the
                 }
         plat_delay(DEFAULT_DELAY_VARIABLE);
         }
-        if(loop_variable < DEFAULT_LOOP_VARIABLE){
-	      * data = (u16)(synopGMACReadReg(RegBase,GmacGmiiData) & 0xFFFF);
-	}
+        if(loop_variable < DEFAULT_LOOP_VARIABLE)
+               * data = (u16)(synopGMACReadReg(RegBase,GmacGmiiData) & 0xFFFF);
         else{
         TR("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
 	return -ESYNOPGMACPHYERR;
@@ -129,14 +126,13 @@ synopGMACWriteReg(RegBase,GmacGmiiAddr,addr);
   */
 s32 synopGMAC_phy_loopback(synopGMACdevice *gmacdev, bool loopback)
 {
-	s32 status = -ESYNOPGMACNOERR;
-	
-	if(loopback)
-		status = synopGMAC_write_phy_reg((u32 *)gmacdev->MacBase, gmacdev->PhyBase, PHY_CONTROL_REG, Mii_Loopback);
-	else
-		status = synopGMAC_write_phy_reg((u32 *)gmacdev->MacBase, gmacdev->PhyBase, PHY_CONTROL_REG, Mii_NoLoopback);
+s32 status = -ESYNOPGMACNOERR;
+if(loopback)
+	status = synopGMAC_write_phy_reg((u32 *)gmacdev->MacBase, gmacdev->PhyBase, PHY_CONTROL_REG, Mii_Loopback);
+else
+	status = synopGMAC_write_phy_reg((u32 *)gmacdev->MacBase, gmacdev->PhyBase, PHY_CONTROL_REG, Mii_NoLoopback);
 
-	return status;
+return status;
 }
 
 
@@ -346,28 +342,6 @@ void synopGMAC_select_mii(synopGMACdevice * gmacdev)
 	return;
 }
 
-/*
- *set the gmac inter frame gap
- */
-void synopGMAC_inter_frame_gap(synopGMACdevice *gmacdev, u32 value)
-{
-	u32 data;
-        data = synopGMACReadReg((u32 *)gmacdev->MacBase, GmacConfig);
-        data &= (~0xe0000);
-        data |= value;
-        synopGMACWriteReg((u32 *)gmacdev->MacBase, GmacConfig,data);
-        return;
-
-}
-
-/*
- *
- */
-void synopGMAC_checksum_offload_enable(synopGMACdevice *gmacdev)
-{
-	synopGMACSetBits((u32 *)gmacdev->MacBase, GmacConfig, 0x400);
-	return;
-}
 /**
   * Enables Receive Own bit (Only in Half Duplex Mode). 
   * When enaled GMAC receives all the packets given by phy while transmitting.
@@ -981,16 +955,10 @@ s32 synopGMAC_mac_init(synopGMACdevice * gmacdev)
 	u32 PHYreg;
 	
 	if(gmacdev->DuplexMode == FULLDUPLEX){
-//		synopGMAC_wd_enable(gmacdev);  
-		synopGMAC_wd_disable(gmacdev);   //lv
-//		synopGMAC_jab_enable(gmacdev);
-		synopGMAC_jab_disable(gmacdev); //lv
-//		synopGMAC_frame_burst_enable(gmacdev);
-		synopGMAC_frame_burst_disable(gmacdev);
-//		synopGMAC_jumbo_frame_disable(gmacdev);  
-		synopGMAC_jumbo_frame_enable(gmacdev); //lv
-//		synopGMAC_inter_frame_gap(gmacdev, 0xe0000); //lv
-//		synopGMAC_checksum_offload_enable(gmacdev); //lv
+		synopGMAC_wd_enable(gmacdev);
+		synopGMAC_jab_enable(gmacdev);
+		synopGMAC_frame_burst_enable(gmacdev);
+		synopGMAC_jumbo_frame_disable(gmacdev);
 		synopGMAC_rx_own_enable(gmacdev);
 		synopGMAC_loopback_off(gmacdev);
 		synopGMAC_set_full_duplex(gmacdev);
@@ -1017,8 +985,8 @@ s32 synopGMAC_mac_init(synopGMACdevice * gmacdev)
 		}
 
 		/*Frame Filter Configuration*/
-	 	synopGMAC_frame_filter_enable(gmacdev);
-//		synopGMAC_frame_filter_disable(gmacdev);
+	 	//synopGMAC_frame_filter_enable(gmacdev);
+	 	synopGMAC_frame_filter_disable(gmacdev);
 		synopGMAC_set_pass_control(gmacdev,GmacPassControl0);
 		synopGMAC_broadcast_enable(gmacdev);
 		synopGMAC_src_addr_filter_disable(gmacdev);
@@ -1109,6 +1077,97 @@ s32 synopGMAC_phy88e1111_phase_init (synopGMACdevice * gmacdev)
 }
 
 /**
+  * Checks and initialze phy.
+  * This function checks whether the phy initialization is complete. 
+  * @param[in] pointer to synopGMACdevice.
+  * \return 0 if success else returns the error number.
+  */
+
+s32 synopGMAC_check_phy_init (synopGMACdevice * gmacdev) 
+{	
+	//u32 addr;  
+	u16 data;
+	s32 status = -ESYNOPGMACNOERR;		
+	s32 loop_count;
+	
+	loop_count = DEFAULT_LOOP_VARIABLE;
+	while(loop_count-- > 0)
+	{
+
+		status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_STATUS_REG, &data);
+		if(status)	
+			return status;
+
+	        if((data & Mii_AutoNegCmplt) != 0){
+			TR("Autonegotiation Complete\n");
+			break;
+		}
+	}
+	
+	status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_SPECIFIC_STATUS_REG, &data);
+	if(status)
+		return status;
+
+		gmacdev->LinkState = data;
+
+        if((data & Mii_phy_status_link_up) == 0){
+		TR("No Link data=%08x\n",data);
+		//gmacdev->LinkState = LINKDOWN; 
+		gmacdev->DuplexMode = FULLDUPLEX;
+		gmacdev->Speed      =   SPEED100;
+
+		return -ESYNOPGMACPHYERR;
+	}
+	else
+	
+	{
+		//gmacdev->LinkState = LINKUP; 
+		TR("Link UP data=%08x\n",data);
+	}
+	
+	status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_SPECIFIC_STATUS_REG, &data);
+	if(status)
+		return status;
+	
+
+
+	gmacdev->DuplexMode = (data & Mii_phy_status_full_duplex)  ? FULLDUPLEX: HALFDUPLEX ;
+	TR("Link is up in %s mode\n",(gmacdev->DuplexMode == FULLDUPLEX) ? "FULL DUPLEX": "HALF DUPLEX");
+
+#if 0
+	/*if not set to Master configuration in case of Half duplex mode set it manually as Master*/
+	if(gmacdev->DuplexMode == HALFDUPLEX){
+		status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_CONTROL_REG, &data);
+		if(status)
+			return status;
+		
+		status = synopGMAC_write_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_CONTROL_REG, data | Mii_Manual_Master_Config );
+		if(status)
+			return status;		
+	}
+#endif
+	
+	status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_SPECIFIC_STATUS_REG, &data);
+	if(status)
+		return status;
+	if(data & Mii_phy_status_speed_1000)
+	        gmacdev->Speed      =   SPEED1000;
+	else if(data & Mii_phy_status_speed_100)
+		gmacdev->Speed      =   SPEED100;
+	else
+		gmacdev->Speed      =   SPEED10;
+
+	if(gmacdev->Speed == SPEED1000)	
+		TR0("Link is with 1000M Speed \n");
+	if(gmacdev->Speed == SPEED100)	
+		TR0("Link is with 100M Speed \n");
+	if(gmacdev->Speed == SPEED10)	
+		TR0("Link is with 10M Speed \n");
+
+	return -ESYNOPGMACNOERR;
+}
+
+/**
   * Sets the Mac address in to GMAC register.
   * This function sets the MAC address to the MAC register in question.
   * @param[in] pointer to synopGMACdevice to populate mac dma and phy addresses.
@@ -1175,42 +1234,6 @@ s32 synopGMAC_attach (synopGMACdevice * gmacdev, void *macBase,void *dmaBase,u32
 	gmacdev->MacBase = macBase;
 	gmacdev->DmaBase = dmaBase;
 	gmacdev->PhyBase = phyBase;
-
-	/*phy detect : modify by lvling*/
-	{
-		#define PHY_IDREG1 2
-		#define PHY_IDREG2 3
-		#define MAX_PHY_NO 32
-	
-
-		int base,cnt;
-		u16 data;
-	
-		#define PHY_IDREG1 2
-		#define PHY_IDREG2 3
-		#define MAX_PHY_NO 32
-
-		for(base = phyBase, cnt = 0; cnt < MAX_PHY_NO; base = (base + 1)&0x1f,cnt++){
-			synopGMAC_read_phy_reg(gmacdev->MacBase, base, PHY_IDREG1, &data);
-			if(data != 0 && data != 0xffff){
-				break;
-			}
-			synopGMAC_read_phy_reg(gmacdev->MacBase, base, PHY_IDREG2, &data);
-			if(data != 0 && data != 0xffff){	
-				break;
-			}
-		}
-
-		if(cnt == MAX_PHY_NO){
-			printk("phy detect: Can't find phy.\n");
-			return -EFAULT;
-		}
-
-		gmacdev->PhyBase = base;
-	}
-
-
-
 
 	/* Program/flash in the station/IP's Mac address */
 	synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr0); 
@@ -1925,8 +1948,7 @@ s32 synopGMAC_set_tx_qptr(synopGMACdevice * gmacdev, u32 Buffer1, u32 Length1, u
 
 
 	TR("%02d %p %08x %08x %08x %08x %lx %lx\n",txnext,txdesc,txdesc->status,txdesc->length,txdesc->buffer1,txdesc->buffer2,txdesc->data1,txdesc->data2);
-	//return txnext;  //txnext is useless and txnext define as a unsigned int but return as a signed int.	
-	return 0;
+	return txnext;	
 }
 #ifdef ENH_DESC_8W
 /**
@@ -2088,11 +2110,11 @@ s32 synopGMAC_get_rx_qptr(synopGMACdevice * gmacdev, u32 * Status, u32 * Buffer1
 	u32 rxnext       = gmacdev->RxBusy;	// index of descriptor the DMA just completed. May be useful when data 
 						//is spread over multiple buffers/descriptors
 	DmaDesc * rxdesc = gmacdev->RxBusyDesc;
-
 	if(synopGMAC_is_desc_owned_by_dma(rxdesc))
 		return -1;
 	if(synopGMAC_is_desc_empty(rxdesc))
-		return -1;	
+		return -1;
+	
 
 	if(Status != 0)
 		*Status = rxdesc->status;// send the status of this descriptor
@@ -2131,7 +2153,6 @@ s32 synopGMAC_get_rx_qptr(synopGMACdevice * gmacdev, u32 * Status, u32 * Buffer1
 	}
 	TR("%02d %08x %08x %08x %08x %08x %08x %08x\n",rxnext,(u32)rxdesc,rxdesc->status,rxdesc->length,rxdesc->buffer1,rxdesc->buffer2,rxdesc->data1,rxdesc->data2);
 	(gmacdev->BusyRxDesc)--; //busy tx descriptor is reduced by one as it will be handed over to Processor now
-	
 	return(rxnext);
 
 }

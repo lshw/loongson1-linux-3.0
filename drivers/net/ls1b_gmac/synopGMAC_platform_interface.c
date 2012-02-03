@@ -8,42 +8,56 @@
 #include "synopGMAC_Host.h"
 #include "synopGMAC_network_interface.h"
 
-static int init_one_platform(struct platform_device *pdev)
+static int gmac_probe(struct platform_device *pdev)
 {
-  synopGMACPciNetworkAdapter *synopGMACadapter;
-  u8 *synopGMACMappedAddr;
-  u32 synopGMACMappedAddrSize;
-  u32 irq;
-  struct resource *res;
-  
+	synopGMACPciNetworkAdapter *synopGMACadapter;
+	u8 *synopGMACMappedAddr;
+	u32 synopGMACMappedAddrSize;
+	u32 irq;
+	struct resource *res;
 
 	irq = platform_get_irq(pdev, 0);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-    synopGMACMappedAddrSize=res->end-res->start+1;
-    //synopGMACMappedAddr=ioremap_cachable(res->start,synopGMACMappedAddrSize);
-    synopGMACMappedAddr=ioremap_nocache(res->start,synopGMACMappedAddrSize);
-printk("<0>init_one_platform %p\n",synopGMACMappedAddr);
+	if(irq < 0 || res == NULL){
+		printk("get resource from platform error.\n");
+		return -EBUSY;
+	}
 
-	if((synopGMACadapter=synopGMAC_init_network_interface(&pdev->dev,synopGMACMappedAddr,synopGMACMappedAddrSize,irq)))
+	//synopGMACMappedAddr=ioremap_cachable(res->start,synopGMACMappedAddrSize);
+	synopGMACMappedAddrSize=res->end-res->start+1;
+	synopGMACMappedAddr=ioremap_nocache(res->start,synopGMACMappedAddrSize);
+	if(!synopGMACMappedAddr){
+		printk("%s: ioremap fault.\n", __FUNCTION__);
+		return -ENOMEM;
+	}
+
+	printk("<0>gmac%d is init,Map address is %p\n",pdev->id,synopGMACMappedAddr);
+
+	if((synopGMACadapter=synopGMAC_init_network_interface(&pdev->dev,synopGMACMappedAddr,synopGMACMappedAddrSize,irq)) < 0){
+		printk("init network interface fault.\n");
+		return -EFAULT;
+	}
+	
 	platform_set_drvdata(pdev,synopGMACadapter);
+
 	return 0;
 }
 
-static int remove_one_platform(struct platform_device *pdev)
+static int gmac_remove(struct platform_device *pdev)
 {
-synopGMACPciNetworkAdapter *adapter=platform_get_drvdata(pdev);
-struct net_device *netdev=adapter->synopGMACnetdev;
+	synopGMACPciNetworkAdapter *adapter=platform_get_drvdata(pdev);
+	struct net_device *netdev=adapter->synopGMACnetdev;
 
-    /* Do the reverse of what probe does */ 
-    if (adapter->synopGMACMappedAddr)
-    {
-      TR0 ("Releaseing synopGMACMappedAddr 0x%p whose size is %d\n",  adapter->synopGMACMappedAddr, adapter->synopGMACMappedAddrSize);
+    	/* Do the reverse of what probe does */ 
+    	if (adapter->synopGMACMappedAddr)
+    	{
+      		TR0 ("Releaseing synopGMACMappedAddr 0x%p whose size is %d\n",  adapter->synopGMACMappedAddr, adapter->synopGMACMappedAddrSize);
       
-      /*release the memory region which we locked using request_mem_region */ 
-      release_mem_region ((resource_size_t) adapter->synopGMACMappedAddr, adapter->synopGMACMappedAddrSize);
-    }
-  TR0 ("Unmapping synopGMACMappedAddr =0x%p\n",  adapter->synopGMACMappedAddr);
-  iounmap (adapter->synopGMACMappedAddr);
+      		/*release the memory region which we locked using request_mem_region */ 
+      		release_mem_region ((resource_size_t) adapter->synopGMACMappedAddr, adapter->synopGMACMappedAddrSize);
+    	}
+  	TR0 ("Unmapping synopGMACMappedAddr =0x%p\n",  adapter->synopGMACMappedAddr);
+  	iounmap (adapter->synopGMACMappedAddr);
 	if(netdev) {
 		unregister_netdev(netdev);
 		free_netdev(netdev);
@@ -53,27 +67,26 @@ struct net_device *netdev=adapter->synopGMACnetdev;
 	return 0;
 }
 
-static struct platform_driver ls1f_gmac_driver = {
-	.probe			= init_one_platform,
-	.remove			= remove_one_platform,
+static struct platform_driver ls1b_gmac_driver = {
+	.probe			= gmac_probe,
+	.remove			= gmac_remove,
 	.driver		= {
 		.name	= "ls1b-gmac",
 		.owner	= THIS_MODULE,
 	},
 };
 
-static int __init ls1f_gmac_init(void)
+
+static int __init ls1b_gmac_init(void)
 {
-	platform_driver_register(&ls1f_gmac_driver);
-	return 0;
+	return	platform_driver_register(&ls1b_gmac_driver);
 }
 
 
-module_init(ls1f_gmac_init);
-
-static void __exit ls1f_gmac_exit(void)
+static void __exit ls1b_gmac_exit(void)
 {
-	platform_driver_unregister(&ls1f_gmac_driver);
+	platform_driver_unregister(&ls1b_gmac_driver);
 }
 
-module_exit(ls1f_gmac_exit);
+module_exit(ls1b_gmac_exit);
+module_init(ls1b_gmac_init);

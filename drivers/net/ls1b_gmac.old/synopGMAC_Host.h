@@ -24,7 +24,7 @@ u32 synopGMACPciState[16];
 u8* synopGMACMappedAddr;
 u32 synopGMACMappedAddrSize;
 int irq;
-struct timer_list synopGMAC_cable_unplug_timer; //lv
+
 } synopGMACPciNetworkAdapter;
 
 

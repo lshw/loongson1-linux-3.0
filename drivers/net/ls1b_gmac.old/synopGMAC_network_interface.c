@@ -46,7 +46,7 @@
 #define IOCTL_READ_TXDESC    SIOCDEVPRIVATE+5
 #define IOCTL_POWER_DOWN     SIOCDEVPRIVATE+6
 
-//static struct timer_list synopGMAC_cable_unplug_timer;
+static struct timer_list synopGMAC_cable_unplug_timer;
 static u32 GMAC_Power_down; // This global variable is used to indicate the ISR whether the interrupts occured in the process of powering down the mac or not
 
 
@@ -121,71 +121,40 @@ u32 synopGMAC_wakeup_filter_config3[] = {
  * \callgraph
  */
 
-static u32 gmac_get_link(struct net_device *dev);
 static void synopGMAC_linux_cable_unplug_function(synopGMACPciNetworkAdapter *adapter)
 {
-	s32 status;
-	u16 data,data1;
-	synopGMACdevice *gmacdev = adapter->synopGMACdev;
-	struct ethtool_cmd cmd;
+s32 status;
+u16 data,data1;
+synopGMACdevice            *gmacdev = adapter->synopGMACdev;
 
-	init_timer(&adapter->synopGMAC_cable_unplug_timer); //lv
-	adapter->synopGMAC_cable_unplug_timer.expires = CHECK_TIME + jiffies; //lv
+init_timer(&synopGMAC_cable_unplug_timer);
+synopGMAC_cable_unplug_timer.expires = CHECK_TIME + jiffies;
 
-	if(!gmac_get_link(adapter->synopGMACnetdev)){
-		if(gmacdev->LinkState)
-		TR0("No Link: %08x %08x\n",data,data1);
-		gmacdev->DuplexMode = 0;
-		gmacdev->Speed = 0;
-		gmacdev->LoopBackMode = 0; 
-		gmacdev->LinkState = 0; 
-	}else{
-		data = synopGMAC_check_phy_init(adapter);
 
-		if(gmacdev->LinkState != data){
-			gmacdev->LinkState = data;
-			synopGMAC_mac_init(gmacdev);
-			TR("Link UP data=%08x\n",data);
-			TR("Link is up in %s mode\n",(gmacdev->DuplexMode == FULLDUPLEX) ? "FULL DUPLEX": "HALF DUPLEX");
-		if(gmacdev->Speed == SPEED1000)	
-			TR0("Link is with 1000M Speed \n");
-		if(gmacdev->Speed == SPEED100)	
-			TR0("Link is with 100M Speed \n");
-		if(gmacdev->Speed == SPEED10)	
-			TR0("Link is with 10M Speed \n");
-		}
-//	synopGMAC_intr_handler(0, adapter->synopGMACnetdev);
-	}
+status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_CONTROL_REG, &data1);
+status = synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,gmacdev->PhyBase,PHY_SPECIFIC_STATUS_REG, &data);
 
-	add_timer(&adapter->synopGMAC_cable_unplug_timer); //lv
-	
+
+if((data & Mii_phy_status_link_up) == 0){
+	if(gmacdev->LinkState & Mii_phy_status_link_up)
+	TR0("No Link: %08x %08x\n",data,data1);
+	gmacdev->DuplexMode = 0;
+	gmacdev->Speed = 0;
+	gmacdev->LoopBackMode = 0; 
+
 }
-
-s32 synopGMAC_check_phy_init (synopGMACPciNetworkAdapter *adapter) 
-{	
-	struct ethtool_cmd cmd;
-	synopGMACdevice *gmacdev = adapter->synopGMACdev;
-
-	if(!gmac_get_link(adapter->synopGMACnetdev)){
-
-		gmacdev->DuplexMode = FULLDUPLEX;
-		gmacdev->Speed      =   SPEED100;
-
-		return 0;
-	}else{
-		gmac_get_settings(adapter->synopGMACnetdev,&cmd);
-
-		gmacdev->DuplexMode = (cmd.duplex == DUPLEX_FULL)  ? FULLDUPLEX: HALFDUPLEX ;
-		if(cmd.speed == SPEED_1000)
-	        	gmacdev->Speed = SPEED1000;
-		else if(cmd.speed == SPEED_100)
-			gmacdev->Speed = SPEED100;
-		else
-			gmacdev->Speed = SPEED10;
+else{
+	if(gmacdev->LinkState != data){
+	TR0("Link UP: %08x %08x LinkState 0x%08x\n",data,data1,gmacdev->LinkState);
+		status = synopGMAC_check_phy_init(gmacdev);
+		synopGMAC_mac_init(gmacdev);
 
 	}
-
-	return gmacdev->Speed | (gmacdev->DuplexMode << 4);
+//	synopGMAC_intr_handler(0, adapter->synopGMACnetdev);
+}
+  	gmacdev->LinkState = data;
+	add_timer(&synopGMAC_cable_unplug_timer);
+	
 }
 
 static void synopGMAC_linux_powerdown_mac(synopGMACdevice *gmacdev)
@@ -286,7 +255,7 @@ if(desc_mode == RINGMODE){
 	
 	for(i =0; i < gmacdev -> TxDescCount; i++){
 		synopGMAC_tx_desc_init_ring(gmacdev->TxDesc + i, i == gmacdev->TxDescCount-1);
-//		TR("%02d %p \n",i, (gmacdev->TxDesc + i) );
+		TR("%02d %p \n",i, (gmacdev->TxDesc + i) );
 	}
 
 }
@@ -319,13 +288,13 @@ else{
 		second_desc->data2   = (u64)gmacdev->TxDesc;
 
 	        synopGMAC_tx_desc_init_chain(first_desc);
-//		TR("%02d %p %08x %08x %08x %08x %lx %lx \n",gmacdev->TxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
+		TR("%02d %p %08x %08x %08x %08x %lx %lx \n",gmacdev->TxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
 		gmacdev->TxDescCount += 1;
 		first_desc = second_desc;
 	}
 		
 		synopGMAC_tx_desc_init_chain(first_desc);
-//		TR("%02d %p %08x %08x %08x %08x %lx %lx \n",gmacdev->TxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
+		TR("%02d %p %08x %08x %08x %08x %lx %lx \n",gmacdev->TxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
 	TR("Tx===================================================================Tx\n");
 }
 
@@ -384,7 +353,7 @@ if(desc_mode == RINGMODE){
 	
 	for(i =0; i < gmacdev -> RxDescCount; i++){
 		synopGMAC_rx_desc_init_ring(gmacdev->RxDesc + i, i == gmacdev->RxDescCount-1);
-//		TR("%02d %p \n",i, (gmacdev->RxDesc + i));
+		TR("%02d %p \n",i, (gmacdev->RxDesc + i));
 
 	}
 
@@ -418,12 +387,12 @@ else{
 		second_desc->data2   = (u64)gmacdev->RxDesc;
 
 		synopGMAC_rx_desc_init_chain(first_desc);
-//		TR("%02d  %p %08x %08x %08x %08x %lx %lx \n",gmacdev->RxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
+		TR("%02d  %p %08x %08x %08x %08x %lx %lx \n",gmacdev->RxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
 		gmacdev->RxDescCount += 1;
 		first_desc = second_desc;
 	}
                 synopGMAC_rx_desc_init_chain(first_desc);
-//		TR("%02d  %p %08x %08x %08x %08x %lx %lx \n",gmacdev->RxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
+		TR("%02d  %p %08x %08x %08x %08x %lx %lx \n",gmacdev->RxDescCount, first_desc, first_desc->status, first_desc->length, first_desc->buffer1,first_desc->buffer2, first_desc->data1, first_desc->data2);
 	TR("Rx===================================================================Rx\n");
 
 }
@@ -494,7 +463,7 @@ else{
 	first_desc_dma_addr = gmacdev->RxDescDma;
 	for(i =0; i < gmacdev -> RxDescCount; i++){
 		synopGMAC_get_desc_data(first_desc, &status, &dma_addr1, &length1, &data1, &dma_addr2, &length2, &data2);
-//		TR("%02d %p %08x %08x %08x %08x %lx %lx\n",i,first_desc,first_desc->status,first_desc->length,first_desc->buffer1,first_desc->buffer2,first_desc->data1,first_desc->data2);
+		TR("%02d %p %08x %08x %08x %08x %lx %lx\n",i,first_desc,first_desc->status,first_desc->length,first_desc->buffer1,first_desc->buffer2,first_desc->data1,first_desc->data2);
 		if((length1 != 0) && (data1 != 0)){
 			dma_unmap_single(dev,dma_addr1,ETHER_MAX_LEN,PCI_DMA_FROMDEVICE);
 			dev_kfree_skb((struct sk_buff *) data1);	// free buffer1
@@ -570,7 +539,7 @@ else{
 	first_desc_dma_addr = gmacdev->TxDescDma;
 	for(i =0; i < gmacdev -> TxDescCount; i++){
 		synopGMAC_get_desc_data(first_desc, &status, &dma_addr1, &length1, &data1, &dma_addr2, &length2, &data2);
-//		TR("%02d %p %08x %08x %08x %08x %lx %lx\n",i,first_desc,first_desc->status,first_desc->length,first_desc->buffer1,first_desc->buffer2,first_desc->data1,first_desc->data2);
+		TR("%02d %p %08x %08x %08x %08x %lx %lx\n",i,first_desc,first_desc->status,first_desc->length,first_desc->buffer1,first_desc->buffer2,first_desc->data1,first_desc->data2);
 		if((length1 != 0) && (data1 != 0)){
 			dma_unmap_single(dev,dma_addr1,ETHER_MAX_LEN,PCI_DMA_TODEVICE);
 			dev_kfree_skb((struct sk_buff *) data2);	// free buffer1
@@ -616,6 +585,7 @@ void synop_handle_transmit_over(struct net_device *netdev)
 	u32 time_stamp_high;
 	u32 time_stamp_low;
 #endif
+//	adapter = netdev->priv;
 	adapter = netdev_priv(netdev);
 	if(adapter == NULL){
 		TR("Unknown Device\n");
@@ -701,30 +671,34 @@ void synop_handle_received_data(struct net_device *netdev)
 	u16 time_stamp_higher;
 	u32 time_stamp_high;
 	u32 time_stamp_low;
-#endif	
+#endif
+	//u32 length;
+	
 	struct sk_buff *skb; //This is the pointer to hold the received data
 	
-	TR("%s is called.\n",__FUNCTION__);	
+	TR("%s haha\n",__FUNCTION__);	
 	
-	if((adapter = netdev_priv(netdev)) == NULL){
+//	adapter = netdev->priv;
+	adapter = netdev_priv(netdev);
+	if(adapter == NULL){
 		TR("Unknown Device\n");
 		return;
 	}
 	
-	if((gmacdev = adapter->synopGMACdev) == NULL){
+	gmacdev = adapter->synopGMACdev;
+	if(gmacdev == NULL){
 		TR("GMAC device structure is missing\n");
 		return;
 	}
 
  	dev  = adapter->dev;	
-
 	/*Handle the Receive Descriptors*/
 	do{
 #ifdef ENH_DESC_8W
 	desc_index = synopGMAC_get_rx_qptr(gmacdev, &status,&dma_addr1,NULL, &data1,&dma_addr2,NULL,&data2,&ext_status,&time_stamp_high,&time_stamp_low);
 	if(desc_index >0){ 
-	        synopGMAC_TS_read_timestamp_higher_val(gmacdev, &time_stamp_higher);
-//		TR("S:%08x ES:%08x DA1:%08x d1:%08x DA2:%08x d2:%08x TSH:%08x TSL:%08x TSHW:%08x \n",status,ext_status,dma_addr1, data1,dma_addr2,data2, time_stamp_high,time_stamp_low,time_stamp_higher);
+        synopGMAC_TS_read_timestamp_higher_val(gmacdev, &time_stamp_higher);
+	TR("S:%08x ES:%08x DA1:%08x d1:%08x DA2:%08x d2:%08x TSH:%08x TSL:%08x TSHW:%08x \n",status,ext_status,dma_addr1, data1,dma_addr2,data2, time_stamp_high,time_stamp_low,time_stamp_higher);
 	}
 #else
 	desc_index = synopGMAC_get_rx_qptr(gmacdev, &status,&dma_addr1,NULL, &data1,&dma_addr2,NULL,&data2);
@@ -732,80 +706,79 @@ void synop_handle_received_data(struct net_device *netdev)
 	//desc_index = synopGMAC_get_rx_qptr(gmacdev, &status,&dma_addr,NULL, &data1);
 	TR("<0>desc_index=%d\n",desc_index);
 
-	if(desc_index >= 0 && data1 != 0){
-		TR("<0>Received Data at Rx Descriptor %d for skb 0x%lx whose status is %08x\n",desc_index,data1,status);
-		
-		/*At first step unmapped the dma address*/
-		dma_unmap_single(dev,dma_addr1,ETHER_MAX_LEN,PCI_DMA_FROMDEVICE);
+		if(desc_index >= 0 && data1 != 0){
+			TR("<0>Received Data at Rx Descriptor %d for skb 0x%lx whose status is %08x\n",desc_index,data1,status);
+			/*At first step unmapped the dma address*/
+			dma_unmap_single(dev,dma_addr1,ETHER_MAX_LEN,PCI_DMA_FROMDEVICE);
 
-		skb = (struct sk_buff *)data1;
-		if(synopGMAC_is_rx_desc_valid(status)){
-			len =  synopGMAC_get_rx_desc_frame_length(status) - 4; //Not interested in Ethernet CRC bytes
+			skb = (struct sk_buff *)data1;
+			if(synopGMAC_is_rx_desc_valid(status)){
+				len =  synopGMAC_get_rx_desc_frame_length(status) - 4; //Not interested in Ethernet CRC bytes
 
-			skb_put(skb,len);
-		#ifdef IPC_OFFLOAD
-			
-			// Now lets check for the IPC offloading
-			/*  Since we have enabled the checksum offloading in hardware, lets inform the kernel
-			    not to perform the checksum computation on the incoming packet. Note that ip header 
-  			    checksum will be computed by the kernel immaterial of what we inform. Similary TCP/UDP/ICMP
-			    pseudo header checksum will be computed by the stack. What we can inform is not to perform
-			    payload checksum. 		
-   			    When CHECKSUM_UNNECESSARY is set kernel bypasses the checksum computation.		    
-			*/
+				skb_put(skb,len);
+			#ifdef IPC_OFFLOAD
+				// Now lets check for the IPC offloading
+				/*  Since we have enabled the checksum offloading in hardware, lets inform the kernel
+				    not to perform the checksum computation on the incoming packet. Note that ip header 
+  				    checksum will be computed by the kernel immaterial of what we inform. Similary TCP/UDP/ICMP
+				    pseudo header checksum will be computed by the stack. What we can inform is not to perform
+				    payload checksum. 		
+   				    When CHECKSUM_UNNECESSARY is set kernel bypasses the checksum computation.		    
+				*/
 	
-			TR("Checksum Offloading will be done now\n");
-			skb->ip_summed = CHECKSUM_UNNECESSARY;
+				TR("Checksum Offloading will be done now\n");
+				skb->ip_summed = CHECKSUM_UNNECESSARY;
 				
-		  	#ifdef ENH_DESC_8W
-			if(synopGMAC_is_ext_status(gmacdev, status)){ // extended status present indicates that the RDES4 need to be probed
-				TR("Extended Status present\n");
-				if(synopGMAC_ES_is_IP_header_error(gmacdev,ext_status)){       // IP header (IPV4) checksum error
+				#ifdef ENH_DESC_8W
+				if(synopGMAC_is_ext_status(gmacdev, status)){ // extended status present indicates that the RDES4 need to be probed
+					TR("Extended Status present\n");
+					if(synopGMAC_ES_is_IP_header_error(gmacdev,ext_status)){       // IP header (IPV4) checksum error
 					//Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
 					TR("(EXTSTS)Error in IP header error\n");
 					skb->ip_summed = CHECKSUM_NONE;     //Let Kernel compute the checkssum
-				}	
-				if(synopGMAC_ES_is_rx_checksum_bypassed(gmacdev,ext_status)){   // Hardware engine bypassed the checksum computation/checking
+					}	
+					if(synopGMAC_ES_is_rx_checksum_bypassed(gmacdev,ext_status)){   // Hardware engine bypassed the checksum computation/checking
 					TR("(EXTSTS)Hardware bypassed checksum computation\n");	
 					skb->ip_summed = CHECKSUM_NONE;             // Let Kernel compute the checksum
-				}
-				if(synopGMAC_ES_is_IP_payload_error(gmacdev,ext_status)){       // IP payload checksum is in error (UDP/TCP/ICMP checksum error)
+					}
+					if(synopGMAC_ES_is_IP_payload_error(gmacdev,ext_status)){       // IP payload checksum is in error (UDP/TCP/ICMP checksum error)
 					TR("(EXTSTS) Error in EP payload\n");	
 					skb->ip_summed = CHECKSUM_NONE;             // Let Kernel compute the checksum
-				}				
-			}else{ // No extended status. So relevant information is available in the status itself
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxNoChkError ){
+					}				
+				}
+				else{ // No extended status. So relevant information is available in the status itself
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxNoChkError ){
 					TR("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 4>  \n");
 					skb->ip_summed = CHECKSUM_UNNECESSARY;	//Let Kernel bypass computing the Checksum
-				}
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrChkError ){
+					}
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrChkError ){
 					//Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
 					TR(" Error in 16bit IPV4 Header Checksum <Chk Status = 6>  \n");
 					skb->ip_summed = CHECKSUM_UNNECESSARY;	//Let Kernel bypass the TCP/UDP checksum computation
-				}				
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxLenLT600 ){
+					}				
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxLenLT600 ){
 					TR("IEEE 802.3 type frame with Length field Lesss than 0x0600 <Chk Status = 0> \n");
 					skb->ip_summed = CHECKSUM_NONE;	//Let Kernel compute the Checksum
-				}
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrPayLoadChkBypass ){
+					}
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrPayLoadChkBypass ){
 					TR("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 1>\n");
 					skb->ip_summed = CHECKSUM_NONE;	//Let Kernel compute the Checksum
-				}
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxChkBypass ){
+					}
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxChkBypass ){
 					TR("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 3>  \n");
 					skb->ip_summed = CHECKSUM_NONE;	//Let Kernel compute the Checksum
-				}
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxPayLoadChkError ){
+					}
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxPayLoadChkError ){
 					TR(" TCP/UDP payload checksum Error <Chk Status = 5>  \n");
 					skb->ip_summed = CHECKSUM_NONE;	//Let Kernel compute the Checksum
-				}
-				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrChkError ){
+					}
+					if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrChkError ){
 					//Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
 					TR(" Both IP header and Payload Checksum Error <Chk Status = 7>  \n");
 					skb->ip_summed = CHECKSUM_NONE;	        //Let Kernel compute the Checksum
+					}
 				}
-				}
-			#else	
+				#else	
 				if(synopGMAC_is_rx_checksum_error(gmacdev, status) == RxNoChkError ){
 				TR("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 4>  \n");
 				skb->ip_summed = CHECKSUM_UNNECESSARY;	//Let Kernel bypass computing the Checksum
@@ -837,35 +810,8 @@ void synop_handle_received_data(struct net_device *netdev)
 				skb->ip_summed = CHECKSUM_NONE;	        //Let Kernel compute the Checksum
 				}
 				
-			#endif
-		#endif //IPC_OFFLOAD	
-		#if 0
-		printk("---------received data----------.\n");
-                int counter;
-                printk(KERN_CRIT"skb->ip_summed = CHECKSUM_HW\n");                                                                                     
-//              printk(KERN_CRIT"skb->h.th=%08x skb->h.th->check=%08x\n",(u32)(skb->h.th),(u32)(skb->h.th->check));                                    
-//              printk(KERN_CRIT"skb->h.uh=%08x skb->h.uh->check=%08x\n",(u32)(skb->h.uh),(u32)(skb->h.uh->check));
-                printk(KERN_CRIT"\n skb->len = %d skb->mac_len = %d skb->data = %08x skb->csum = %08x skb->h.raw = %08x\n",skb->len,skb->mac_len,(u32)(skb->data),skb->csum,(u32)(skb->h.raw));
-                printk(KERN_CRIT"DST MAC addr:%02x %02x %02x %02x %02x %02x\n",*(skb->data+0),*(skb->data+1),*(skb->data+2),*(skb->data+3),*(skb->data+4),*(skb->data+5));
-                printk(KERN_CRIT"SRC MAC addr:%02x %02x %02x %02x %02x %02x\n",*(skb->data+6),*(skb->data+7),*(skb->data+8),*(skb->data+9),*(skb->data+10),*(skb->data+11));
-                printk(KERN_CRIT"Len/type    :%02x %02x\n",*(skb->data+12),*(skb->data+13));                                                           
-                if(((*(skb->data+14)) & 0xF0) == 0x40){
-                        printk(KERN_CRIT"IPV4 Header:\n");
-                        printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+14),*(skb->data+15),*(skb->data+16),*(skb->data+17));                      
-                        printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+18),*(skb->data+19),*(skb->data+20),*(skb->data+21));
-                        printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+22),*(skb->data+23),*(skb->data+24),*(skb->data+25));                      
-                        printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+26),*(skb->data+27),*(skb->data+28),*(skb->data+29));
-                        printk(KERN_CRIT"%02x %02x %02x %02x\n\n",*(skb->data+30),*(skb->data+31),*(skb->data+32),*(skb->data+33));                    
-                        for(counter = 34; counter < skb->len; counter++)
-                                printk("%02X ",*(skb->data + counter));                                                                                
-                }
-                else{
-                        printk(KERN_CRIT"IPV6 FRAME:\n");
-                        for(counter = 14; counter < skb->len; counter++)                                                                               
-                                printk("%02X ",*(skb->data + counter));
-                }             
-                #endif
-
+				#endif
+			#endif //IPC_OFFLOAD	
 				skb->dev = netdev;
 				skb->protocol = eth_type_trans(skb, netdev);
 				netif_rx(skb);
@@ -928,13 +874,15 @@ irqreturn_t synopGMAC_intr_handler(s32 intr_num, void * dev_id)
 	s32 status;
 	u32 dma_addr;
 
+
         netdev  = (struct net_device *) dev_id;
         if(netdev == NULL){
                 TR("Unknown Device\n");
                 return -1;
         }
 
-        adapter  = netdev_priv(netdev);
+//        adapter  = netdev->priv;
+		adapter = netdev_priv(netdev);
         if(adapter == NULL){
                 TR("Adapter Structure Missing\n");
                 return -1;
@@ -945,18 +893,21 @@ irqreturn_t synopGMAC_intr_handler(s32 intr_num, void * dev_id)
                 TR("GMAC device structure Missing\n");
                 return -1;
         }
+
 	dev  = adapter->dev;	
 
 	/*Read the Dma interrupt status to know whether the interrupt got generated by our device or not*/
 	dma_status_reg = synopGMACReadReg((u32 *)gmacdev->DmaBase, DmaStatus);
-	TR("<0>%s :dma_status_reg=%x\n",__FUNCTION__, dma_status_reg);
+
+	TR("<0>dma_status_reg=%x\n",dma_status_reg);
+	
 	if(dma_status_reg == 0)
 		return IRQ_HANDLED;
 
         synopGMAC_disable_interrupt_all(gmacdev);
-
 	synopGMACReadReg((u32 *)gmacdev->MacBase,GmacStatus);
-     	TR("%s:Dma Status Reg: 0x%08x\n",__FUNCTION__,dma_status_reg);
+
+       	TR("%s:Dma Status Reg: 0x%08x\n",__FUNCTION__,dma_status_reg);
 	
 	if(dma_status_reg & GmacPmtIntr){
 		TR("%s:: Interrupt due to PMT module\n",__FUNCTION__);
@@ -971,7 +922,7 @@ irqreturn_t synopGMAC_intr_handler(s32 intr_num, void * dev_id)
 
 	if(dma_status_reg & GmacLineIntfIntr){
 		TR("%s:: Interrupt due to GMAC LINE module\n",__FUNCTION__);
-		//synopGMAC_linux_cable_unplug_function(adapter);
+	//synopGMAC_linux_cable_unplug_function(adapter);
 	}
 
 	/*Now lets handle the DMA interrupts*/  
@@ -1042,7 +993,7 @@ irqreturn_t synopGMAC_intr_handler(s32 intr_num, void * dev_id)
 			
 			dma_addr = dma_map_single(dev,skb->data,BUS_SIZE_ALIGN(netdev->mtu + ETHERNET_PACKET_EXTRA),PCI_DMA_FROMDEVICE);
 			status = synopGMAC_set_rx_qptr(gmacdev,dma_addr, BUS_SIZE_ALIGN(netdev->mtu + ETHERNET_PACKET_EXTRA), (u64)skb,0,0,0);
-//			TR("%s::Set Rx Descriptor no %08x for skb %p \n",__FUNCTION__,status,skb);
+			TR("%s::Set Rx Descriptor no %08x for skb %p \n",__FUNCTION__,status,skb);
 			if(status < 0)
 				dev_kfree_skb_irq(skb);//changed from dev_free_skb. If problem check this again--manju
 		
@@ -1118,18 +1069,19 @@ s32 synopGMAC_linux_open(struct net_device *netdev)
 {
 	s32 status = 0;
 	s32 retval = 0;
+	s32 ijk;
+	//s32 reserve_len=2;
 	u32 dma_addr;
 	struct sk_buff *skb;
         synopGMACPciNetworkAdapter *adapter;
         synopGMACdevice * gmacdev;
 	struct device *dev;
-	adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev);
+	TR0("%s called \n",__FUNCTION__);
+//	adapter = (synopGMACPciNetworkAdapter *) netdev->priv;
+	adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 	gmacdev = (synopGMACdevice *)adapter->synopGMACdev;
  	dev  = adapter->dev;	
-	u32 cnt;
 	
-	TR0("%s called \n",__FUNCTION__);
-
 	/*Now platform dependent initialization.*/
 
 	/*Lets reset the IP*/
@@ -1145,29 +1097,26 @@ s32 synopGMAC_linux_open(struct net_device *netdev)
 	
 	synopGMAC_get_mac_addr(adapter->synopGMACdev,GmacAddr0High,GmacAddr0Low, netdev->dev_addr); 
 	/*Now set the broadcast address*/	
-	for(cnt = 0; cnt < 6; cnt++){
-		netdev->broadcast[cnt] = 0xff;
+	for(ijk = 0; ijk <6; ijk++){
+	netdev->broadcast[ijk] = 0xff;
 	}
 
-	#ifdef DEBUG
-	for(cnt = 0; cnt < 6; cnt++){
-		TR("netdev->dev_addr[%d] = %02x and netdev->broadcast[%d] = %02x\n",cnt,netdev->dev_addr[cnt],cnt,netdev->broadcast[cnt]);
+	for(ijk = 0; ijk <6; ijk++){
+	TR("netdev->dev_addr[%d] = %02x and netdev->broadcast[%d] = %02x\n",ijk,netdev->dev_addr[ijk],ijk,netdev->broadcast[ijk]);
 	}
-	#endif
-
 	/*Check for Phy initialization*/
 	synopGMAC_set_mdc_clk_div(gmacdev,GmiiCsrClk3); 
 	gmacdev->ClockDivMdc = synopGMAC_get_mdc_clk_div(gmacdev);
 
 	{
-		unsigned short data;
-		synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data);
-       		/*set 88e1111 clock phase delay*/
-       		if(data == 0x141)
-			synopGMAC_phy88e1111_phase_init(gmacdev);
+	unsigned short data;
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data);
+       /*set 88e1111 clock phase delay*/
+       if(data == 0x141)
+	synopGMAC_phy88e1111_phase_init(gmacdev);
 	}
 
-	status = synopGMAC_check_phy_init(adapter);
+	status = synopGMAC_check_phy_init(gmacdev);
 	 /*must reinit mac after check phy state status change*/
 	synopGMAC_mac_init(gmacdev);
 	
@@ -1259,11 +1208,11 @@ s32 synopGMAC_linux_open(struct net_device *netdev)
 	
 
 	TR("Setting up the cable unplug timer\n");
-	init_timer(&adapter->synopGMAC_cable_unplug_timer);  //lv
-	adapter->synopGMAC_cable_unplug_timer.function = (void *)synopGMAC_linux_cable_unplug_function; //lv
-	adapter->synopGMAC_cable_unplug_timer.data = (ulong) adapter;  //lv
-	adapter->synopGMAC_cable_unplug_timer.expires = CHECK_TIME + jiffies; //lv
-	add_timer(&adapter->synopGMAC_cable_unplug_timer); //lv
+	init_timer(&synopGMAC_cable_unplug_timer);
+	synopGMAC_cable_unplug_timer.function = (void *)synopGMAC_linux_cable_unplug_function;
+	synopGMAC_cable_unplug_timer.data = (ulong) adapter;
+	synopGMAC_cable_unplug_timer.expires = CHECK_TIME + jiffies;
+	add_timer(&synopGMAC_cable_unplug_timer);
 
 	synopGMAC_clear_interrupt(gmacdev);
 	/*
@@ -1310,31 +1259,16 @@ error_in_irq:
 s32 synopGMAC_linux_close(struct net_device *netdev)
 {
 	
+//	s32 status = 0;
+//	s32 retval = 0;
+//	u32 dma_addr;
 	synopGMACPciNetworkAdapter *adapter;
         synopGMACdevice * gmacdev;
 	struct device *dev;
 	
-	TR("%s\n",__FUNCTION__);
-#if 0
-#if CONFIG_LS1B_GMAC0_OPEN && CONFIG_LS1B_GMAC1_OPEN//close gmac0 and gmac1  
-  printk("close gmac0 and gmac1.\n");
-  (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 4 | 1 << 3);
-  (*(volatile unsigned int *)0xbfd00424) &= ~(0xf);
-
-#elif (CONFIG_LS1B_GMAC0_OPEN) && (~CONFIG_LS1B_GMAC1_OPEN)//close gmac0,open gmac1
-  printk("close gmac0 open gmac1.\n");
-  (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
-  (*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
-  (*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 << 4);  //close uart0/1
-
-#elif (~CONFIG_LS1BGMAC0_OPEN) && (CONFIG_LS1B_GMAC1_OPEN) //open gmac0,close gmac 1
-  printk("open gmac0 close gmac1.\n");
-  (*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
-  (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
-  (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 <<4); //open uart0/1
-#endif
-#endif
-	adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev);
+	TR0("%s\n",__FUNCTION__);
+//	adapter = (synopGMACPciNetworkAdapter *) netdev->priv;
+	adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 	if(adapter == NULL){
 		TR0("OOPS adapter is null\n");
 		return -1;
@@ -1386,10 +1320,11 @@ s32 synopGMAC_linux_close(struct net_device *netdev)
 #endif
 	
 	TR("Freeing the cable unplug timer\n");	
-	del_timer(&adapter->synopGMAC_cable_unplug_timer);
+	del_timer(&synopGMAC_cable_unplug_timer);
 
 	return -ESYNOPGMACNOERR;
 
+//	TR("%s called \n",__FUNCTION__);
 }
 
 /**
@@ -1405,34 +1340,35 @@ s32 synopGMAC_linux_close(struct net_device *netdev)
 s32 synopGMAC_linux_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 {
 	s32 status = 0;
+//	s32 counter =0;
 	u32 offload_needed = 0;
 	u32 dma_addr;
+	//u32 flags;
 	synopGMACPciNetworkAdapter *adapter;
 	synopGMACdevice * gmacdev;
 	struct device * dev;
-
 	TR("%s called \n",__FUNCTION__);
-
 	if(skb == NULL){
 		TR0("skb is NULL What happened to Linux Kernel? \n ");
 		return -1;
 	}
 	
-	adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev);
+//	adapter = (synopGMACPciNetworkAdapter *) netdev->priv;
+	adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 	if(adapter == NULL)
 		return -1;
 
 	gmacdev = (synopGMACdevice *) adapter->synopGMACdev;
 	if(gmacdev == NULL)
 		return -1;
-//printk("%s: gmacdev is %p.\n",__FUNCTION__,gmacdev);
+
  	dev  = adapter->dev;	
 	/*Stop the network queue*/	
 	netif_stop_queue(netdev); 
 
 		
-	if(skb->ip_summed == CHECKSUM_PARTIAL){
-		TR0("ip_summed=%x\n",skb->ip_summed);
+		if(skb->ip_summed == CHECKSUM_PARTIAL){
+		TR("ip_summed=%x\n",skb->ip_summed);
 		/*	
 		   In Linux networking, if kernel indicates skb->ip_summed = CHECKSUM_HW, then only checksum offloading should be performed
 		   Make sure that the OS on which this code runs have proper support to enable offloading.
@@ -1462,7 +1398,7 @@ s32 synopGMAC_linux_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 				printk("%02X ",*(skb->data + counter));
 		}
 		#endif
-	}
+		}
 
 #ifdef CONFIG_FIX_COHERENT_UNALIGNED
 	if(((long)skb->data)&0x10)
@@ -1477,32 +1413,6 @@ s32 synopGMAC_linux_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 			dev_kfree_skb(oldskb);
 	}
 #endif
-
-	#if 0
-	printk("---------sending data----------.\n");
-        int counter;
-        printk(KERN_CRIT"skb->ip_summed = CHECKSUM_HW\n");                                                                                     
-//      printk(KERN_CRIT"skb->h.th=%08x skb->h.th->check=%08x\n",(u32)(skb->h.th),(u32)(skb->h.th->check));                                    
-//      printk(KERN_CRIT"skb->h.uh=%08x skb->h.uh->check=%08x\n",(u32)(skb->h.uh),(u32)(skb->h.uh->check));
-        printk(KERN_CRIT"\n skb->len = %d skb->mac_len = %d skb->data = %08x skb->csum = %08x skb->h.raw = %08x\n",skb->len,skb->mac_len,(u32)(skb->data),skb->csum,(u32)(skb->h.raw));
-        printk(KERN_CRIT"DST MAC addr:%02x %02x %02x %02x %02x %02x\n",*(skb->data+0),*(skb->data+1),*(skb->data+2),*(skb->data+3),*(skb->data+4),*(skb->data+5));
-        printk(KERN_CRIT"SRC MAC addr:%02x %02x %02x %02x %02x %02x\n",*(skb->data+6),*(skb->data+7),*(skb->data+8),*(skb->data+9),*(skb->data+10),*(skb->data+11));
-        printk(KERN_CRIT"Len/type    :%02x %02x\n",*(skb->data+12),*(skb->data+13));                                                           
-        if(((*(skb->data+14)) & 0xF0) == 0x40){
-		printk(KERN_CRIT"IPV4 Header:\n");
-		printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+14),*(skb->data+15),*(skb->data+16),*(skb->data+17));                      
-		printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+18),*(skb->data+19),*(skb->data+20),*(skb->data+21));
-		printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+22),*(skb->data+23),*(skb->data+24),*(skb->data+25));                      
-		printk(KERN_CRIT"%02x %02x %02x %02x\n",*(skb->data+26),*(skb->data+27),*(skb->data+28),*(skb->data+29));
-		printk(KERN_CRIT"%02x %02x %02x %02x\n\n",*(skb->data+30),*(skb->data+31),*(skb->data+32),*(skb->data+33));                    
-		for(counter = 34; counter < skb->len; counter++)
-                                printk("%02X ",*(skb->data + counter));                                                                                
-        }else{
-		printk(KERN_CRIT"IPV6 FRAME:\n");
-               	for(counter = 14; counter < skb->len; counter++)                                                                               
-			printk("%02X ",*(skb->data + counter));
-        }             
-        #endif
 
 	
 	/*Now we have skb ready and OS invoked this function. Lets make our DMA know about this*/
@@ -1536,7 +1446,8 @@ s32 synopGMAC_linux_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 struct net_device_stats *  synopGMAC_linux_get_stats(struct net_device *netdev)
 {
 TR("%s called \n",__FUNCTION__);
-return( &(((synopGMACPciNetworkAdapter *)(netdev_priv(netdev)))->synopGMACNetStats) );
+//return( &(((synopGMACPciNetworkAdapter *)(netdev->priv))->synopGMACNetStats) );
+	return(&(((synopGMACPciNetworkAdapter *)netdev_priv(netdev))->synopGMACNetStats));
 }
 
 /**
@@ -1546,19 +1457,6 @@ return( &(((synopGMACPciNetworkAdapter *)(netdev_priv(netdev)))->synopGMACNetSta
  */
 void synopGMAC_linux_set_multicast_list(struct net_device *netdev)
 {
-synopGMACPciNetworkAdapter *adapter;
-synopGMACdevice * gmacdev;
-adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev);
-gmacdev = adapter->synopGMACdev;
-
-if(netdev->flags & IFF_PROMISC)
-{
-synopGMAC_promisc_enable(gmacdev);
-}
-else
-{
-synopGMAC_promisc_disable(gmacdev);
-}
 TR("%s called \n",__FUNCTION__);
 //todo Function not yet implemented.
 return;
@@ -1577,7 +1475,8 @@ synopGMACPciNetworkAdapter *adapter = NULL;
 synopGMACdevice * gmacdev = NULL;
 struct sockaddr *addr = macaddr;
 
-adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev);
+//adapter = (synopGMACPciNetworkAdapter *) netdev->priv;
+adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 if(adapter == NULL)
 	return -1;
 
@@ -1640,7 +1539,9 @@ if(ifr == NULL)
 
 req = (struct ifr_data_struct *)ifr->ifr_data;
 
-adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev);
+//adapter = (synopGMACPciNetworkAdapter *) netdev->priv;
+adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
+
 if(adapter == NULL)
 	return -1;
 
@@ -1727,39 +1628,9 @@ return retval;
  */
 void synopGMAC_linux_tx_timeout(struct net_device *netdev)
 {
-	TR0("%s called \n",__FUNCTION__);
-
-	void __iomem *mac_addr;
-	synopGMACdevice * gmacdev;
-
-	//todo Function not yet implemented
-	synopGMACPciNetworkAdapter *adapter = NULL;
-
-	if((adapter = (synopGMACPciNetworkAdapter *) netdev_priv(netdev)) == NULL){
-		TR0("%s : get adapter struct failed.\n", __FUNCTION__);
-		return;
-	}
-
-	gmacdev = (synopGMACdevice *)adapter->synopGMACdev;
-
-	synopGMAC_get_mac_addr(adapter->synopGMACdev,GmacAddr0High,GmacAddr0Low, netdev->dev_addr); 
-        mac_addr = netdev->dev_addr;
-
-	synopGMAC_disable_interrupt_all(gmacdev);
-
-	netif_stop_queue(netdev);
-	
-	synopGMAC_reset(gmacdev);
-
-        synopGMAC_mac_init(gmacdev);
-
-	synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr);
-
-	netif_wake_queue(netdev);
-
-        synopGMAC_enable_interrupt(gmacdev,DmaIntEnable);
-
-	return;
+TR("%s called \n",__FUNCTION__);
+//todo Function not yet implemented
+return;
 }
 
 #define GMAC_NET_STATS_LEN	21
@@ -1782,7 +1653,8 @@ static int mdio_read(struct net_device *netdev, int addr, int reg)
 	synopGMACPciNetworkAdapter *adapter;
 	synopGMACdevice * gmacdev;
 	u16 data;
-	adapter = netdev_priv(netdev);
+//	adapter = netdev->priv;	
+	adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 	gmacdev = adapter->synopGMACdev;
 	
 	synopGMAC_read_phy_reg((u32 *)gmacdev->MacBase,addr,reg, &data);
@@ -1793,7 +1665,8 @@ static void mdio_write(struct net_device *netdev, int addr, int reg, int data)
 {
 	synopGMACPciNetworkAdapter *adapter;
 	synopGMACdevice * gmacdev;
-	adapter = netdev_priv(netdev);
+//	adapter = netdev->priv;	
+	adapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 	gmacdev = adapter->synopGMACdev;
 	synopGMAC_write_phy_reg((u32 *)gmacdev->MacBase,addr,reg,data);
 }
@@ -1810,6 +1683,7 @@ static void gmac_get_drvinfo(struct net_device *dev, struct ethtool_drvinfo *inf
 
 static int gmac_get_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
+//	synopGMACPciNetworkAdapter *adapter = dev->priv;	
 	synopGMACPciNetworkAdapter *adapter = (synopGMACPciNetworkAdapter *)netdev_priv(dev);
 	mii_ethtool_gset(&adapter->mii, cmd);
 	return 0;
@@ -1817,6 +1691,7 @@ static int gmac_get_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 
 static int gmac_set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
+//	synopGMACPciNetworkAdapter *adapter = dev->priv;
 	synopGMACPciNetworkAdapter *adapter = (synopGMACPciNetworkAdapter *)netdev_priv(dev);
 	synopGMACdevice            *gmacdev = adapter->synopGMACdev;
 	int rc;
@@ -1832,6 +1707,7 @@ static int gmac_get_regs_len(struct net_device *dev)
 
 static void gmac_get_regs(struct net_device *dev, struct ethtool_regs *regs, void *regbuf)
 {
+//	synopGMACPciNetworkAdapter *adapter = dev->priv;
 	synopGMACPciNetworkAdapter *adapter = (synopGMACPciNetworkAdapter *)netdev_priv(dev);
 	synopGMACdevice            *gmacdev = adapter->synopGMACdev;
 	int i;
@@ -1847,13 +1723,15 @@ static void gmac_get_regs(struct net_device *dev, struct ethtool_regs *regs, voi
 
 static int gmac_nway_reset(struct net_device *dev)
 {
-	synopGMACPciNetworkAdapter *adapter =(synopGMACPciNetworkAdapter *)netdev_priv(dev);
+//	synopGMACPciNetworkAdapter *adapter = dev->priv;
+	synopGMACPciNetworkAdapter *adapter = (synopGMACPciNetworkAdapter *)netdev_priv(dev);
 	return mii_nway_restart(&adapter->mii);
 }
 
 static u32 gmac_get_link(struct net_device *dev)
 {
-	synopGMACPciNetworkAdapter *adapter =(synopGMACPciNetworkAdapter *)netdev_priv(dev);
+//	synopGMACPciNetworkAdapter *adapter = dev->priv;
+	synopGMACPciNetworkAdapter *adapter = (synopGMACPciNetworkAdapter *)netdev_priv(dev);
 	return mii_link_ok(&adapter->mii);
 }
 
@@ -1886,6 +1764,25 @@ static void gmac_get_strings(struct net_device *netdev, u32 stringset, u8 *data)
 }
 
 
+#ifdef CONFIG_NET_POLL_CONTROLLER
+/*
+ * Polling 'interrupt' - used by things like netconsole to send skbs
+ * without having to re-enable interrupts. It's not called while
+ * the interrupt routine is executing.
+ */
+
+static void poll_gmac (struct net_device *dev)
+{
+	/* disable_irq here is not very nice, but with the lockless
+	   interrupt handler we have no other choice. */
+	disable_irq(dev->irq);
+	synopGMAC_intr_handler (dev->irq, dev);
+	enable_irq(dev->irq);
+}
+#endif
+
+
+
 static const struct ethtool_ops gmac_ethtool_ops = {
 	.get_drvinfo		= gmac_get_drvinfo,
 	.get_settings		= gmac_get_settings,
@@ -1898,25 +1795,6 @@ static const struct ethtool_ops gmac_ethtool_ops = {
 	//.get_sset_count		= gmac_get_sset_count,
 	.get_ethtool_stats	= gmac_get_ethtool_stats,
 };
-
-/*
- * process the kernel start param
- */
-
-static int ether_set=0;
-static char hwaddr[ETH_ALEN]=DEFAULT_MAC_ADDRESS;
-static int __init setether(char *str)
-{
-	int i;
-	for(i=0;i<6;i++,str+=3)
-		hwaddr[i]=simple_strtoul(str,0,16);
-	
-	ether_set=1;
-	
-	return 1;
-}
-
-__setup("etheraddr=", setether);
 
 
 static const struct net_device_ops gmac_netdev_ops = {		//lxy
@@ -1933,7 +1811,6 @@ static const struct net_device_ops gmac_netdev_ops = {		//lxy
 	.ndo_poll_controller	= poll_gmac,
 #endif
 };
-
 
 
 /**
@@ -1961,50 +1838,57 @@ void * __init synopGMAC_init_network_interface(struct device *dev,u8* synopGMACM
 	goto err_alloc_etherdev;
 	}
 	
+//	synopGMACadapter = netdev->priv;
 	synopGMACadapter = (synopGMACPciNetworkAdapter *)netdev_priv(netdev);
 	synopGMACadapter->synopGMACnetdev = netdev;
 	synopGMACadapter->dev = dev;
 	synopGMACadapter->synopGMACdev    = NULL;
-    	synopGMACadapter->synopGMACMappedAddr=synopGMACMappedAddr;
+    synopGMACadapter->synopGMACMappedAddr=synopGMACMappedAddr;
 	synopGMACadapter->synopGMACMappedAddrSize=synopGMACMappedAddrSize;
-    	synopGMACadapter->irq=irq;
+    synopGMACadapter->irq=irq;
 
 	
 	/*Allocate Memory for the the GMACip structure*/
 	synopGMACadapter->synopGMACdev = (synopGMACdevice *) plat_alloc_memory(sizeof (synopGMACdevice));
 	if(!synopGMACadapter->synopGMACdev){
-		TR0("Error in Memory Allocataion \n");
-		return -ENOMEM;
+	TR0("Error in Memory Allocataion \n");
 	}
 
 	if(1){
-		static int index=0;
-		if(!ether_set)
-		{
-			get_random_bytes(&hwaddr[3], 3);
-			ether_set = 1;
-		}	
-		hwaddr[5] += index;
-		memcpy(netdev->dev_addr,hwaddr,6);
-		index++;
+	static int index=0;
+	u8 mac_addr0[6] = DEFAULT_MAC_ADDRESS;
+	mac_addr0[5] += index;
+	memcpy(netdev->dev_addr,mac_addr0,6);
+	index++;
 	}
 
 	/*Attach the device to MAC struct This will configure all the required base addresses
 	  such as Mac base, configuration base, phy base address(out of 32 possible phys )*/
+	printk("<0>adapter=%p\n",synopGMACadapter);
 	synopGMAC_attach(synopGMACadapter->synopGMACdev, synopGMACMappedAddr + MACBASE, synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,netdev->dev_addr);
+
 
 	synopGMAC_reset(synopGMACadapter->synopGMACdev);
 
 	if(synop_pci_using_dac){
-		TR("netdev->features = %08lx\n",netdev->features);
-		TR("synop_pci_using dac is %08x\n",synop_pci_using_dac);
-		netdev->features |= NETIF_F_HIGHDMA;
-		TR("netdev->features = %08lx\n",netdev->features);
+	TR("netdev->features = %08lx\n",netdev->features);
+	TR("synop_pci_using dac is %08x\n",synop_pci_using_dac);
+	netdev->features |= NETIF_F_HIGHDMA;
+	TR("netdev->features = %08lx\n",netdev->features);
 	}
-	
+
 	netdev->netdev_ops	= &gmac_netdev_ops;
 	netdev->watchdog_timeo = 5 * HZ;
 	SET_ETHTOOL_OPS(netdev, &gmac_ethtool_ops);
+
+	/*Now start the network interface*/
+	TR("Now Registering the netdevice\n");
+	if((err = register_netdev(netdev)) != 0) {
+		TR0("Error in Registering netdevice\n");
+		return 0;
+	}  
+
+
 
 	/* MII setup */
 	synopGMACadapter->mii.phy_id_mask = 0x1F;
@@ -2012,24 +1896,13 @@ void * __init synopGMAC_init_network_interface(struct device *dev,u8* synopGMACM
 	synopGMACadapter->mii.dev = netdev;
 	synopGMACadapter->mii.mdio_read = mdio_read;
 	synopGMACadapter->mii.mdio_write = mdio_write;
-	synopGMACadapter->mii.phy_id = synopGMACadapter->synopGMACdev->PhyBase;
+	synopGMACadapter->mii.phy_id = DEFAULT_PHY_BASE;
 	synopGMACadapter->mii.supports_gmii = mii_check_gmii_support(&synopGMACadapter->mii);
-
-			
-
-
-	/*Now start the network interface*/
-	TR("Now Registering the netdevice\n");
-	if((err = register_netdev(netdev)) != 0) {
-		TR0("Error in Registering netdevice\n");
-		return -EFAULT;
-	}
-  
+	
  	return synopGMACadapter;
-
 err_alloc_etherdev:
 	TR0("Problem in alloc_etherdev()..Take Necessary action\n");
-	return -EFAULT;
+	return 0;
 }
 
 
