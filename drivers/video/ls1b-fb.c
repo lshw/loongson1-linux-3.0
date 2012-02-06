@@ -109,24 +109,64 @@ static int ls1bfb_check_var(struct fb_var_screeninfo *var,
 
 	dprintk("check_var(var=%p, info=%p)\n", var, info);
 
+	/*
+	 *  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
+	 *  as FB_VMODE_SMOOTH_XPAN is only used internally
+	 */
+
+	if (var->vmode & FB_VMODE_CONUPDATE) {
+		var->vmode |= FB_VMODE_YWRAP;
+		var->xoffset = info->var.xoffset;
+		var->yoffset = info->var.yoffset;
+	}
+
+	/*
+	 *  Some very basic checks
+	 */
+	if (!var->xres)
+		var->xres = 1;
+	if (!var->yres)
+		var->yres = 1;
+	if (var->xres > var->xres_virtual)
+		var->xres_virtual = var->xres;
+	if (var->yres > var->yres_virtual)
+		var->yres_virtual = var->yres;
+	if (var->bits_per_pixel <= 1)
+		var->bits_per_pixel = 1;
+	else if (var->bits_per_pixel <= 8)
+		var->bits_per_pixel = 8;
+	else if (var->bits_per_pixel <= 16)
+		var->bits_per_pixel = 16;
+	else if (var->bits_per_pixel <= 24)
+		var->bits_per_pixel = 24;
+	else if (var->bits_per_pixel <= 32)
+		var->bits_per_pixel = 32;
+	else
+		return -EINVAL;
+
+	if (var->xres_virtual < var->xoffset + var->xres)
+		var->xres_virtual = var->xoffset + var->xres;
+	if (var->yres_virtual < var->yoffset + var->yres)
+		var->yres_virtual = var->yoffset + var->yres;
+
 	/* validate x/y resolution */
 	/*验证X/Y解析度*/
-	if (var->yres > fbi->mach_info->yres.max)
-		var->yres = fbi->mach_info->yres.max;
-	else if (var->yres < fbi->mach_info->yres.min)
-		var->yres = fbi->mach_info->yres.min;
+//	if (var->yres > fbi->mach_info->yres.max)
+//		var->yres = fbi->mach_info->yres.max;
+//	else if (var->yres < fbi->mach_info->yres.min)
+//		var->yres = fbi->mach_info->yres.min;
 
-	if (var->xres > fbi->mach_info->xres.max)
-		var->xres = fbi->mach_info->xres.max;
-	else if (var->xres < fbi->mach_info->xres.min)
-		var->xres = fbi->mach_info->xres.min;
+//	if (var->xres > fbi->mach_info->xres.max)
+//		var->xres = fbi->mach_info->xres.max;
+//	else if (var->xres < fbi->mach_info->xres.min)
+//		var->xres = fbi->mach_info->xres.min;
 
 	/* validate bpp */
 
-	if (var->bits_per_pixel > fbi->mach_info->bpp.max)
-		var->bits_per_pixel = fbi->mach_info->bpp.max;
-	else if (var->bits_per_pixel < fbi->mach_info->bpp.min)
-		var->bits_per_pixel = fbi->mach_info->bpp.min;
+//	if (var->bits_per_pixel > fbi->mach_info->bpp.max)
+//		var->bits_per_pixel = fbi->mach_info->bpp.max;
+//	else if (var->bits_per_pixel < fbi->mach_info->bpp.min)
+//		var->bits_per_pixel = fbi->mach_info->bpp.min;
 
 	/* set r/g/b positions */
 	switch (var->bits_per_pixel) {
@@ -208,6 +248,8 @@ static int ls1bfb_check_var(struct fb_var_screeninfo *var,
 static void ls1bfb_activate_var(struct ls1bfb_info *fbi,
 				   struct fb_var_screeninfo *var)
 {
+	int i, mode = -1;
+
 	SB_FB_BUF_CONFIG_REG(0)	&= ~(1<<8);
 
 	dprintk("%s: var->xres  = %d\n", __FUNCTION__, var->xres);
@@ -252,7 +294,7 @@ static void ls1bfb_activate_var(struct ls1bfb_info *fbi,
 
 	/* check to see if we need to update sync/borders */
 
-//	if (!fbi->mach_info->fixed_syncs) {
+	if (!fbi->mach_info->fixed_syncs) {
 		dprintk("setting vert: up=%d, low=%d, sync=%d\n",
 			var->upper_margin, var->lower_margin,
 			var->vsync_len);
@@ -265,16 +307,35 @@ static void ls1bfb_activate_var(struct ls1bfb_info *fbi,
 		fbi->regs.hsync		= 0x40000000 | ((var->xres + var->right_margin + var->hsync_len) << 16) | (var->xres + var->right_margin);
 		fbi->regs.vdisplay	= ((var->yres + var->upper_margin + var->lower_margin + var->vsync_len) << 16) | var->yres;
 		fbi->regs.vsync		= 0x40000000 | ((var->yres + var->lower_margin + var->vsync_len) << 16) | (var->yres + var->lower_margin);
-//	}
+	}
+
+	for(i=0; i<sizeof(vgamode)/sizeof(struct vga_struc); i++){
+		if(vgamode[i].hr == var->xres && vgamode[i].vr == var->yres){
+			mode = i;
+			break;
+		}
+	}
+	if(mode<0){
+		printk(KERN_DEBUG "\n\n\nunsupported framebuffer resolution\n\n\n");
+		return -EINVAL;
+	}
+
+	fbi->regs.hdisplay	= (vgamode[mode].hfl<<16) | vgamode[mode].hr;
+	fbi->regs.hsync		= 0x40000000 | (vgamode[mode].hse<<16) | vgamode[mode].hss;
+	fbi->regs.vdisplay	= (vgamode[mode].vfl<<16) | vgamode[mode].vr;
+	fbi->regs.vsync		= 0x40000000 | (vgamode[mode].vse<<16) | vgamode[mode].vss;
 
 	if (var->pixclock > 0) {
+		unsigned int pclk;
 		unsigned int pll,ctrl,div,clk;
 		unsigned long long clkdiv = 1000000000000ULL;
-		do_div(clkdiv, var->pixclock);
+		pclk = 60 * vgamode[mode].hfl * vgamode[mode].vfl;
+		do_div(clkdiv, pclk);
+		var->pixclock = clkdiv;
 		pll = PLL_FREQ_REG(0);
 		ctrl = PLL_FREQ_REG(4);
 		clk = (12 + (pll & 0x3f)) * 33333333 / 2;
-		div = clk / (unsigned int)clkdiv / 4; //参考longson1B的数据手册 LCD分频需要再除以4
+		div = clk / pclk / 4;
 		ctrl = (ctrl & ~(0x1f<<26)) | (div<<26) | (1<<31);
 		PLL_FREQ_REG(4) = ctrl;
 	}
@@ -821,12 +882,13 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 	{
 	unsigned long long div;
 	div = 1000000000000ULL;
-	do_div(div,mach_info->pclk);
+	do_div(div, mach_info->pclk);
 	fbinfo->var.pixclock			= div;
 	}
-	fbinfo->fix.smem_len        =	mach_info->xres.max *
-					mach_info->yres.max *
-					mach_info->bpp.max / 8;
+	fbinfo->fix.smem_len = 0x500000;
+//	fbinfo->fix.smem_len        =	mach_info->xres.max *
+//					mach_info->yres.max *
+//					mach_info->bpp.max / 8;
 	
 	/*初始化色调色板(颜色表)为空*/
 	for (i = 0; i < 256; i++)
