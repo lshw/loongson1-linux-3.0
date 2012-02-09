@@ -28,6 +28,7 @@
 #include <asm/mach-loongson/ls1b/ls1b_board_int.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
+#include <linux/i2c/ft5x06_ts.h>
 #include <media/gc0308_platform.h>		//lxy
 #include <linux/videodev2.h>
 #include <linux/spi/ads7846.h>
@@ -265,8 +266,9 @@ static struct platform_device ls1b_rtc_device = {
 */
 
 /* I2C devices fitted. */
-#define	tsc_irq	(LS1B_BOARD_GPIO_FIRST_IRQ + 60)
 
+/***************2007******************/
+#define	tsc_irq	(LS1B_BOARD_GPIO_FIRST_IRQ + 60)
 static int ts_get_pendown_state(void)
 {
 	int val = 0;
@@ -317,14 +319,55 @@ static struct tsc2007_platform_data tsc2007_info = {
 	.init_platform_hw	= ts_init,
 //	.clear_penirq		= ts_clear_penirq,
 };
+/***************2007******************/
 
+/***************ft5x0x****************/
+#define	ft5x0x_ts_irq	(LS1B_BOARD_GPIO_FIRST_IRQ + 38)
+void ft5x0x_irq_init()
+{
+	unsigned int ret;
+	int gpio = ft5x0x_ts_irq - LS1B_BOARD_GPIO_FIRST_IRQ;
+	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)); //GPIO0	0xbfd010c0
+	ret |= (1 << (gpio & 0x1f)); //GPIO50
+	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)) = ret;	
+	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1));//GPIO0 
+	ret |= (1 << (gpio & 0x1f));
+	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1)) = ret;
+
+	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (gpio & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (gpio & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (gpio & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (gpio & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (gpio & 0x1f));	
+}
+
+void ft5x0x_wake_up()
+{
+	*(volatile int *)0xbfd010c4 |= 0x80;
+	*(volatile int *)0xbfd010d4 &= ~0x80;
+	*(volatile int *)0xbfd010f4 &= ~0x80;
+	msleep(10);
+	*(volatile int *)0xbfd010f4 |= 0x80;
+	msleep(10);
+}
+
+static struct ft5x0x_ts_platform_data ft5x0x_info = {
+	.init_platform_hw	= ft5x0x_irq_init,
+	.wake_platform_hw	= ft5x0x_wake_up,
+};
+/***************ft5x0x****************/
 
 static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
 	{
-	 I2C_BOARD_INFO("tsc2007", 0x48),
-	 .irq = tsc_irq,
-	 .platform_data	= &tsc2007_info,
-	 },
+		I2C_BOARD_INFO("tsc2007", 0x48),
+		.irq = tsc_irq,
+		.platform_data	= &tsc2007_info,
+	},
+	{
+		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
+		.irq = ft5x0x_ts_irq,
+		.platform_data	= &ft5x0x_info,
+	},
 };
 
 #ifdef CONFIG_VIDEO_GC0308

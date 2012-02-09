@@ -11,6 +11,23 @@ menuconfig INPUT_TOUCHSCREEN
 
 if INPUT_TOUCHSCREEN
 
+config TOUCHSCREEN_FT5X0X
+	tristate "FocalTech ft5x0x touchscreen"
+	depends on I2C
+	default n
+	help
+	  Say Y here if you have the FocalTech ft5x0x touchscreen.
+
+	  If unsure, say N.
+
+config FT5X0X_MULTITOUCH
+	tristate "FocalTech ft5x0x touchscreen multi-touch support"
+	depends on I2C
+	default n
+	help
+	  Say Y here To enable multitouch on Focaltech Touchscreens(required for most).
+	  If unsure, say N.
+
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"
 	depends on MFD_88PM860X
