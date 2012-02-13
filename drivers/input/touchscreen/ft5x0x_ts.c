@@ -380,7 +380,7 @@ static void ft5x0x_ts_resume(struct early_suspend *handler)
 	if (pdata->init_platform_hw)
 		pdata->wake_platform_hw();
 	enable_irq(this_client->irq);
-	enable_irq(IRQ_EINT(6));
+//	enable_irq(IRQ_EINT(6));
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
 

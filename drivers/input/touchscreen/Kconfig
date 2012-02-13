@@ -20,6 +20,15 @@ config TOUCHSCREEN_FT5X0X
 
 	  If unsure, say N.
 
+config TOUCHSCREEN_FT5X06
+	tristate "FocalTech ft5x06 touchscreen"
+	depends on I2C
+	default n
+	help
+	  Say Y here if you have the FocalTech ft5x06 touchscreen.
+
+	  If unsure, say N.
+
 config FT5X0X_MULTITOUCH
 	tristate "FocalTech ft5x0x touchscreen multi-touch support"
 	depends on I2C

@@ -149,7 +149,7 @@ void ls1b_board_hw_irqdispatch(int n)
 //	prom_printf("irq=%d,n=%d,realirq=%d\n",irq,n,n*32+irq-1);
 	
 	if(!irq){
-		printk("Unknow interrupt status %x intstatus %x \n" , status, intstatus);
+//		printk("Unknow interrupt status %x intstatus %x \n" , status, intstatus);
 		return; 
 	}
 	else do_IRQ(n*32+irq-1);
