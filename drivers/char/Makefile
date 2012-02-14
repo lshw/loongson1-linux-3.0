@@ -21,6 +21,7 @@ obj-$(CONFIG_BFIN_OTP)		+= bfin-otp.o
 
 obj-$(CONFIG_74LV165_BUTTON)	+= 74LV165_button.o
 obj-$(CONFIG_LS1B_PWM_DRIVER)	+= ls1b-pwm.o
+obj-$(CONFIG_LS1B_IR)        	+= ls1b_ir.o
 obj-$(CONFIG_BUZZER)		+= buzzer.o
 obj-$(CONFIG_PRINTER)		+= lp.o
 

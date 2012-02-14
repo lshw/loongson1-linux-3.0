@@ -201,7 +201,13 @@ config 74LV165_BUTTON
           
 config LS1B_PWM_DRIVER
 	bool	"ls1b pwm driver"
-	default	y
+	default	n
+
+config LS1B_IR
+	bool "ls1b ir driver"
+	default	n
+	help
+	  A simple Infrared driver for loongson 1B board.
 
 config IBM_BSR
 	tristate "IBM POWER Barrier Synchronization Register support"

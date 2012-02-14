@@ -812,6 +812,21 @@ static struct platform_device ls1b_gpio_buzzer_device = {
 	},
 };
 
+#define GPIO_IR 61
+static struct resource ls1b_ir_resource[] = {
+	[0] = {
+		.start	= (LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IR),
+		.end	= (LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IR),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device ls1b_ir_device = {
+	.name	= "ls1b_ir",
+	.id	= -1,
+	.num_resources	= ARRAY_SIZE(ls1b_ir_resource),
+	.resource	= ls1b_ir_resource,
+};
 
 static struct resource ls1b_pwm0_resource[] = {
 	[0]={
@@ -869,6 +884,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_gpio_key_device,
 	&ls1b_gpio_buzzer_device,
 	&ls1b_pwm_device,
+	&ls1b_ir_device,//zwl
 };
 
 #define AHCI_PCI_BAR  5
