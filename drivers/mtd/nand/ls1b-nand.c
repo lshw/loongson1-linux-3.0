@@ -24,12 +24,20 @@
 #define SPARE_ADDRL(x)      ((x) << (PAGE_SHIFT ))
 #define ALIGN_DMA(x)       (((x)+ 3)/4)
 
+#define USE_POLL
+#ifdef USE_POLL
+#define complete(...)
+#define init_completion(...)
+#define wait_for_completion_timeout(...)
+#define request_irq(...) (0)
+#define free_irq(...) 
+#endif
 
 
 #define CHIP_DELAY_TIMEOUT (2*HZ/10)
 
 #define STATUS_TIME_LOOP_R  30 
-#define STATUS_TIME_LOOP_WS  60  
+#define STATUS_TIME_LOOP_WS  100  
 #define STATUS_TIME_LOOP_WM  60  
 #define STATUS_TIME_LOOP_E  100  
 
@@ -562,13 +570,12 @@ static void ls1b_nand_init_mtd(struct mtd_info *mtd,struct ls1b_nand_info *info)
 	this->write_buf		= ls1b_nand_write_buf;
 	this->verify_buf	= ls1b_nand_verify_buf;
 
-//        this->ecc.mode		= NAND_ECC_NONE;
-	this->ecc.mode		= NAND_ECC_SOFT;
-//	this->ecc.hwctl		= ls1b_nand_ecc_hwctl;
-//	this->ecc.calculate	= ls1b_nand_ecc_calculate;
-//	this->ecc.correct	= ls1b_nand_ecc_correct;
-//	this->ecc.size		= 2048;
-//        this->ecc.bytes         = 24;
+        this->ecc.mode		= NAND_ECC_NONE;
+	this->ecc.hwctl		= ls1b_nand_ecc_hwctl;
+	this->ecc.calculate	= ls1b_nand_ecc_calculate;
+	this->ecc.correct	= ls1b_nand_ecc_correct;
+	this->ecc.size		= 2048;
+        this->ecc.bytes         = 24;
 
 //	this->ecc.layout = &hw_largepage_ecclayout;
         mtd->owner = THIS_MODULE;
@@ -576,7 +583,7 @@ static void ls1b_nand_init_mtd(struct mtd_info *mtd,struct ls1b_nand_info *info)
 static void show_dma_regs(void *dma_regs,int flag)
 {
     return ;
-    unsigned int *regs=dma_regs;
+/*    unsigned int *regs=dma_regs;
     printk("\n");
     printk("0x%08x:0x%08x\n",regs,*regs);
     printk("0x%08x:0x%08x\n",++regs,*regs);
@@ -587,6 +594,7 @@ static void show_dma_regs(void *dma_regs,int flag)
     printk("0x%08x:0x%08x\n",++regs,*regs);
     if(flag)
     printk("0xbfd01160:0x%08x\n",*(volatile unsigned int *)0xbfd01160);
+*/
 }
 static unsigned ls1b_nand_status(struct ls1b_nand_info *info)
 {
@@ -597,7 +605,7 @@ static unsigned ls1b_nand_status(struct ls1b_nand_info *info)
             *((volatile unsigned int *)(0xbfe78000)) = 0;   \
             *((volatile unsigned int *)(0xbfe78000)) = 400; \
     }while(0)
-static int nand_num=0;
+//static int nand_num=0;
 static irqreturn_t ls1b_nand_irq(int irq,void *devid)
 {
     int status_time;
@@ -615,7 +623,7 @@ static irqreturn_t ls1b_nand_irq(int irq,void *devid)
             while(!(ls1b_nand_status(info))){
                 if(!(status_time--)){
                     write_z_cmd;
-                    nand_num++;
+//                    nand_num++;
                     break;
                 }
                 udelay(50);
@@ -639,9 +647,11 @@ static irqreturn_t ls1b_nand_irq(int irq,void *devid)
  *  flags & 0x20  step_times
  *  flags & 0x40  cmd
  ***/
+static unsigned char flagsss=0;
 static void dma_setup(unsigned int flags,struct ls1b_nand_info *info)
 {
     struct ls1b_nand_dma_desc *dma_base = (volatile struct ls1b_nand_dma_desc *)(info->drcmr_dat);
+    int status_time;
     dma_base->orderad = (flags & DMA_ORDERAD)== DMA_ORDERAD ? info->dma_regs.orderad : info->dma_orderad;
     dma_base->saddr = (flags & DMA_SADDR)== DMA_SADDR ? info->dma_regs.saddr : info->dma_saddr;
     dma_base->daddr = (flags & DMA_DADDR)== DMA_DADDR ? info->dma_regs.daddr : info->dma_daddr;
@@ -660,6 +670,26 @@ static void dma_setup(unsigned int flags,struct ls1b_nand_info *info)
     local_irq_save(flags);
     *(volatile unsigned int *)info->order_reg_addr = ((unsigned int )info->drcmr_dat_phys) | 0x1<<3;
     while (*(volatile unsigned int *)info->order_reg_addr & 0x8 );
+#ifdef USE_POLL
+	/*wait nand irq*/
+    while (*(volatile unsigned int*)(0xbfd01040) &0x2000 == 0 );
+	/*clear irq*/
+    *(volatile unsigned int *)(0xbfd0104c) |=0x2000;
+//    udelay(5);
+    //if(flagsss){
+//    if(1){
+    status_time=STATUS_TIME_LOOP_WS;
+    while(!(ls1b_nand_status(info))){
+        if(!(status_time--)){
+			/*time out,so clear cmd,fixme */
+            write_z_cmd;
+            break;
+        }
+        udelay(60);
+    }
+    info->state = STATE_READY;
+//    }
+#endif
     local_irq_restore(flags);
     }
 }
@@ -685,6 +715,11 @@ static void nand_setup(unsigned int flags ,struct ls1b_nand_info *info)
     nand_base->op_num = (flags & NAND_OP_NUM)==NAND_OP_NUM ? info->nand_regs.op_num: info->nand_op_num;
     nand_base->cs_rdy_map = (flags & NAND_CS_RDY_MAP)==NAND_CS_RDY_MAP ? info->nand_regs.cs_rdy_map: info->nand_cs_rdy_map;
     if(flags & NAND_CMD){
+            if(info->nand_regs.cmd & 0x4)
+                flagsss=1;
+            else
+                flagsss=0;
+        
             nand_base->cmd = (info->nand_regs.cmd) & (~0xff);
             nand_base->cmd = info->nand_regs.cmd;
 #if 0
@@ -703,7 +738,6 @@ static void nand_setup(unsigned int flags ,struct ls1b_nand_info *info)
     }
     else
         nand_base->cmd = info->nand_cmd;
-    
 }
 static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column, int page_addr)
 {
@@ -773,8 +807,8 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 /*dma regs config*/
                 info->dma_regs.length = ALIGN_DMA(info->buf_count);
                 ((struct ls1b_nand_dma_cmd *)&(info->dma_regs.cmd))->dma_int_mask = 1;
-                dma_setup(DMA_LENGTH|DMA_CMD,info);
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
+                dma_setup(DMA_LENGTH|DMA_CMD,info);
                 break;
             case NAND_CMD_SEQIN:
                 if(info->state == STATE_BUSY){
@@ -900,17 +934,16 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 
                {
 
-                   	unsigned int id_val_l=0,id_val_h=0;
-                   	unsigned int timing = 0;
-                   	unsigned char *data = (unsigned char *)(info->data_buff);
-                   	_NAND_READ_REG(0xc,timing);
-					_NAND_SET_REG(0xc,0x30f0); 		//lxy: origin
-//					_NAND_SET_REG(0xc,0x20ff); 
-                   	_NAND_SET_REG(0x0,0x21); 
+                   unsigned int id_val_l=0,id_val_h=0;
+                   unsigned int timing = 0;
+                   unsigned char *data = (unsigned char *)(info->data_buff);
+                   _NAND_READ_REG(0xc,timing);
+                   _NAND_SET_REG(0xc,0x30f0); 
+                   _NAND_SET_REG(0x0,0x21); 
 
-                   	while(((id_val_l |= _NAND_IDL) & 0xff)  == 0){
-                       	id_val_h = _NAND_IDH;
-                   	}
+                   while(((id_val_l |= _NAND_IDL) & 0xff)  == 0){
+                       id_val_h = _NAND_IDH;
+                   }
 
 //                   printk("id_val_l=0x%08x\nid_val_h=0x%08x\n",id_val_l,id_val_h);
                    _NAND_SET_REG(0xc,timing);
@@ -928,13 +961,8 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
             case NAND_CMD_READ1:
                 complete(&info->cmd_complete);
                 break;
-			case NAND_CMD_RNDOUT:	//lxy
-				info->buf_count = mtd->oobsize + mtd->writesize;
-                info->buf_start = column;         
-				complete(&info->cmd_complete);
-				break;
             default :
-                printk(KERN_ERR "non-supported command: 0x%x !\n", command);
+                printk(KERN_ERR "non-supported command.\n");
                 complete(&info->cmd_complete);
 		break;
         }
@@ -979,7 +1007,7 @@ static void ls1b_nand_init_info(struct ls1b_nand_info *info)
     info->page_addr = -1;
     info->nand_addrl = 0x0;
     info->nand_addrh = 0x0;
-    info->nand_timing =0x206;// 0x4<<8 | 0x12;
+    info->nand_timing =0x412;// 0x4<<8 | 0x12;
 //    info->nand_timing = 0x4<<8 | 0x12;
     info->nand_op_num = 0x0;
     info->nand_cs_rdy_map = 0x00000000;
@@ -1011,8 +1039,12 @@ static int ls1b_nand_probe(struct platform_device *pdev)
 	struct mtd_info *mtd;
 	struct resource *r;
 	int ret = 0, irq;
+//#ifdef CONFIG_MTD_PARTITIONS
+const char *part_probes[] = { "cmdlinepart", NULL };
+	struct mtd_partition *partitions = NULL;
+	int num_partitions = 0;
+//#endif
 
-	printk ("lxy: ls1b_nand_probe.....\n");
 	pdata = pdev->dev.platform_data;
 
 	if (!pdata) {
@@ -1020,7 +1052,8 @@ static int ls1b_nand_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	mtd = kzalloc(sizeof(struct mtd_info) + sizeof(struct ls1b_nand_info), GFP_KERNEL);
+	mtd = kzalloc(sizeof(struct mtd_info) + sizeof(struct ls1b_nand_info),
+			GFP_KERNEL);
 	if (!mtd) {
 		dev_err(&pdev->dev, "failed to allocate memory\n");
 		return -ENOMEM;
@@ -1093,18 +1126,23 @@ static int ls1b_nand_probe(struct platform_device *pdev)
                 ret = -ENXIO;
                 goto fail_free_irq;
         }
-//         return add_mtd_partitions(mtd, pdata->parts, pdata->nr_parts);
-		ret = mtd_device_register(mtd, pdata->parts, pdata->nr_parts);
-		if (ret) {
-			dev_err(&pdev->dev, "Failed to add mtd device\n");
-			goto err_nand_release;
+//#ifdef CONFIG_MTD_PARTITIONS
+//#ifdef CONFIG_MTD_CMDLINE_PARTS
+	mtd->name = "mtd0";
+	num_partitions = parse_mtd_partitions(mtd, part_probes,
+					      &partitions, 0);
+//#endif
+	if (num_partitions <= 0 )
+		{
+		  partitions = pdata->parts;
+		  num_partitions = pdata->nr_parts;
+			
 		}
-		dev_info(&pdev->dev, "Successfully registered loongson-1b NAND driver\n");
-
-		return 0;
-	
-err_nand_release:
-	nand_release(mtd);
+//         return add_mtd_partitions(mtd, partitions , num_partitions);
+		return mtd_device_register(mtd, partitions , num_partitions);
+//#else
+//		 return add_mtd_device(mtd);
+//#endif
 fail_free_irq:
 	free_irq(13, info);
 fail_free_buf:
@@ -1131,11 +1169,11 @@ static int ls1b_nand_remove(struct platform_device *pdev)
 	nand_release(mtd);
 	free_irq(13, info);
         kfree(info->drcmr_dat);
-struct ls1b_nand_platform_data{
+/*struct ls1b_nand_platform_data{
     int enable_arbiter;
     struct mtd_partition *parts;
     unsigned int nr_parts;
-};
+};*/
         kfree(mtd);
 
 	return 0;
@@ -1171,7 +1209,6 @@ static int __init ls1b_nand_init(void)
 {
     int ret = 0;
 
-//    *((volatile unsigned int *)0xbfd00420) = 0x0a000000;
     ret = platform_driver_register(&ls1b_nand_driver);
     if(ret){
         printk(KERN_ERR "failed to register loongson_1g_nand_driver");
