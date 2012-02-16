@@ -788,7 +788,7 @@ static struct platform_device ls1b_gpio_key_device = {
 
 static struct gpio_keys_button ls1b_gpio_buzzer[] = {
 	[0] = {
-		.gpio	= 3,	//57
+		.gpio	= 40,	//57
 	},	
 /*
 	[1] = {
