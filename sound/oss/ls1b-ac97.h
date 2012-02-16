@@ -23,7 +23,7 @@
 
 
 //AC97_controler
-#define AC97_REG(off)       _REG2(KSEG1ADDR(SB2F_AC97_REGS_BASE),(off))
+#define AC97_REG(off)       _REG2(KSEG1ADDR(LS1B_AC97_REGS_BASE),(off))
 #define CSR			AC97_REG(0x00)
 #define OCCR0		AC97_REG(0x04)
 #define OCCR1		AC97_REG(0x08)
@@ -189,4 +189,5 @@ typedef struct audio_state {
 #define AUDIO_FRAGSIZE_DEFAULT  0x2000
 
 #endif
+
 

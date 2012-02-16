@@ -22,8 +22,8 @@
 #include <linux/semaphore.h>
 #include <linux/ac97_codec.h>
 #include <asm/system.h>
-#include <asm/loongson-sb2f/sb2f_board.h>
-#include <asm/loongson-sb2f/sb2f_board_int.h>
+#include <asm/mach-loongson/ls1b/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1b/ls1b_board.h>
 #include <linux/interrupt.h>
 #include "ls1b-ac97.h"
 #include <asm/delay.h>
@@ -1086,7 +1086,7 @@ static int sb2f_audio_release(struct inode *inode, struct file *file)
 		sb2f_audio_sync(file);
 		audio_clear_buf(state->input_stream);
 		state->rd_ref = 0;
-		free_irq(SB2F_BOARD_DMA2_IRQ, state->input_stream);
+		free_irq(LS1B_BOARD_DMA2_IRQ, state->input_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
 		del_timer(&state->input_stream->timer);
 #endif
@@ -1096,7 +1096,7 @@ static int sb2f_audio_release(struct inode *inode, struct file *file)
 		sb2f_audio_sync(file);
 		audio_clear_buf(state->output_stream);
 		state->wr_ref = 0;
-		free_irq(SB2F_BOARD_DMA1_IRQ, state->output_stream);
+		free_irq(LS1B_BOARD_DMA1_IRQ, state->output_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
 		del_timer(&state->output_stream->timer);
 #endif
@@ -1160,7 +1160,7 @@ static int sb2f_audio_open(struct inode *inode, struct file *file)
 		INIT_LIST_HEAD(&os->done_list);
 		INIT_LIST_HEAD(&os->all_list);
 		spin_lock_init(&os->lock);
-		request_irq(SB2F_BOARD_DMA1_IRQ, ac97_dma_write_intr, IRQF_SHARED,
+		request_irq(LS1B_BOARD_DMA1_IRQ, ac97_dma_write_intr, IRQF_SHARED,
 				"ac97dma-write", os);
 #ifdef CONFIG_SND_SB2F_TIMER
 		init_timer(&os->timer);
@@ -1183,7 +1183,7 @@ static int sb2f_audio_open(struct inode *inode, struct file *file)
 		INIT_LIST_HEAD(&is->done_list);
 		INIT_LIST_HEAD(&is->all_list);
 		spin_lock_init(&is->lock);
-		request_irq(SB2F_BOARD_DMA2_IRQ, ac97_dma_read_intr, IRQF_SHARED,
+		request_irq(LS1B_BOARD_DMA2_IRQ, ac97_dma_read_intr, IRQF_SHARED,
 				"ac97dma-read", is);
 #ifdef CONFIG_SND_SB2F_TIMER
 		init_timer(&is->timer);
@@ -1319,3 +1319,4 @@ module_init(sb2f_audio_init);
 module_exit(sb2f_audio_exit);
 
 MODULE_LICENSE("GPL");
+
