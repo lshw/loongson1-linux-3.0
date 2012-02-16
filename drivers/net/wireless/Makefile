@@ -5,6 +5,10 @@
 obj-$(CONFIG_IPW2100) += ipw2x00/
 obj-$(CONFIG_IPW2200) += ipw2x00/
 
+obj-$(CONFIG_RTL8192CU) += rtl8188/
+
+#obj-$(CONFIG_RT3070) += rt3070/
+
 obj-$(CONFIG_HERMES)		+= orinoco/
 
 obj-$(CONFIG_AIRO)		+= airo.o
