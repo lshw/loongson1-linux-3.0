@@ -828,6 +828,29 @@ static struct platform_device ls1b_ir_device = {
 	.resource	= ls1b_ir_resource,
 };
 
+//xhm
+static struct gpio_keys_button ls1b_bobodogio_button[] = {
+	[0] = {
+		.gpio = 60,
+	},	
+	[1] = {
+		.gpio = 61,
+	},
+};
+
+static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
+	.buttons	= ls1b_bobodogio_button,
+	.nbuttons	= 2,
+};
+
+static struct platform_device ls1b_bobodogio_dog = {
+	.name	= "bobodog_io_control",
+	.id	= -1,
+	.dev	= {
+		.platform_data = &ls1b_bobodogio_dog_data,
+	},
+};
+
 static struct resource ls1b_pwm0_resource[] = {
 	[0]={
 		.start	= LS1B_PWM0_BASE,
@@ -885,6 +908,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_gpio_buzzer_device,
 	&ls1b_pwm_device,
 	&ls1b_ir_device,//zwl
+	&ls1b_bobodogio_dog,
 };
 
 #define AHCI_PCI_BAR  5
