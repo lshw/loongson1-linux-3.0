@@ -18,12 +18,15 @@
 //#include <linux/autoconf.h>
 #include <generated/autoconf.h>
 #include <linux/init.h>
+#include <linux/string.h>
+#include <linux/ctype.h>
 #include <linux/mm.h>
 #include <linux/sched.h>
 #include <linux/bootmem.h>
 
 #include <asm/addrspace.h>
 #include <asm/bootinfo.h>
+#include <asm/mach-loongson/ls1b/fb.h>
 
 #define	CL_SIZE COMMAND_LINE_SIZE
 extern char arcs_cmdline[CL_SIZE];
@@ -66,6 +69,7 @@ void __init prom_init(void)
 {
 	long l;
 	int pll,ctrl,clk;
+	char *tmp, *end;
 #define PLL_FREQ_REG(x) *(volatile unsigned int *)(0xbfe78030+x)
 
 	
@@ -79,7 +83,9 @@ void __init prom_init(void)
 #ifndef CONFIG_PMON
 #define CONFIG_PMON
 #endif
-
+	prom_printf("Booting Linux kernel...\n");
+	system_state = SYSTEM_BOOTING;
+	prom_printf("system_state: %d\taddr:%08x\n", system_state, &system_state);
 #ifdef CONFIG_PMON
 	prom_init_cmdline();
 
@@ -118,6 +124,40 @@ void __init prom_init(void)
 		ls1b_cpu_clock = ((ctrl&0x300)==0x300)?33333333:(ctrl&(1<<25))?clk/((ctrl>>20)&0x1f):clk/2;
 		bus_clock = ((ctrl&0xc00)==0xc00)?33333333:(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
 	}
+	
+	tmp = strstr(arcs_cmdline, "video=ls1bfb:vga");
+	if(tmp){
+		int i, xres, yres;
+		
+		tmp += 16;
+		for (i = 0; i < strlen(tmp); i++){
+			if (isdigit(*(tmp+i))){
+				break;
+			}
+		}
+		xres = simple_strtoul(tmp+i, &end, 10);
+		yres = simple_strtoul(end+1, NULL, 10);
+		if ((xres<=0 || xres>2000)||(yres<=0 || yres>2000)){
+		}
+		
+		for(i=0; i<sizeof(vgamode)/sizeof(struct vga_struc); i++){
+			if(vgamode[i].hr == xres && vgamode[i].vr == yres){
+				break;
+			}
+		}
+		if(i<0){
+			i = 0;
+		}
+		PLL_FREQ_REG(4) = vgamode[i].pll_reg1;
+		PLL_FREQ_REG(0) = vgamode[i].pll_reg0;
+		
+		pll = PLL_FREQ_REG(0);
+		ctrl = PLL_FREQ_REG(4);
+		clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
+		ls1b_cpu_clock = ((ctrl&0x300)==0x300)?33333333:(ctrl&(1<<25))?clk/((ctrl>>20)&0x1f):clk/2;
+		bus_clock = ((ctrl&0xc00)==0xc00)?33333333:(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
+	}
+	
 #else
 	strcat(arcs_cmdline, " root=/dev/hda3 console=tty");
 	bus_clock = 66000000;
@@ -127,9 +167,6 @@ void __init prom_init(void)
 		memsize = 256;
 //		memsize = 128;
 
-	prom_printf("Booting Linux kernel...\n");
-	system_state = SYSTEM_BOOTING;
-	prom_printf("system_state: %d\taddr:%08x\n", system_state, &system_state);
 	printk("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
 }
 
