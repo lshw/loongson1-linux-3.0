@@ -715,10 +715,10 @@ static int ls1bfb_init_registers(struct ls1bfb_info *fbi)
 	/* 设定LCD工作频率 */
 //	if (fbi->mach_info->type == TYPE_VGA){
 	if (mode_type == TYPE_VGA){
-//		PLL_FREQ_REG(4) = vgamode[mode_tmp].pll_reg1;
-//		PLL_FREQ_REG(0) = vgamode[mode_tmp].pll_reg0;
-//		udelay(1000);
-//		initserial(8);
+		PLL_FREQ_REG(4) = vgamode[mode_tmp].pll_reg1;
+		PLL_FREQ_REG(0) = vgamode[mode_tmp].pll_reg0;
+		udelay(1000);
+		initserial(8);
 	}
 	else{
 		pll = PLL_FREQ_REG(0);
