@@ -199,7 +199,7 @@ _HAL_INTFS_FILES += $(CHIP_FILES)
 endif
 
 ifeq ($(CONFIG_AUTOCFG_CP), y)
-$(shell cp $(TopDIR)/autoconf_$(RTL871X)_$(HCI_NAME)_linux.h $(TopDIR)/include/autoconf.h)
+#$(shell cp $(TopDIR)/autoconf_$(RTL871X)_$(HCI_NAME)_linux.h $(TopDIR)/include/autoconf.h)
 endif
 
 

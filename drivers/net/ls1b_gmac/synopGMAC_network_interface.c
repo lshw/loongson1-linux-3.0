@@ -1510,7 +1510,7 @@ s32 synopGMAC_linux_xmit_frames(struct sk_buff *skb, struct net_device *netdev)
 	status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, skb->len, (u64)skb,0,0,0,offload_needed);
 	if(status < 0){
 		TR0("%s No More Free Tx Descriptors\n",__FUNCTION__);
-//		dev_kfree_skb (skb); //with this, system used to freeze.. ??
+		dev_kfree_skb (skb); //with this, system used to freeze.. ??
 		return -EBUSY;
 	}
 	

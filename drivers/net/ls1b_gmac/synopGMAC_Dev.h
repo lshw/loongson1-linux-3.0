@@ -30,8 +30,8 @@ enum GMACPhyBase
 #define DMABASE 0x1000			// Dma base address starts with an offset 0x1000
 
 
-#define TRANSMIT_DESC_SIZE  1024		//Tx Descriptors needed in the Descriptor pool/queue
-#define RECEIVE_DESC_SIZE   1024	//Rx Descriptors needed in the Descriptor pool/queue
+#define TRANSMIT_DESC_SIZE  2048//1024		//Tx Descriptors needed in the Descriptor pool/queue
+#define RECEIVE_DESC_SIZE   2048//1024	//Rx Descriptors needed in the Descriptor pool/queue
 //#define TRANSMIT_DESC_SIZE  13	//Tx Descriptors needed in the Descriptor pool/queue
 //#define RECEIVE_DESC_SIZE   13	//Rx Descriptors needed in the Descriptor pool/queue
 
