@@ -973,10 +973,14 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 	do_div(div, mach_info->pclk);
 //	fbinfo->var.pixclock			= div;
 	}
-	fbinfo->fix.smem_len = 0x500000;
-//	fbinfo->fix.smem_len        =	mach_info->xres.max *
-//					mach_info->yres.max *
-//					mach_info->bpp.max / 8;
+	if (mode_type == TYPE_VGA){
+		fbinfo->fix.smem_len = 0x500000;
+	}
+	else{
+		fbinfo->fix.smem_len        =	mach_info->xres.max *
+					mach_info->yres.max *
+					mach_info->bpp.max / 8;
+	}
 	
 	/*初始化色调色板(颜色表)为空*/
 	for (i = 0; i < 256; i++)
