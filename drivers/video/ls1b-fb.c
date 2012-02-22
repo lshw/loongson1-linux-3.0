@@ -398,7 +398,7 @@ static void ls1bfb_activate_var(struct ls1bfb_info *fbi,
 	if (mode_type == TYPE_VGA){
 		PLL_FREQ_REG(4) = vgamode[mode].pll_reg1;
 		PLL_FREQ_REG(0) = vgamode[mode].pll_reg0;
-		udelay(1000);
+		udelay(100);
 		initserial(8);
 	}
 	else{
@@ -717,7 +717,7 @@ static int ls1bfb_init_registers(struct ls1bfb_info *fbi)
 	if (mode_type == TYPE_VGA){
 		PLL_FREQ_REG(4) = vgamode[mode_tmp].pll_reg1;
 		PLL_FREQ_REG(0) = vgamode[mode_tmp].pll_reg0;
-		udelay(1000);
+		udelay(100);
 		initserial(8);
 	}
 	else{
