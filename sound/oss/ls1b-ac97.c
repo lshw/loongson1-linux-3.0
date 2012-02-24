@@ -566,6 +566,7 @@ static void sb2f_open_set(int mode)
 		if(sb2f_ac97_codec.model == 0x414c4760)
 					sb2f_codec_write(NULL,0x6a,sb2f_codec_read(NULL,0x6a)|0x201);
 	}
+	sb2f_codec_write(NULL,0x02,0x8000); 
 }
 
 static void sb2f_def_set(void)
@@ -618,6 +619,7 @@ static void sb2f_def_set(void)
 sb2f_audio_write(struct file *file, const char *buffer,
 		size_t count, loff_t * ppos)
 {
+	sb2f_codec_write(NULL,0x2,0x0);
 	const char *buffer0 = buffer;
 	audio_state_t *state = (audio_state_t *) file->private_data;
 	audio_stream_t *s = state->output_stream;
@@ -1104,10 +1106,12 @@ static int sb2f_audio_release(struct inode *inode, struct file *file)
 
 	if ((file->f_mode & FMODE_WRITE)) {
 		//write_reg(DMA_INT_MASK,read_reg(DMA_INT_MASK)|0x1);        //mask all dma interrupt  
+		sb2f_codec_write(NULL,0,0);//codec reset
 	}
 
 	if ((file->f_mode & FMODE_READ))
 	{
+		sb2f_codec_write(NULL,0,0);//codec reset
 		//write_reg(DMA_INT_MASK,read_reg(DMA_INT_MASK)|0x8);        //mask all dma interrupt  
 	}
 
