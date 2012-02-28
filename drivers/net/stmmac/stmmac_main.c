@@ -51,8 +51,8 @@
 #define STMMAC_RESOURCE_NAME	"stmmaceth"
 #define PHY_RESOURCE_NAME	"stmmacphy"
 
-#undef STMMAC_DEBUG
-/*#define STMMAC_DEBUG*/
+//#undef STMMAC_DEBUG
+#define STMMAC_DEBUG
 #ifdef STMMAC_DEBUG
 #define DBG(nlevel, klevel, fmt, args...) \
 		((void)(netif_msg_##nlevel(priv) && \
@@ -62,7 +62,7 @@
 #endif
 
 #undef STMMAC_RX_DEBUG
-/*#define STMMAC_RX_DEBUG*/
+//#define STMMAC_RX_DEBUG
 #ifdef STMMAC_RX_DEBUG
 #define RX_DBG(fmt, args...)  printk(fmt, ## args)
 #else
@@ -70,7 +70,7 @@
 #endif
 
 #undef STMMAC_XMIT_DEBUG
-/*#define STMMAC_XMIT_DEBUG*/
+//#define STMMAC_XMIT_DEBUG
 #ifdef STMMAC_TX_DEBUG
 #define TX_DBG(fmt, args...)  printk(fmt, ## args)
 #else
@@ -104,7 +104,7 @@ static int dma_rxsize = DMA_RX_SIZE;
 module_param(dma_rxsize, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(dma_rxsize, "Number of descriptors in the RX list");
 
-static int flow_ctrl = FLOW_OFF;
+static int flow_ctrl = FLOW_AUTO;// FLOW_OFF;
 module_param(flow_ctrl, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(flow_ctrl, "Flow control ability [on/off]");
 
@@ -1963,3 +1963,4 @@ module_exit(stmmac_cleanup_module);
 MODULE_DESCRIPTION("STMMAC 10/100/1000 Ethernet driver");
 MODULE_AUTHOR("Giuseppe Cavallaro <peppe.cavallaro@st.com>");
 MODULE_LICENSE("GPL");
+

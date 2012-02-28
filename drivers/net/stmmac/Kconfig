@@ -13,7 +13,7 @@ if STMMAC_ETH
 
 config STMMAC_DA
 	bool "STMMAC DMA arbitration scheme"
-	default n
+	default y
 	help
 	  Selecting this option, rx has priority over Tx (only for Giga
 	  Ethernet device).

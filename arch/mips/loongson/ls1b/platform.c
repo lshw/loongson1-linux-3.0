@@ -36,7 +36,9 @@
 #include <asm/mach-loongson/ls1b/fb.h>
 #include <linux/gpio_keys.h>
 
-
+#include <linux/phy.h> //lv
+#include <linux/stmmac.h> //lv
+#include <asm-generic/sizes.h> //lv
 
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
@@ -480,7 +482,7 @@ struct platform_device ls1b_dc_device = {
 /*
  * gmac
  */
-
+/*
 static struct resource ls1b_gmac1_resources[] = { 
  [0] = {
    .start          = LS1B_BOARD_GMAC1_BASE,
@@ -527,6 +529,123 @@ static struct platform_device ls1b_gmac2_device = {
  .num_resources  = ARRAY_SIZE(ls1b_gmac2_resources),
  .resource       = ls1b_gmac2_resources,
 };
+*/
+
+//gmac0
+static struct resource ls1b_mac0_resources[] = {
+        [0] = {
+                .start  = LS1B_BOARD_GMAC1_BASE,
+                .end    = LS1B_BOARD_GMAC1_BASE + SZ_64K - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .name   = "macirq",
+                .start  = LS1B_BOARD_GMAC1_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+static struct plat_stmmacenet_data ls1b_mac0_data = {
+        .bus_id         = 0,
+//      .pbl            = 32,
+        .has_gmac       = 1,
+	.enh_desc	= 0,
+        /*.tx_coe               = 1,*/
+};
+
+struct platform_device ls1b_gmac0_mac = {
+        .name           = "stmmaceth",
+        .id             = 0,
+        .num_resources  = ARRAY_SIZE(ls1b_mac0_resources),
+        .resource       = ls1b_mac0_resources,
+        .dev            = {
+                .platform_data = &ls1b_mac0_data,
+        },
+};
+
+static struct plat_stmmacphy_data  phy0_private_data = {
+	.bus_id = 0,
+	.phy_addr = -1,
+	.phy_mask = 0,
+	.interface = PHY_INTERFACE_MODE_MII,
+	
+};
+
+struct platform_device ls1b_gmac0_phy = {
+	.name = "stmmacphy",
+	.id = 0,
+	.num_resources = 1,
+	.resource = (struct resource[]){
+		{
+			.name = "phyirq",
+			.start = 1,
+			.end = 1,
+			.flags = IORESOURCE_IRQ,
+		},
+	},
+	.dev = {
+		.platform_data = &phy0_private_data,
+	},
+};
+
+//gmac1
+static struct resource ls1b_mac1_resources[] = {
+        [0] = {
+                .start  = LS1B_BOARD_GMAC2_BASE,
+                .end    = LS1B_BOARD_GMAC2_BASE + SZ_64K - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .name   = "macirq",
+                .start  = LS1B_BOARD_GMAC2_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+
+static struct plat_stmmacenet_data ls1b_mac1_data = {
+        .bus_id         = 0,
+//      .pbl            = 32,
+        .has_gmac       = 1,
+	.enh_desc	= 0,
+        /*.tx_coe               = 1,*/
+};
+
+struct platform_device ls1b_gmac1_mac = {
+        .name           = "stmmaceth",
+        .id             = 0,
+        .num_resources  = ARRAY_SIZE(ls1b_mac1_resources),
+        .resource       = ls1b_mac1_resources,
+        .dev            = {
+                .platform_data = &ls1b_mac1_data,
+        },
+};
+
+static struct plat_stmmacphy_data  phy1_private_data = {
+	.bus_id = 0,
+	.phy_addr = -1,
+	.phy_mask = 0,
+	.interface = PHY_INTERFACE_MODE_MII,
+	
+};
+
+struct platform_device ls1b_gmac1_phy = {
+	.name = "stmmacphy",
+	.id = 0,
+	.num_resources = 1,
+	.resource = (struct resource[]){
+		{
+			.name = "phyirq",
+			.start = 1,
+			.end = -1,
+			.flags = IORESOURCE_IRQ,
+		},
+	},
+	.dev = {
+		.platform_data = &phy1_private_data,
+	},
+};
+
 static struct resource ls1b_nand_resources[] = {
     [0] = {
         .start      =0,
@@ -894,10 +1013,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_ehci_device,
 	&ls1b_dc_device,
 #ifdef CONFIG_LS1B_GMAC0_OPEN   //lv
-        &ls1b_gmac1_device,
+	&ls1b_gmac0_mac,
+	&ls1b_gmac0_phy,
 #endif
 #ifdef CONFIG_LS1B_GMAC1_OPEN  //lv
-        &ls1b_gmac2_device,
+	&ls1b_gmac1_mac,
+	&ls1b_gmac1_phy,
 #endif
 	&ls1b_wat_device,
 	&ls1b_rtc_device,
