@@ -20,6 +20,18 @@ menuconfig MISC_DEVICES
 
 if MISC_DEVICES
 
+config ST7565R
+	tristate "ST7565R Sitronix 65x132 Dot Matrix LCD Controller/Driver"
+	default n
+	help
+	  Sitronix 65 x 132 Dot Matrix LCD Controller/Driver.
+	  Say Y here if you have ST7565R.
+
+	  If unsure, say N .
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called st7565r.
+
 config AD525X_DPOT
 	tristate "Analog Devices Digital Potentiometers"
 	depends on (I2C || SPI) && SYSFS
