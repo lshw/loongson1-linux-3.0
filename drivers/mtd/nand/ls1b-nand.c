@@ -24,7 +24,8 @@
 #define SPARE_ADDRL(x)      ((x) << (PAGE_SHIFT ))
 #define ALIGN_DMA(x)       (((x)+ 3)/4)
 
-#define USE_POLL
+//#define USE_POLL
+#undef	USE_POLL
 #ifdef USE_POLL
 #define complete(...)
 #define init_completion(...)
@@ -961,6 +962,13 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
             case NAND_CMD_READ1:
                 complete(&info->cmd_complete);
                 break;
+
+	    case NAND_CMD_RNDOUT:	//lxy
+		info->buf_count = mtd->oobsize + mtd->writesize;
+		info->buf_start = column;         
+		complete(&info->cmd_complete);
+		break;
+
             default :
                 printk(KERN_ERR "non-supported command.\n");
                 complete(&info->cmd_complete);
