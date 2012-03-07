@@ -949,17 +949,26 @@ static struct platform_device ls1b_ir_device = {
 
 //xhm
 static struct gpio_keys_button ls1b_bobodogio_button[] = {
-	[0] = {
-		.gpio = 60,
-	},	
-	[1] = {
-		.gpio = 61,
-	},
+	[0]  = { .gpio = 4, },	
+	[1]  = { .gpio = 5, },
+	[2]  = { .gpio = 6, },
+	[3]  = { .gpio = 7, },
+	[4]  = { .gpio = 8, },
+	[5]  = { .gpio = 9, },
+	[6]  = { .gpio = 10, },
+	[7]  = { .gpio = 11, },
+	[8]  = { .gpio = 12, },
+	[9]  = { .gpio = 13, },
+	[10] = { .gpio = 14, },
+	[11] = { .gpio = 15, },
+	[12] = { .gpio = 16, },
+	[13] = { .gpio = 17, },
+	[14] = { .gpio = 18, },
 };
 
 static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
 	.buttons	= ls1b_bobodogio_button,
-	.nbuttons	= 2,
+	.nbuttons	= 15,
 };
 
 static struct platform_device ls1b_bobodogio_dog = {
