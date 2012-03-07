@@ -164,10 +164,10 @@ void __init prom_init(void)
 	ls1b_cpu_clock = 666000000;
 #endif
 	if (memsize == 0) 
-		memsize = 256;
-//		memsize = 128;
+		memsize = 64;
 
-	printk("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
+	prom_printf("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
+//	printk("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
 }
 
 void __init prom_free_prom_memory(void)

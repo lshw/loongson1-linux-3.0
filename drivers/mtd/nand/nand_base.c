@@ -2920,6 +2920,13 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	/* Send the command for reading device ID */
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
 
+
+	for (i = 0; i < 8; i++)		//lxy
+		id_data[i] = chip->read_byte(mtd);
+	*maf_id = id_data[0];
+	*dev_id = id_data[1];
+
+#if 0
 	/* Read manufacturer and device IDs */
 	*maf_id = chip->read_byte(mtd);
 	*dev_id = chip->read_byte(mtd);
@@ -2930,7 +2937,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	 * not match, ignore the device completely.
 	 */
 
-	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
+	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);	//lxy
 
 	for (i = 0; i < 2; i++)
 		id_data[i] = chip->read_byte(mtd);
@@ -2941,6 +2948,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 		       *maf_id, *dev_id, id_data[0], id_data[1]);
 		return ERR_PTR(-ENODEV);
 	}
+#endif
 
 	if (!type)
 		type = nand_flash_ids;
@@ -2957,12 +2965,14 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 			goto ident_done;
 	}
 
+#if 0	//lxy
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
 
 	/* Read entire ID string */
 
 	for (i = 0; i < 8; i++)
 		id_data[i] = chip->read_byte(mtd);
+#endif
 
 	if (!type->name)
 		return ERR_PTR(-ENODEV);
