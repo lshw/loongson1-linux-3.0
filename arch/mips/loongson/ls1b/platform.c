@@ -687,7 +687,29 @@ static struct platform_device ls1b_audio_device = {
 
 #if 1		//lxy
 static struct mtd_partition partitions[] = {
-#if 1
+#if 1	//for bobodog program
+	[0] = {
+		.name		= "pmon",
+		.offset		= 0,
+		.size		= 512 * 1024,	//512KB
+	//	.mask_flags	= MTD_WRITEABLE,
+	}, 
+	[1] = {
+		.name		= "kernel",	
+		.offset		= 512 * 1024,
+		.size		= 0x210000,
+	},
+	[2] = {
+		.name		= "fs",
+		.offset		= 0x290000,
+		.size		= 0x500000,
+	},
+	[3] = {
+		.name		= "data",
+		.offset		= 0x790000,
+		.size		= 0x800000 - 0x790000,
+	},
+#if 0	//for finger program
 	[0] = {
 		.name		= "pmon",
 		.offset		= 0,
@@ -704,6 +726,7 @@ static struct mtd_partition partitions[] = {
 		.offset		= 0x520000,
 		.size		= 0x800000 - 0x520000,
 	},
+#endif
 #else
 	[0] = {
 		.name		= "pmon",
@@ -1142,6 +1165,9 @@ int ls1b_platform_init(void)
   (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
   (*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
   (*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
+  
+#else
+  (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);  //open uart0/1
 #endif
 	
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));

@@ -593,7 +593,7 @@ static void sb2f_def_set(void)
 	sb2f_codec_write(NULL,0x6,0x0008);//|(0x2<<16)|(0<<31));      //mono Vol.
 
 	sb2f_codec_write(NULL,0xc,0x0008);//|(0x2<<16)|(0<<31));      //phone Vol.
-	sb2f_codec_write(NULL,0x18,0x1f08);//|(0x18<<16)|(0<<31));     //PCM Out Vol.
+	sb2f_codec_write(NULL,0x18,0x0808);//|(0x18<<16)|(0<<31));     //PCM Out Vol.
 /*	sb2f_codec_write(NULL,0x18,sample_rate|(0x2c<<16)|(0<<31));
 	sb2f_codec_write(NULL,0x18,sample_rate|(0x34<<16)|(0<<31));*/
 //	sb2f_codec_write(NULL,0x2a,1);//0x1|(0x2A<<16)|(0<<31));        //Extended Audio Status  and control
