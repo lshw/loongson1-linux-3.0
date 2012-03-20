@@ -101,14 +101,14 @@ static struct plat_serial8250_port uart8250_data[12] = {
 { .mapbase=0xbfe6c000,.membase=(void *)0xbfe6c000,.irq=29,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
 { .mapbase=0xbfe7c000,.membase=(void *)0xbfe7c000,.irq=30,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-{ .mapbase=0xbfe41000,.membase=(void *)0xbfe41000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe42000,.membase=(void *)0xbfe42000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe43000,.membase=(void *)0xbfe43000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
+{ .mapbase=0xbfe41000,.membase=(void *)0xbfe41000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
+{ .mapbase=0xbfe42000,.membase=(void *)0xbfe42000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
+{ .mapbase=0xbfe43000,.membase=(void *)0xbfe43000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
 #endif
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-{ .mapbase=0xbfe45000,.membase=(void *)0xbfe45000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe46000,.membase=(void *)0xbfe46000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe47000,.membase=(void *)0xbfe47000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
+{ .mapbase=0xbfe45000,.membase=(void *)0xbfe45000,.irq=LS1B_BOARD_UART1_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
+{ .mapbase=0xbfe46000,.membase=(void *)0xbfe46000,.irq=LS1B_BOARD_UART1_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
+{ .mapbase=0xbfe47000,.membase=(void *)0xbfe47000,.irq=LS1B_BOARD_UART1_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
 #endif
 //{ .uartclk = 1843200, .mapbase=0xbff003f8,.membase=(void *)0xbff003f8,.irq=0,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,}, 
 {}
