@@ -504,6 +504,7 @@ mixer_ioctl(struct file *file,
 		unsigned int cmd, unsigned long arg)
 {
 	int ret;
+	int val = 0;
 
 	DPRINTK("Enter.\n");
 	ret = sb2f_ac97_codec.mixer_ioctl(&sb2f_ac97_codec, cmd, arg);
@@ -516,6 +517,12 @@ mixer_ioctl(struct file *file,
 	/* We must snoop for some commands to provide our own extra processing */
 	switch (cmd) {
 		case SOUND_MIXER_WRITE_RECSRC:
+			break;
+		case SOUND_MIXER_WRITE_VOLUME:
+			if (get_user(val, (int*)arg)) {
+				return -EFAULT;
+			}
+			sb2f_codec_write(NULL, 0x2, val);
 			break;
 		default:
 			break;
@@ -592,21 +599,21 @@ static void sb2f_def_set(void)
 	sb2f_codec_write(NULL,0x4,0x0808);//|(0x2<<16)|(0<<31));      //headphone Vol.
 	sb2f_codec_write(NULL,0x6,0x0008);//|(0x2<<16)|(0<<31));      //mono Vol.
 
-	sb2f_codec_write(NULL,0xc,0x0008);//|(0x2<<16)|(0<<31));      //phone Vol.
-	sb2f_codec_write(NULL,0x18,0x0808);//|(0x18<<16)|(0<<31));     //PCM Out Vol.
+//	sb2f_codec_write(NULL,0xc,0x0008);//|(0x2<<16)|(0<<31));      //phone Vol.
+	sb2f_codec_write(NULL,0x18,0x0);//|(0x18<<16)|(0<<31));     //PCM Out Vol.
 /*	sb2f_codec_write(NULL,0x18,sample_rate|(0x2c<<16)|(0<<31));
 	sb2f_codec_write(NULL,0x18,sample_rate|(0x34<<16)|(0<<31));*/
 //	sb2f_codec_write(NULL,0x2a,1);//0x1|(0x2A<<16)|(0<<31));        //Extended Audio Status  and control
 	sb2f_codec_write(NULL,0x2a,0x3df2);//0x1|(0x2A<<16)|(0<<31));        //Extended Audio Status  and control
 	sb2f_codec_write(NULL,0x1a,0x0);//        //select record
-	sb2f_codec_write(NULL,0x1c,0x0f0f);//cys
+//	sb2f_codec_write(NULL,0x1c,0x0f0f);//cys
 	sb2f_codec_write(NULL,0x2c,sample_rate);//|(0x2c<<16)|(0<<31));     //PCM Out rate
 	sb2f_codec_write(NULL,0x32,sample_rate);//|(0x32<<16)|(0<<31));     //pcm input rate .
 	sb2f_codec_write(NULL,0x34,sample_rate);//|(0x34<<16)|(0<<31));     //MIC rate.
-	sb2f_codec_write(NULL,0x0E,0x0);//|(0x0E<<16)|(0<<31));     //Mic vol .
+	sb2f_codec_write(NULL,0x0E,0x8040);//|(0x0E<<16)|(0<<31));     //Mic vol .
 	sb2f_codec_write(NULL,0x1c,0x0f0f);//     //adc record gain
 	sb2f_codec_write(NULL,0x10,0x0101);//     //line in gain
-	sb2f_codec_write(NULL,0x1E,0x0808);//|(0x1E<<16)|(0<<31));     //MIC Gain ADC.
+//	sb2f_codec_write(NULL,0x1E,0x0808);//|(0x1E<<16)|(0<<31));     //MIC Gain ADC.
 	sb2f_codec_write(NULL,0x6a,0x201);
 //	sb2f_codec_write(NULL,0x38,0x8008);
 //	sb2f_codec_write(NULL,0x64,0x800e);
