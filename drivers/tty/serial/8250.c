@@ -599,8 +599,19 @@ static inline int _serial_dl_read(struct uart_8250_port *up)
 /* Uart divisor latch write */
 static inline void _serial_dl_write(struct uart_8250_port *up, int value)
 {
+	/* thf 由于DLM寄存器赋值后,IER寄存器会被清零,DLM寄存器赋值后需还原IER寄存器的值 */
+	unsigned char ier, lcr;
+	
+	lcr = serial_in(up, UART_LCR);
+	serial_outp(up, UART_LCR, lcr & (~UART_LCR_DLAB));
+	ier = serial_in(up, UART_IER);
+	serial_outp(up, UART_LCR, lcr | UART_LCR_DLAB);
+
 	serial_outp(up, UART_DLL, value & 0xff);
 	serial_outp(up, UART_DLM, value >> 8 & 0xff);
+	
+	serial_outp(up, UART_LCR, lcr & (~UART_LCR_DLAB));
+	serial_outp(up, UART_IER, ier);
 }
 
 #if defined(CONFIG_MIPS_ALCHEMY)
