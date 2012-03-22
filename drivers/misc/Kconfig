@@ -32,6 +32,12 @@ config ST7565R
 	  To compile this driver as a module, choose M here: the
 	  module will be called st7565r.
 
+config	SSD1305
+	tristate "SSD1305 OLED Controller"
+	default n
+	help
+	  132 x 64 Dot Matrix OLED/PLED Segment/Common Driver with Controller.
+
 config AD525X_DPOT
 	tristate "Analog Devices Digital Potentiometers"
 	depends on (I2C || SPI) && SYSFS
