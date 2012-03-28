@@ -49,6 +49,10 @@
 #include <linux/io.h>
 #include <linux/mtd/partitions.h>
 
+
+
+int com_flag = 0;
+
 /* Define default oob placement schemes for large and small page devices */
 static struct nand_ecclayout nand_oob_8 = {
 	.eccbytes = 3,
@@ -1124,6 +1128,8 @@ static int nand_read_page_swecc(struct mtd_info *mtd, struct nand_chip *chip,
 	uint8_t *ecc_code = chip->buffers->ecccode;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 
+//	if ((page << 11) == 0x6c54000)
+//		printk ("ecc read......, page= 0x%08x\n", page);
 	chip->ecc.read_page_raw(mtd, chip, buf, page);
 
 	for (i = 0; eccsteps; eccsteps--, i += eccbytes, p += eccsize)
@@ -1132,6 +1138,24 @@ static int nand_read_page_swecc(struct mtd_info *mtd, struct nand_chip *chip,
 	for (i = 0; i < chip->ecc.total; i++)
 		ecc_code[i] = chip->oob_poi[eccpos[i]];
 
+/*
+	if ((page << 11) == 0x6c54000)
+	{
+		printk ("print ecc data......\n");
+		printk ("ecc_code= ");
+		for (i = 0; i < chip->ecc.total; i++)
+		{
+			printk ("%02x ", ecc_code[i]);
+		}
+		printk ("\necc_cale= ");
+		for (i = 0; i < chip->ecc.total; i++)
+		{
+			printk ("%02x ", ecc_calc[i]);
+		}
+		printk ("\necc read end......\n");
+	}
+*/
+	
 	eccsteps = chip->ecc.steps;
 	p = buf;
 
@@ -1145,6 +1169,25 @@ static int nand_read_page_swecc(struct mtd_info *mtd, struct nand_chip *chip,
 			mtd->ecc_stats.corrected += stat;
 	}
 	return 0;
+}
+
+
+
+static void show_data(void * base,int num)
+{
+    int i=0;
+    unsigned char *arry=( unsigned char *) base;
+    for(i=0;i<num;i++){
+        if(!(i % 32)){
+            printk(KERN_ERR "\n");
+        }
+        if(!(i % 16)){
+            printk("  ");
+        }
+        printk("%02x ",arry[i]);
+    }
+    printk(KERN_ERR "\n");
+    
 }
 
 /**
@@ -1166,6 +1209,8 @@ static int nand_read_subpage(struct mtd_info *mtd, struct nand_chip *chip,
 	int busw = (chip->options & NAND_BUSWIDTH_16) ? 2 : 1;
 	int index = 0;
 
+	int k;
+
 	/* Column address wihin the page aligned to ECC size (256bytes). */
 	start_step = data_offs / chip->ecc.size;
 	end_step = (data_offs + readlen - 1) / chip->ecc.size;
@@ -1182,6 +1227,14 @@ static int nand_read_subpage(struct mtd_info *mtd, struct nand_chip *chip,
 
 	p = bufpoi + data_col_addr;
 	chip->read_buf(mtd, p, datafrag_len);
+
+/*
+	if (com_flag == 1)
+	{
+		printk ("lxy: in %s, coladdr= 0x%x, len= %d", __FUNCTION__, data_col_addr, datafrag_len);
+		show_data((void *)p, datafrag_len);
+	}
+*/
 
 	/* Calculate  ECC */
 	for (i = 0; i < eccfrag_len ; i += chip->ecc.bytes, p += chip->ecc.size)
@@ -1469,6 +1522,15 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 	buf = ops->datbuf;
 	oob = ops->oobbuf;
 
+/*
+	if (from == 0x6c54000)
+	{
+		printk ("from= 0x%08Lx, readlen= 0x%x, ", (unsigned long long)from, readlen);
+		printk ("chip_shift= %d, page_shift= %d, col= 0x%x, page= 0x%x, realpage= 0x%x, pagemask= 0x%x !\n", chip->chip_shift, chip->page_shift, col, page, realpage, chip->pagemask);
+		com_flag = 1;
+	}
+*/
+
 	while (1) {
 		bytes = min(mtd->writesize - col, readlen);
 		aligned = (bytes == mtd->writesize);
@@ -1484,14 +1546,28 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 
 			/* Now read the page into the buffer */
 			if (unlikely(ops->mode == MTD_OOB_RAW))
+			{
 				ret = chip->ecc.read_page_raw(mtd, chip,
 							      bufpoi, page);
+//				if (com_flag == 1)
+//					printk ("lxy: read_page_raw    ------->");
+			}
 			else if (!aligned && NAND_SUBPAGE_READ(chip) && !oob)
+			{
 				ret = chip->ecc.read_subpage(mtd, chip,
 							col, bytes, bufpoi);
+//				if (com_flag == 1)
+//					printk ("lxy: read_subpage------->");
+			}
 			else
+			{
+//				if (com_flag == 1)
+//					printk ("lxy: read_page ************************>\n");
 				ret = chip->ecc.read_page(mtd, chip, bufpoi,
 							  page);
+//				if (com_flag == 1)
+//					printk ("lxy: read_page++++++++++++++>");
+			}
 			if (ret < 0)
 				break;
 
@@ -1530,6 +1606,8 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 					nand_wait_ready(mtd);
 			}
 		} else {
+//			if (com_flag == 1)
+//				printk ("lxy: %s, memcpy !\n", __FUNCTION__);
 			memcpy(buf, chip->buffers->databuf + col, bytes);
 			buf += bytes;
 		}
@@ -1564,12 +1642,33 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 		ops->oobretlen = ops->ooblen - oobreadlen;
 
 	if (ret)
+	{
+		printk ("lxy: page= 0x%x, col= 0x%x, from=0x%08Lx!\n", page, col, (unsigned long long)from);
+		printk ("lxy: ret = %d !\n", ret);
+		com_flag = 0;
 		return ret;
+	}
 
 	if (mtd->ecc_stats.failed - stats.failed)
+	{
+		printk ("lxy: page= 0x%x, col= 0x%x, from=0x%08Lx!\n", page, col, (unsigned long long)from);
+		printk ("lxy: %s, return -EBADMSG !\n", __FUNCTION__);
+		com_flag = 0;
 		return -EBADMSG;
+	}
+	
+	if ((mtd->ecc_stats.corrected - stats.corrected))
+	{
+		printk ("lxy: page= 0x%x, col= 0x%x, from=0x%08Lx!\n", page, col, (unsigned long long)from);
+		printk ("lxy: %s, retern -EUCLEAN !\n", __FUNCTION__);
+		com_flag = 0;
+		return -EUCLEAN;
+	}
+	else
+		com_flag = 0;
+		return 0;
 
-	return  mtd->ecc_stats.corrected - stats.corrected ? -EUCLEAN : 0;
+//	return  mtd->ecc_stats.corrected - stats.corrected ? -EUCLEAN : 0;
 }
 
 /**
@@ -2085,12 +2184,21 @@ static int nand_write_page(struct mtd_info *mtd, struct nand_chip *chip,
 		status = chip->waitfunc(mtd, chip);
 	}
 
+
 #ifdef CONFIG_MTD_NAND_VERIFY_WRITE
 	/* Send command to read back the data */
 	chip->cmdfunc(mtd, NAND_CMD_READ0, 0, page);
 
 	if (chip->verify_buf(mtd, buf, mtd->writesize))
+	{
+		printk ("virify main-area error.......                ,page= 0x%x !\n", page);
 		return -EIO;
+	}
+	if (chip->verify_buf(mtd, chip->oob_poi, mtd->oobsize))
+	{
+		printk ("virify oob-area error.......                 ,page= 0x%x !\n", page);
+		return -EIO;
+	}
 #endif
 	return 0;
 }
@@ -2172,10 +2280,12 @@ static int nand_do_write_ops(struct mtd_info *mtd, loff_t to,
 	if (!writelen)
 		return 0;
 
+	uint32_t tem_len = chip->subpagesize - 1;
+
 	/* reject writes, which are not page aligned */
 	if (NOTALIGNED(to) || NOTALIGNED(ops->len)) {
 		printk(KERN_NOTICE "%s: Attempt to write not "
-				"page aligned data\n", __func__);
+				"page aligned data at 0x%08x\n", __func__, (unsigned long long)to);
 		return -EINVAL;
 	}
 
@@ -2920,9 +3030,13 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	/* Send the command for reading device ID */
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
 
-
+//	printk ("\nread_id =  ");
 	for (i = 0; i < 8; i++)		//lxy
+	{
 		id_data[i] = chip->read_byte(mtd);
+//		printk ("%02x,  ", id_data[i]);
+	}
+//	printk ("\n");
 	*maf_id = id_data[0];
 	*dev_id = id_data[1];
 
@@ -2958,6 +3072,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 			break;
 
 	chip->onfi_version = 0;
+#if 0	//lxy
 	if (!type->name || !type->pagesize) {
 		/* Check is chip is ONFI compliant */
 		ret = nand_flash_detect_onfi(mtd, chip, busw);
@@ -2965,7 +3080,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 			goto ident_done;
 	}
 
-#if 0	//lxy
+
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
 
 	/* Read entire ID string */
@@ -3166,6 +3281,9 @@ ident_done:
 		" 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id, *dev_id,
 		nand_manuf_ids[maf_idx].name,
 		chip->onfi_version ? chip->onfi_params.model : type->name);
+
+	
+	printk ("lxy: erasesize= 0x%x, wirtesize= 0x%x, oobsize= 0x%x !\n", mtd->erasesize, mtd->writesize, mtd->oobsize);
 
 	return type;
 }
