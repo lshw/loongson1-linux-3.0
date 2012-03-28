@@ -50,8 +50,28 @@ struct ls1b_nand_platform_data{
     unsigned int nr_parts;
 };
 
+#define	SZ_100M	(100*1024*1024)
+
 static struct mtd_partition ls1b_nand_partitions[]={
 #if 1
+	[0] = {
+		.name   ="kernel",
+		.offset =MTDPART_OFS_APPEND,
+		.size   =0xe00000,
+	        .mask_flags =   MTD_WRITEABLE,
+	},
+	[1] = {
+		.name   ="os",
+		.offset = MTDPART_OFS_APPEND,
+		.size   = SZ_100M,
+
+	},
+	[2] = {
+		.name   ="data",
+		.offset = MTDPART_OFS_APPEND,
+		.size   = MTDPART_SIZ_FULL,
+	},
+#if 0
 	[0] = {
         .name   ="kernel",
         .offset =0,
@@ -70,6 +90,7 @@ static struct mtd_partition ls1b_nand_partitions[]={
         .size   = 0xb00000,
     
     },
+#endif
 #else
     [0] = {
         .name   ="kernel",
