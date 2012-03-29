@@ -38,6 +38,19 @@ config	SSD1305
 	help
 	  132 x 64 Dot Matrix OLED/PLED Segment/Common Driver with Controller.
 
+config ILI9341
+	tristate "ili9341 a-Si TFT LCD Single Chip Driver"
+	default n
+	help
+	  240RGBx320 Resolution and 262K color,a-Si TFT LCD Single Chip Driver.
+	  Used for parallel 8-/9-/16-/18-bit data bus MCU interface.
+	  Say Y here if you have ILI9341.
+
+	  If unsure, say N .
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ILI9341.
+
 config AD525X_DPOT
 	tristate "Analog Devices Digital Potentiometers"
 	depends on (I2C || SPI) && SYSFS

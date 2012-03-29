@@ -3,6 +3,7 @@
 #
 
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
+obj-$(CONFIG_ILI9341)	+= ili9341.o
 obj-$(CONFIG_ST7565R)	+= st7565r.o
 obj-$(CONFIG_SSD1305)		+= ssd1305_oled.o
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
