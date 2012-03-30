@@ -586,7 +586,7 @@ struct platform_device ls1b_gmac0_mac = {
 
 static struct plat_stmmacphy_data  phy0_private_data = {
 	.bus_id = 0,
-	.phy_addr = -1,
+	.phy_addr = 0,
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
 	
@@ -625,7 +625,7 @@ static struct resource ls1b_mac1_resources[] = {
 
 
 static struct plat_stmmacenet_data ls1b_mac1_data = {
-        .bus_id         = 0,
+        .bus_id         = 1,
 //      .pbl            = 32,
         .has_gmac       = 1,
 	.enh_desc	= 0,
@@ -634,7 +634,7 @@ static struct plat_stmmacenet_data ls1b_mac1_data = {
 
 struct platform_device ls1b_gmac1_mac = {
         .name           = "stmmaceth",
-        .id             = 0,
+        .id             = 1,
         .num_resources  = ARRAY_SIZE(ls1b_mac1_resources),
         .resource       = ls1b_mac1_resources,
         .dev            = {
@@ -643,8 +643,8 @@ struct platform_device ls1b_gmac1_mac = {
 };
 
 static struct plat_stmmacphy_data  phy1_private_data = {
-	.bus_id = 0,
-	.phy_addr = -1,
+	.bus_id = 1,
+	.phy_addr = 1,
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
 	
@@ -652,7 +652,7 @@ static struct plat_stmmacphy_data  phy1_private_data = {
 
 struct platform_device ls1b_gmac1_phy = {
 	.name = "stmmacphy",
-	.id = 0,
+	.id = 1,
 	.num_resources = 1,
 	.resource = (struct resource[]){
 		{
