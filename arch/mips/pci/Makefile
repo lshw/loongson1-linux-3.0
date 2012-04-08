@@ -57,6 +57,7 @@ obj-$(CONFIG_WR_PPMC)		+= fixup-wrppmc.o
 obj-$(CONFIG_MIKROTIK_RB532)	+= pci-rc32434.o ops-rc32434.o fixup-rc32434.o
 obj-$(CONFIG_CPU_CAVIUM_OCTEON)	+= pci-octeon.o pcie-octeon.o
 obj-$(CONFIG_NLM_XLR)		+= pci-xlr.o
+obj-$(CONFIG_LS1A_MACH)		+= fixup-ls1a-board.o ops-ls1a-board.o
 
 ifdef CONFIG_PCI_MSI
 obj-$(CONFIG_CPU_CAVIUM_OCTEON)	+= msi-octeon.o

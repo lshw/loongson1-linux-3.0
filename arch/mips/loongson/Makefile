@@ -16,4 +16,5 @@ obj-$(CONFIG_LEMOTE_FULOONG2E)  += fuloong-2e/
 
 obj-$(CONFIG_LEMOTE_MACH2F)  += lemote-2f/
 
-obj-$(CONFIG_LS1B_MACH)  += ls1b/
+#obj-$(CONFIG_LS1B_MACH)  += ls1b/
+obj-$(CONFIG_CPU_LS232)  += ls1x/

@@ -528,7 +528,7 @@ config MTD_NAND_JZ4740
 
 config MTD_NAND_LS1B
         tristate "NAND Flash device on loongson-1b"
-        depends on MTD_NAND && LS1B_MACH
+        depends on MTD_NAND && (LS1B_MACH || LS1A_MACH)
         help
           The loongson-1b BOARD NAND FLASH controller.
 

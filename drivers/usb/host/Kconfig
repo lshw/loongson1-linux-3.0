@@ -94,7 +94,7 @@ config USB_EHCI_TT_NEWSCHED
 	  
 config USB_EHCI_HCD_LS1B	#lxy
 	bool "EHCI support for loognson1b chips"
-	depends on USB_EHCI_HCD && LS1B_MACH
+	depends on USB_EHCI_HCD && (LS1B_MACH || LS1A_MACH)
 	default y
 	---help---
 	  Enables support for the EHCI controller on loongson1b chips.
@@ -299,7 +299,7 @@ config USB_OHCI_HCD
 	  
 config USB_OHCI_HCD_LS1B		#lxy
 	bool "OHCI support for loognson1b chips"
-	depends on USB_OHCI_HCD && LS1B_MACH
+	depends on USB_OHCI_HCD && (LS1B_MACH || LS1A_MACH)
 	default y
 	---help---
 	  Enables support for the OHCI controller on loongson1b chips.

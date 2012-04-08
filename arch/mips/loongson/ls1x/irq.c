@@ -45,9 +45,9 @@
 #include <asm/i8259.h>
 #include <asm/mipsregs.h>
 #include <asm/system.h>
-#include <asm/mach-loongson/ls1b/ls1b_board.h>
-#include <asm/mach-loongson/ls1b/ls1b_board_int.h>
-#include <asm/mach-loongson/ls1b/ls1b_board_dbg.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_dbg.h>
 
 #define LS232_CP0_CAUSE_TI  (1UL    <<  30)
 #define LS232_CP0_CAUSE_PCI (1UL    <<  26)

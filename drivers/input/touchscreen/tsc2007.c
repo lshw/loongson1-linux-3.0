@@ -26,8 +26,8 @@
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
-#include <asm/mach-loongson/ls1b/ls1b_board.h>
-#include <asm/mach-loongson/ls1b/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 
 
 #define TSC2007_MEASURE_TEMP0		(0x0 << 4)

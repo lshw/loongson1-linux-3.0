@@ -25,15 +25,15 @@
 #include <linux/mtd/partitions.h>
 #include <linux/spi/flash.h>
 //#include <asm/mach-loongson/ls1b/gpio_keys.h>	//lqx
-#include <asm/mach-loongson/ls1b/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
 #include <linux/i2c/ft5x06_ts.h>
 #include <media/gc0308_platform.h>		//lxy
 #include <linux/videodev2.h>
 #include <linux/spi/ads7846.h>
-#include <asm/mach-loongson/ls1b/spi.h>
-#include <asm/mach-loongson/ls1b/fb.h>
+#include <asm/mach-loongson/ls1x/spi.h>
+#include <asm/mach-loongson/ls1x/fb.h>
 #include <linux/gpio_keys.h>
 
 #include <linux/phy.h> //lv
@@ -187,7 +187,7 @@ static struct resource ls1b_ohci_resources[] = {
 };
 
 static struct ls1b_usbh_data  ls1b_ohci_platform_data={
-#ifdef CONFIG_MACH_SB2F
+#ifdef CONFIG_LS1A_MACH
 	.ports=4,
 #else
 	.ports=1,
@@ -223,7 +223,7 @@ static struct resource ls1b_ehci_resources[] = {
 };
 
 static struct ls1b_usbh_data  ls1b_ehci_platform_data={
-#ifdef CONFIG_MACH_SB2F
+#ifdef CONFIG_LS1A_MACH
 	.ports=4,
 #else
 	.ports=1,
@@ -1094,7 +1094,7 @@ int ls1b_platform_init(void)
 	unsigned int ddr_clk,uart_clk;
 
 	ls1b_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1b_ahci_resources[0].start,0x200);
-#ifdef CONFIG_MACH_SB2F
+#ifdef CONFIG_LS1A_MACH
 	*(volatile int *)0xbff10204 = 0;
 	*(volatile int *)0xbff10204;
 	mdelay(1);
@@ -1119,7 +1119,7 @@ int ls1b_platform_init(void)
 	(*(volatile unsigned int *)(LS1B_GPIO_MUX_CTRL1))= data | 0x30;
 #endif
 
-#ifdef CONFIG_MACH_SB2F
+#ifdef CONFIG_LS1A_MACH
 	pll	= *(volatile unsigned int *)(0xbfe78030);
         ddr_clk  =  (((pll>>8)&7)+3)*33333333;
 //	ddr_clk = 33333333*3/3;

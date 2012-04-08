@@ -26,7 +26,7 @@
 
 #include <asm/addrspace.h>
 #include <asm/bootinfo.h>
-#include <asm/mach-loongson/ls1b/fb.h>
+#include <asm/mach-loongson/ls1x/fb.h>
 
 #define	CL_SIZE COMMAND_LINE_SIZE
 extern char arcs_cmdline[CL_SIZE];

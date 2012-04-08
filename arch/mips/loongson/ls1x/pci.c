@@ -27,23 +27,24 @@
  *
  */
 //#include <linux/config.h>
-#include <linux/autoconf.h>
+//#include <linux/autoconf.h>
+#include <generated/autoconf.h>
 #include <linux/types.h>
 #include <linux/pci.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 
-extern struct pci_ops ls1b_pci_pci_ops;
+extern struct pci_ops ls1a_pci_pci_ops;
 extern void prom_printf(char * fmt, ...);
 
-static struct resource ls1b_pci_mem_resource = {
+static struct resource ls1a_pci_mem_resource = {
         .name   = "LS232 PCI MEM",
         .start  = 0x14000000UL,
         .end    = 0x17ffffffUL,
         .flags  = IORESOURCE_MEM,
 };
 
-static struct resource ls1b_pci_io_resource = {
+static struct resource ls1a_pci_io_resource = {
         .name   = "LS232 PCI IO MEM",
         .start  = 0x00004000UL,
         .end    = 0x000fffffUL,
@@ -51,10 +52,10 @@ static struct resource ls1b_pci_io_resource = {
 };
 
 
-static struct pci_controller  ls1b_pci_controller = {
-        .pci_ops        = &ls1b_pci_pci_ops,
-        .io_resource    = &ls1b_pci_io_resource,
-        .mem_resource   = &ls1b_pci_mem_resource,
+static struct pci_controller  ls1a_pci_controller = {
+        .pci_ops        = &ls1a_pci_pci_ops,
+        .io_resource    = &ls1a_pci_io_resource,
+        .mem_resource   = &ls1a_pci_mem_resource,
         .mem_offset     = 0x00000000UL,
         .io_offset      = 0x00000000UL,
 };
@@ -82,13 +83,13 @@ static int __init pcibios_init(void)
 #ifdef CONFIG_TRACE_BOOT
 #endif
 	prom_printf("arch_initcall:pcibios_init\n");
-	prom_printf("register_pci_controller : %x\n",&ls1b_pci_controller);
+	prom_printf("register_pci_controller : %x\n",&ls1a_pci_controller);
 
 	if(!disablepci)
-	register_pci_controller(&ls1b_pci_controller);
+	register_pci_controller(&ls1a_pci_controller);
 
 #ifdef CONFIG_LOAD_PCICFG
-	pciload(&ls1b_pci_pci_ops);
+	pciload(&ls1a_pci_pci_ops);
 #endif
 	return 0;
 }

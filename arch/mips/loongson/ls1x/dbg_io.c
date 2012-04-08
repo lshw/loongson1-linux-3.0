@@ -44,6 +44,7 @@ typedef unsigned int uint32;
 #else
 
 #define         BASE                    (0xbfe48000)//0xbfe6c000//(0xbfe40000)
+//#define         BASE                    (0xbfe4c000)//0xbfe6c000//(0xbfe40000)
 
 #endif
 

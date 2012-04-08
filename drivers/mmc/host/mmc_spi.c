@@ -472,6 +472,9 @@ mmc_spi_command_send(struct mmc_spi_host *host,
 	*cp++ = (u8)arg;
 	*cp++ = (crc7(0, &data->status[1], 5) << 1) | 0x01;
 
+
+//	printk ("lxy: cmd= 0x%x, crc= 0x%x !\n", cmd->opcode, *(cp - 1));
+
 	/* Then, read up to 13 bytes (while writing all-ones):
 	 *  - N(CR) (== 1..8) bytes of all-ones
 	 *  - status byte (for all response types)

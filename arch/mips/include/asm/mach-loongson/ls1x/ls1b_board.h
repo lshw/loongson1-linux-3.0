@@ -150,9 +150,9 @@ struct ls1b_usbh_data {
 #define LS1B_USB_EHCI_BASE 0x1fe00000
 #define LS1B_LCD_BASE 0x1c301240
 
-#define LS1B_PCICFG_BASE 0x1c100000
-#define LS1B_PCIMAP (*(volatile int *)0xbfd01114)
-#define LS1B_PCIMAP_CFG  (*(volatile int *)0xbfd01120)
+#define LS1A_PCICFG_BASE 0x1c100000
+#define LS1A_PCIMAP (*(volatile int *)0xbfd01114)
+#define LS1A_PCIMAP_CFG  (*(volatile int *)0xbfd01120)
 
 
 #endif

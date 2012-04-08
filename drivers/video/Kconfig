@@ -164,7 +164,7 @@ config FB_SYS_IMAGEBLIT
 #loongson-gz
 config FB_LS1B		
 	tristate "loongson 1b framebuffer support"
-	depends on FB && (USE_SB2F||LS1B_MACH)
+	depends on FB && (USE_SB2F||LS1B_MACH || LS1A_MACH)
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT

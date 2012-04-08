@@ -24,8 +24,8 @@
 #include <linux/input.h>
 #include <linux/delay.h>
 //#include <asm-arm/arch-pxa/irqs.h>
-#include <asm/mach-loongson/ls1b/ls1b_board.h>
-#include <asm/mach-loongson/ls1b/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 
 
 static struct tsc2003_data *tsc_d;

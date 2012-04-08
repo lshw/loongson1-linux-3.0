@@ -2053,7 +2053,7 @@ if NETDEV_1000
 config LS1B_GMAC
 	tristate "Loongson ls1f GMAC support"
 	default y
-	depends on MACH_SB2F||LS1B_MACH
+	depends on MACH_SB2F || LS1B_MACH || LS1A_MACH
 	
 config LS1B_GMAC0_OPEN
         bool "enable ls1b gmac0 driver"

@@ -53,7 +53,7 @@
 #include <linux/screen_info.h>
 #endif
 // #include <asm/ict/tc-godson.h>
-#include <asm/mach-loongson/ls1b/ls1b_board.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
 
 extern void prom_printf(char *fmt, ...);
 extern void mips_reboot_setup(void);

@@ -22,9 +22,9 @@
 #include <asm/types.h>
 #include <asm/io.h>
 #include <asm/dma.h>
-#include <asm/mach-loongson/ls1b/ls1b_board_int.h>
-#include <asm/mach-loongson/ls1b/ls1b_board.h>
-#include <asm/mach-loongson/ls1b/spi.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <asm/mach-loongson/ls1x/spi.h>
 
 
 extern unsigned long bus_clock;

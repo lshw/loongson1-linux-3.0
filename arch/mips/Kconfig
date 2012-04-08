@@ -1189,7 +1189,7 @@ config CPU_LOONGSON2F
 	  Loongson2E.
 	  
 config CPU_LS232		#lxy
-	bool "Loongson 1B"
+	bool "Loongson 1X(1A & 1B)"
 	depends on SYS_HAS_CPU_LS232
 #	select CPU_LOONGSON2
 	select GENERIC_GPIO
