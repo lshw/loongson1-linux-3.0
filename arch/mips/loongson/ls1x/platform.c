@@ -459,11 +459,13 @@ static struct resource ls1b_i2c_resource[] = {
 		.end	= (LS1B_BOARD_I2C_BASE + 0x4),
 		.flags	= IORESOURCE_MEM,
 	},
+/*	
 	[1]={
 		.start	= LS1B_BOARD_I2C0_IRQ,
 		.end	= LS1B_BOARD_I2C0_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+*/
 };
 
 static struct platform_device ls1b_i2c_device = {

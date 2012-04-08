@@ -1352,6 +1352,10 @@ fb_mmap(struct file *file, struct vm_area_struct * vma)
 	unsigned long start;
 	u32 len;
 
+#ifdef CONFIG_LOONGSON_VIDEO_ACCELERATED
+	int mmap_for_videomem=1;
+#endif
+
 	if (!info)
 		return -ENODEV;
 	if (vma->vm_pgoff > (~0UL >> PAGE_SHIFT))
@@ -1380,6 +1384,10 @@ fb_mmap(struct file *file, struct vm_area_struct * vma)
 		}
 		start = info->fix.mmio_start;
 		len = PAGE_ALIGN((start & ~PAGE_MASK) + info->fix.mmio_len);
+
+#ifdef CONFIG_LOONGSON_VIDEO_ACCELERATED
+		mmap_for_videomem=0;
+#endif
 	}
 	mutex_unlock(&info->mm_lock);
 	start &= PAGE_MASK;
@@ -1390,6 +1398,12 @@ fb_mmap(struct file *file, struct vm_area_struct * vma)
 	/* This is an IO map - tell maydump to skip this VMA */
 	vma->vm_flags |= VM_IO | VM_RESERVED;
 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
+
+#ifdef CONFIG_LOONGSON_VIDEO_ACCELERATED
+	if(mmap_for_videomem)
+		vma->vm_page_prot = __pgprot((pgprot_val(vma->vm_page_prot)&~_CACHE_MASK)|_CACHE_UNCACHED_ACCELERATED);
+#endif
+
 	fb_pgprotect(file, vma, off);
 	if (io_remap_pfn_range(vma, vma->vm_start, off >> PAGE_SHIFT,
 			     vma->vm_end - vma->vm_start, vma->vm_page_prot))

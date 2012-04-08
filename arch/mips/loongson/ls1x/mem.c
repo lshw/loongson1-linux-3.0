@@ -52,5 +52,38 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 	}
 	return vma_prot;
 }
+
+
+static int __init find_vga_mem_init(void)
+{
+	struct pci_dev *dev = 0;
+	struct resource *r;
+	int idx;
+
+	if (uca_start)
+		return 0;
+
+	for_each_pci_dev(dev) {
+		if ((dev->class >> 16) == PCI_BASE_CLASS_DISPLAY) {
+			for (idx = 0; idx < PCI_NUM_RESOURCES; idx++) {
+				r = &dev->resource[idx];
+				if (!r->start && r->end)
+					continue;
+				if (r->flags & IORESOURCE_IO)
+					continue;
+				if (r->flags & IORESOURCE_MEM) {
+					uca_start = r->start;
+					uca_end = r->end;
+					return 0;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+late_initcall(find_vga_mem_init);
+
 #endif /* !CONFIG_CPU_SUPPORTS_UNCACHED_ACCELERATED */
 #endif
