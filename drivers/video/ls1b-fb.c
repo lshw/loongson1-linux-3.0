@@ -844,6 +844,7 @@ static int mach_mode_option(char *mode_option)
 	else {
 		mach_info->type = TYPE_LCD;
 		mode_type = TYPE_LCD;
+		mach_info->regs.panel_conf = vgamode[i].pan_config;
 	}
 	p = strchr(mode_option, '-');
 	switch (simple_strtoul(p+1, NULL, 0)){
