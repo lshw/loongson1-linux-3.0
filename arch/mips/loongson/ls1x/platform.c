@@ -710,7 +710,7 @@ static struct platform_device ls1b_audio_device = {
 };
 
 
-#if 1		//lxy
+#ifdef CONFIG_MTD_M25P80
 static struct mtd_partition partitions[] = {
 #if 1	//for bobodog program
 	[0] = {
@@ -783,6 +783,7 @@ static struct flash_platform_data flash = {
 	.nr_parts	= ARRAY_SIZE(partitions),
 	.type		= "w25q64",
 };
+#endif /* CONFIG_MTD_M25P80 */
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
@@ -813,18 +814,15 @@ static struct mmc_spi_platform_data mmc_spi = {
 	/* 中断方式方式探测card的插拔 */
 //	.init = ls1b_mmc_spi_init,
 //	.exit = ls1b_mmc_spi_exit,
-//	.detect_delay = 100,	/* msecs */
-	/* 中断方式方式探测card的插拔 */
-	.get_cd = mmc_spi_get_cd,
-	.caps = MMC_CAP_NEEDS_POLL,
+	.detect_delay = 100,	/* msecs */
+	/* 轮询方式方式探测card的插拔 */
+//	.get_cd = mmc_spi_get_cd,
+//	.caps = MMC_CAP_NEEDS_POLL,
 };	
-#endif  //#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
+#endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
-//-----------------SPI-0---------------------------
-#define GPIO_IRQ 60
-//	static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
-//		= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
-	
+#ifdef CONFIG_TOUCHSCREEN_ADS7846
+#define GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
 int ads7846_pendown_state(unsigned int pin)
 {
 	unsigned int ret;
@@ -871,8 +869,9 @@ static struct ads7846_platform_data ads_info = {
 	.filter 			= NULL,
 	.filter_cleanup 		= NULL,
 };
+#endif /* TOUCHSCREEN_ADS7846 */
 
-
+#ifdef CONFIG_LS1B_SPI0
 static struct spi_board_info ls1b_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{	/* DataFlash chip */
@@ -883,22 +882,25 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.platform_data	= &flash,
 	},
 #endif
+#ifdef CONFIG_SPI_MCP3201
 	{	/* ADC chip */
 		.modalias	= "mcp3201",
 		.bus_num 		= 0,
 		.chip_select	= 0,
 		.max_speed_hz	= 80 * 1000 * 1000,
 	},
+#endif
+#ifdef CONFIG_TOUCHSCREEN_ADS7846
 	{
 		.modalias = "ads7846",
 		.platform_data = &ads_info,
-//		.irq = LS1B_BOARD_I2C0_IRQ, //LS1B_BOARD_PCI_INTA_IRQ,	//PCF8574A I2C扩展IO口中断
 		.bus_num 		= 0,
 		.chip_select 	= SPI0_CS1,
 		.max_speed_hz 	= 500*1000,
 		.mode 			= SPI_MODE_1,
 		.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IRQ,
 	},
+#endif
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{	/* mmc/sd card */
 		.modalias		= "mmc_spi",		//mmc spi,
@@ -931,12 +933,56 @@ static struct ls1b_spi_info ls1b_spi0_platdata = {
 };
 
 static struct platform_device ls1b_spi0_device = {
-	.name		= "ls1b-spi0",
+	.name		= "ls1b-spi",
 	.id 		= 0,
 	.num_resources	= ARRAY_SIZE(ls1b_spi0_resource),
 	.resource	= ls1b_spi0_resource,
 	.dev		= {
 		.platform_data	= &ls1b_spi0_platdata,//&ls1b_spi_devices,
+	},
+};
+#endif /* LS1B_SPI0 */
+
+#ifdef CONFIG_LS1B_SPI1 /* SPI1 控制器 */
+static struct spi_board_info ls1b_spi1_devices[] = {
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
+	{	/* mmc/sd card */
+		.modalias		= "mmc_spi",		//mmc spi,
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS0,
+		.max_speed_hz	= 25 * 1000 * 1000,
+		.platform_data	= &mmc_spi,
+	},
+#endif
+};
+
+static struct resource ls1b_spi1_resource[] = {
+	[0]={
+		.start	= LS1B_BOARD_SPI1_BASE,
+		.end	= (LS1B_BOARD_SPI1_BASE + 0x6),
+		.flags	= IORESOURCE_MEM,
+	},
+	[1]={
+		.start	= LS1B_BOARD_SPI1_IRQ,
+		.end	= LS1B_BOARD_SPI1_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct ls1b_spi_info ls1b_spi1_platdata = {
+//	.pin_cs = SPI1_CS0,// CS 片选
+	.board_size = ARRAY_SIZE(ls1b_spi1_devices),
+	.board_info = ls1b_spi1_devices,
+	.num_cs		= 3,
+};
+
+static struct platform_device ls1b_spi1_device = {
+	.name		= "ls1b-spi",
+	.id 		= 1,
+	.num_resources	= ARRAY_SIZE(ls1b_spi1_resource),
+	.resource	= ls1b_spi1_resource,
+	.dev		= {
+		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
 	},
 };
 #endif
@@ -1112,7 +1158,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_rtc_device,
 	&ls1b_i2c_device,
 	&ls1b_audio_device,
-	&ls1b_spi0_device,	//lxy
+#ifdef CONFIG_LS1B_SPI0
+	&ls1b_spi0_device,
+#endif
+#ifdef CONFIG_LS1B_SPI1
+	&ls1b_spi1_device,
+#endif
 	&ls1b_gpio_key_device,
 	&ls1b_gpio_buzzer_device,
 	&ls1b_pwm_device,
@@ -1199,10 +1250,37 @@ int ls1b_platform_init(void)
 	i2c_register_board_info(0, gc0308_i2c_info, ARRAY_SIZE(gc0308_i2c_info));
 #endif
 
-	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
+	/* 轮询方式探测card的插拔 */
+	gpio_request(DETECT_GPIO, NULL);		/* 设置引脚为GPIO模式 */
+	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
+	/* 中断方式探测card的插拔 */
+//	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (DETECT_GPIO & 0x1f));		/* 边沿触发方式寄存器 */
+//	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 电平触发方式寄存器 */
+//	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断清空寄存器 */
+//	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 中断置位寄存器 */
+//	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断使能寄存器 */
+#endif
 
+#ifdef CONFIG_TOUCHSCREEN_ADS7846
 	ads7846_detect_penirq();
-	
+#endif
+
+#ifdef CONFIG_LS1B_SPI0
+	/* disable gpio24-27 */
+	*(volatile unsigned int *)0xbfd010c0 &= ~(0xf << 24);
+	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
+#endif
+
+#ifdef CONFIG_LS1B_SPI1
+	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
+	/* 编程需要注意 */
+	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);
+	/* disable gpio38-41 */
+	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
+	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
+#endif
+
 //modify by lvling
 #if CONFIG_LS1B_GMAC0_OPEN && CONFIG_LS1B_GMAC1_OPEN//open gmac0 and gmac1  
   printk("open gmac0 and gmac1.\n");
@@ -1223,18 +1301,6 @@ int ls1b_platform_init(void)
   
 #else
   (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);  //open uart0/1
-#endif
-
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	/* 轮询方式探测card的插拔 */
-	gpio_request(DETECT_GPIO, NULL);		/* 设置引脚为GPIO模式 */
-	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
-	/* 中断方式探测card的插拔 */
-//	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (DETECT_GPIO & 0x1f));		/* 边沿触发方式寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 电平触发方式寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断清空寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 中断置位寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断使能寄存器 */
 #endif
 
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));

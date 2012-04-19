@@ -73,26 +73,22 @@ static void ls1b_spi_chipsel(struct spi_device *spi, int value)
 
 	switch (value) {
 	case BITBANG_CS_INACTIVE:
-		if (cspol)
-		{
+		if (cspol) {
 			ret = 0x00;
 			writeb(ret, hw->regs + REG_SOFTCS);	//THF
 		}
-		else
-		{
+		else {
 			ret = 0xFF;
 			writeb(ret, hw->regs + REG_SOFTCS);	//THF
 		}
 		break;
 
 	case BITBANG_CS_ACTIVE:
-		if (cspol)
-		{
+		if (cspol) {
 			ret = (chip_select | 0x0F);
 			writeb(ret, hw->regs + REG_SOFTCS);	//THF
 		}
-		else
-		{
+		else {
 			ret = ~(chip_select);
 			writeb(ret, hw->regs + REG_SOFTCS);	//THF
 		}
@@ -481,7 +477,7 @@ static struct platform_driver ls1b_spidrv = {
 	.suspend	= ls1b_spi_suspend,
 	.resume	= ls1b_spi_resume,
 	.driver	= {
-		.name	= "ls1b-spi0",
+		.name	= "ls1b-spi",
 		.owner	= THIS_MODULE,
 	},
 };
@@ -499,6 +495,6 @@ static void __exit ls1b_spi_exit(void)
 module_init(ls1b_spi_init);
 module_exit(ls1b_spi_exit);
 
-MODULE_DESCRIPTION("loongson 1B SPI0 Driver");
+MODULE_DESCRIPTION("loongson 1B SPI Driver");
 MODULE_AUTHOR("tanghaifeng <tanghaifeng-gz@loongson.cn");
 MODULE_LICENSE("GPL");

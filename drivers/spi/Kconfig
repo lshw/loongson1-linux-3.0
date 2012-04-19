@@ -54,12 +54,24 @@ if SPI_MASTER
 comment "SPI Master Controller Drivers"
 
 
-config LS1B_SPI0
-	tristate "loongson 1B SPI master 0"
+config LS1B_SPI
+	tristate "Loongson 1B SPI Controller"
 	depends on (LS1B_MACH || LS1A_MACH)
 	select SPI_BITBANG
 	help
-	  SPI driver for loongson 1B soc
+	  This is the driver for the Loongson 1B SOC SPI Controller.
+
+config LS1B_SPI0
+	bool "SPI Controller 0"
+	depends on LS1B_SPI
+	help
+	  This is the driver for the Loongson 1B SOC SPI Controller 0.
+	  
+config LS1B_SPI1
+	bool "SPI Controller 1"
+	depends on LS1B_SPI
+	help
+	  This is the driver for the Loongson 1B SOC SPI Controller 1.
 	  
 config SPI_MCP3201
 	tristate "ls1b adc mcp3201 chip"

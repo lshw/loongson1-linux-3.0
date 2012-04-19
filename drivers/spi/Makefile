@@ -10,7 +10,7 @@ obj-$(CONFIG_SPI_MASTER)		+= spi.o
 
 # SPI master controller drivers (bus)
 obj-$(CONFIG_SPI_MCP3201)		+= mcp3201.o
-obj-$(CONFIG_LS1B_SPI0) 		+= ls1b_spi0.o
+obj-$(CONFIG_LS1B_SPI) 			+= ls1b_spi.o
 obj-$(CONFIG_SPI_ALTERA)		+= spi_altera.o
 obj-$(CONFIG_SPI_ATMEL)			+= atmel_spi.o
 obj-$(CONFIG_SPI_ATH79)			+= ath79_spi.o

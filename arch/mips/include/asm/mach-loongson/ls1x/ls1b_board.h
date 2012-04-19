@@ -102,6 +102,10 @@
 #define SPI0_CS1				1
 #define SPI0_CS2				2
 #define SPI0_CS3				3
+
+#define SPI1_CS0				0
+#define SPI1_CS1				1
+#define SPI1_CS2				2
 #endif
 
 
