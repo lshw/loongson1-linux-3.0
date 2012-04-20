@@ -1,7 +1,7 @@
 /*
  * Benq DC E300 subdriver
  *
- * Copyright (C) 2009 Jean-Francois Moine (http://moinejf.free.fr)
+ * Copyright (C) 2009-2011 Jean-Francois Moine (http://moinejf.free.fr)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#define MODULE_NAME "benq"
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
+//#define MODULE_NAME "benq"
 
 #include "gspca.h"
 
@@ -62,7 +64,7 @@ static void reg_w(struct gspca_dev *gspca_dev,
 			0,
 			500);
 	if (ret < 0) {
-		err("reg_w err %d", ret);
+		pr_err("reg_w err %d\n", ret);
 		gspca_dev->usb_err = ret;
 	}
 }
@@ -74,27 +76,12 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	gspca_dev->cam.cam_mode = vga_mode;
 	gspca_dev->cam.nmodes = ARRAY_SIZE(vga_mode);
 	gspca_dev->cam.no_urb_create = 1;
-	gspca_dev->cam.reverse_alts = 1;
 	return 0;
 }
 
 /* this function is called at probe and resume time */
 static int sd_init(struct gspca_dev *gspca_dev)
 {
-	return 0;
-}
-
-static int sd_isoc_init(struct gspca_dev *gspca_dev)
-{
-	int ret;
-
-	ret = usb_set_interface(gspca_dev->dev, gspca_dev->iface,
-		gspca_dev->nbalt - 1);
-	if (ret < 0) {
-		err("usb_set_interface failed");
-		return ret;
-	}
-/*	reg_w(gspca_dev, 0x0003, 0x0002); */
 	return 0;
 }
 
@@ -113,7 +100,7 @@ static int sd_start(struct gspca_dev *gspca_dev)
 	for (n = 0; n < 4; n++) {
 		urb = usb_alloc_urb(SD_NPKT, GFP_KERNEL);
 		if (!urb) {
-			err("usb_alloc_urb failed");
+			pr_err("usb_alloc_urb failed\n");
 			return -ENOMEM;
 		}
 		gspca_dev->urb[n] = urb;
@@ -123,7 +110,7 @@ static int sd_start(struct gspca_dev *gspca_dev)
 						&urb->transfer_dma);
 
 		if (urb->transfer_buffer == NULL) {
-			err("usb_alloc_coherent failed");
+			pr_err("usb_alloc_coherent failed\n");
 			return -ENOMEM;
 		}
 		urb->dev = gspca_dev->dev;
@@ -147,13 +134,20 @@ static int sd_start(struct gspca_dev *gspca_dev)
 
 static void sd_stopN(struct gspca_dev *gspca_dev)
 {
+	struct usb_interface *intf;
+
 	reg_w(gspca_dev, 0x003c, 0x0003);
 	reg_w(gspca_dev, 0x003c, 0x0004);
 	reg_w(gspca_dev, 0x003c, 0x0005);
 	reg_w(gspca_dev, 0x003c, 0x0006);
 	reg_w(gspca_dev, 0x003c, 0x0007);
+
+	/* switch to the highest altsetting
+	 * otherwise, switching to alt 0 fails */
+/*fixme: should do the same after switching to alt 0*/
+	intf = usb_ifnum_to_if(gspca_dev->dev, gspca_dev->iface);
 	usb_set_interface(gspca_dev->dev, gspca_dev->iface,
-					gspca_dev->nbalt - 1);
+					intf->num_altsetting - 1);
 }
 
 static void sd_pkt_scan(struct gspca_dev *gspca_dev,
@@ -181,7 +175,7 @@ static void sd_isoc_irq(struct urb *urb)
 		if (gspca_dev->frozen)
 			return;
 #endif
-		err("urb status: %d", urb->status);
+		pr_err("urb status: %d\n", urb->status);
 		return;
 	}
 
@@ -209,7 +203,7 @@ static void sd_isoc_irq(struct urb *urb)
 		if (st == 0)
 			st = urb->iso_frame_desc[i].status;
 		if (st) {
-			err("ISOC data error: [%d] status=%d",
+			pr_err("ISOC data error: [%d] status=%d\n",
 				i, st);
 			gspca_dev->last_packet_type = DISCARD_PACKET;
 			continue;
@@ -256,20 +250,20 @@ static void sd_isoc_irq(struct urb *urb)
 	/* resubmit the URBs */
 	st = usb_submit_urb(urb0, GFP_ATOMIC);
 	if (st < 0)
-		err("usb_submit_urb(0) ret %d", st);
+		pr_err("usb_submit_urb(0) ret %d\n", st);
 	st = usb_submit_urb(urb, GFP_ATOMIC);
 	if (st < 0)
-		err("usb_submit_urb() ret %d", st);
+		pr_err("usb_submit_urb() ret %d\n", st);
 }
 
 /* sub-driver description */
 static const struct sd_desc sd_desc = {
-	.name = MODULE_NAME,
+//	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.ctrls = sd_ctrls,
 	.nctrls = ARRAY_SIZE(sd_ctrls),
 	.config = sd_config,
 	.init = sd_init,
-	.isoc_init = sd_isoc_init,
 	.start = sd_start,
 	.stopN = sd_stopN,
 	.pkt_scan = sd_pkt_scan,
@@ -291,7 +285,8 @@ static int sd_probe(struct usb_interface *intf,
 }
 
 static struct usb_driver sd_driver = {
-	.name = MODULE_NAME,
+//	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.id_table = device_table,
 	.probe = sd_probe,
 	.disconnect = gspca_disconnect,
@@ -301,15 +296,4 @@ static struct usb_driver sd_driver = {
 #endif
 };
 
-/* -- module insert / remove -- */
-static int __init sd_mod_init(void)
-{
-	return usb_register(&sd_driver);
-}
-static void __exit sd_mod_exit(void)
-{
-	usb_deregister(&sd_driver);
-}
-
-module_init(sd_mod_init);
-module_exit(sd_mod_exit);
+module_usb_driver(sd_driver);

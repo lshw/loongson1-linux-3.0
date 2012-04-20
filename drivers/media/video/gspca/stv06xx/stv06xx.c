@@ -27,6 +27,8 @@
  * P/N 861040-0000: Sensor ST VV6410       ASIC STV0610   - QuickCam Web
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/input.h>
 #include "stv06xx_sensor.h"
 
@@ -34,8 +36,8 @@ MODULE_AUTHOR("Erik Andrén");
 MODULE_DESCRIPTION("STV06XX USB Camera Driver");
 MODULE_LICENSE("GPL");
 
-static int dump_bridge;
-static int dump_sensor;
+static bool dump_bridge;
+static bool dump_sensor;
 
 int stv06xx_write_bridge(struct sd *sd, u16 address, u16 i2c_data)
 {
@@ -51,9 +53,6 @@ int stv06xx_write_bridge(struct sd *sd, u16 address, u16 i2c_data)
 			      0x04, 0x40, address, 0, buf, len,
 			      STV06XX_URB_MSG_TIMEOUT);
 
-	PDEBUG(D_CONF, "Written 0x%x to address 0x%x, status: %d",
-	       i2c_data, address, err);
-
 	return (err < 0) ? err : 0;
 }
 
@@ -68,9 +67,6 @@ int stv06xx_read_bridge(struct sd *sd, u16 address, u8 *i2c_data)
 			      STV06XX_URB_MSG_TIMEOUT);
 
 	*i2c_data = buf[0];
-
-	PDEBUG(D_CONF, "Reading 0x%x from address 0x%x, status %d",
-	       *i2c_data, address, err);
 
 	return (err < 0) ? err : 0;
 }
@@ -149,8 +145,6 @@ int stv06xx_write_sensor_words(struct sd *sd, const u16 *data, u8 len)
 			buf[j] = data[2*i];
 			buf[0x10 + j * 2] = data[2*i+1];
 			buf[0x10 + j * 2 + 1] = data[2*i+1] >> 8;
-			PDEBUG(D_CONF, "I2C: Writing 0x%04x to reg 0x%02x",
-				data[2*i+1], data[2*i]);
 		}
 		buf[0x20] = sd->sensor->i2c_addr;
 		buf[0x21] = j - 1; /* Number of commands to send - 1 */
@@ -189,7 +183,7 @@ int stv06xx_read_sensor(struct sd *sd, const u8 address, u16 *value)
 			      0x04, 0x40, 0x1400, 0, buf, I2C_BUFFER_LENGTH,
 			      STV06XX_URB_MSG_TIMEOUT);
 	if (err < 0) {
-		err("I2C: Read error writing address: %d", err);
+		pr_err("I2C: Read error writing address: %d\n", err);
 		return err;
 	}
 
@@ -201,9 +195,6 @@ int stv06xx_read_sensor(struct sd *sd, const u8 address, u16 *value)
 	else
 		*value = buf[0];
 
-	PDEBUG(D_CONF, "I2C: Read 0x%x from address 0x%x, status: %d",
-	       *value, address, err);
-
 	return (err < 0) ? err : 0;
 }
 
@@ -213,14 +204,14 @@ static void stv06xx_dump_bridge(struct sd *sd)
 	int i;
 	u8 data, buf;
 
-	info("Dumping all stv06xx bridge registers");
+	pr_info("Dumping all stv06xx bridge registers\n");
 	for (i = 0x1400; i < 0x160f; i++) {
 		stv06xx_read_bridge(sd, i, &data);
 
-		info("Read 0x%x from address 0x%x", data, i);
+		pr_info("Read 0x%x from address 0x%x\n", data, i);
 	}
 
-	info("Testing stv06xx bridge registers for writability");
+	pr_info("Testing stv06xx bridge registers for writability\n");
 	for (i = 0x1400; i < 0x160f; i++) {
 		stv06xx_read_bridge(sd, i, &data);
 		buf = data;
@@ -228,12 +219,12 @@ static void stv06xx_dump_bridge(struct sd *sd)
 		stv06xx_write_bridge(sd, i, 0xff);
 		stv06xx_read_bridge(sd, i, &data);
 		if (data == 0xff)
-			info("Register 0x%x is read/write", i);
+			pr_info("Register 0x%x is read/write\n", i);
 		else if (data != buf)
-			info("Register 0x%x is read/write,"
-			     " but only partially", i);
+			pr_info("Register 0x%x is read/write, but only partially\n",
+				i);
 		else
-			info("Register 0x%x is read-only", i);
+			pr_info("Register 0x%x is read-only\n", i);
 
 		stv06xx_write_bridge(sd, i, buf);
 	}
@@ -244,8 +235,6 @@ static int stv06xx_init(struct gspca_dev *gspca_dev)
 {
 	struct sd *sd = (struct sd *) gspca_dev;
 	int err;
-
-	PDEBUG(D_PROBE, "Initializing camera");
 
 	/* Let the usb init settle for a bit
 	   before performing the initialization */
@@ -270,7 +259,7 @@ static int stv06xx_start(struct gspca_dev *gspca_dev)
 	intf = usb_ifnum_to_if(sd->gspca_dev.dev, sd->gspca_dev.iface);
 	alt = usb_altnum_to_altsetting(intf, sd->gspca_dev.alt);
 	if (!alt) {
-		PDEBUG(D_ERR, "Couldn't get altsetting");
+		pr_err("Couldn't get altsetting\n");
 		return -EIO;
 	}
 
@@ -288,11 +277,6 @@ static int stv06xx_start(struct gspca_dev *gspca_dev)
 	err = stv06xx_write_bridge(sd, STV_ISO_ENABLE, 1);
 
 out:
-	if (err < 0)
-		PDEBUG(D_STREAM, "Starting stream failed");
-	else
-		PDEBUG(D_STREAM, "Started streaming");
-
 	return (err < 0) ? err : 0;
 }
 
@@ -302,7 +286,7 @@ static int stv06xx_isoc_init(struct gspca_dev *gspca_dev)
 	struct sd *sd = (struct sd *) gspca_dev;
 
 	/* Start isoc bandwidth "negotiation" at max isoc bandwidth */
-	alt = &gspca_dev->dev->config->intf_cache[0]->altsetting[1];
+	alt = &gspca_dev->dev->actconfig->intf_cache[0]->altsetting[1];
 	alt->endpoint[0].desc.wMaxPacketSize =
 		cpu_to_le16(sd->sensor->max_packet_size[gspca_dev->curr_mode]);
 
@@ -315,7 +299,7 @@ static int stv06xx_isoc_nego(struct gspca_dev *gspca_dev)
 	struct usb_host_interface *alt;
 	struct sd *sd = (struct sd *) gspca_dev;
 
-	alt = &gspca_dev->dev->config->intf_cache[0]->altsetting[1];
+	alt = &gspca_dev->dev->actconfig->intf_cache[0]->altsetting[1];
 	packet_size = le16_to_cpu(alt->endpoint[0].desc.wMaxPacketSize);
 	min_packet_size = sd->sensor->min_packet_size[gspca_dev->curr_mode];
 	if (packet_size <= min_packet_size)
@@ -328,7 +312,7 @@ static int stv06xx_isoc_nego(struct gspca_dev *gspca_dev)
 
 	ret = usb_set_interface(gspca_dev->dev, gspca_dev->iface, 1);
 	if (ret < 0)
-		PDEBUG(D_ERR|D_STREAM, "set alt 1 err %d", ret);
+		pr_err("set alt 1 err %d\n", ret);
 
 	return ret;
 }
@@ -340,16 +324,8 @@ static void stv06xx_stopN(struct gspca_dev *gspca_dev)
 
 	/* stop ISO-streaming */
 	err = stv06xx_write_bridge(sd, STV_ISO_ENABLE, 0);
-	if (err < 0)
-		goto out;
-
-	err = sd->sensor->stop(sd);
-
-out:
-	if (err < 0)
-		PDEBUG(D_STREAM, "Failed to stop stream");
-	else
-		PDEBUG(D_STREAM, "Stopped streaming");
+	if (err >= 0)
+		sd->sensor->stop(sd);
 }
 
 /*
@@ -369,8 +345,6 @@ static void stv06xx_pkt_scan(struct gspca_dev *gspca_dev,
 			int len)			/* iso packet length */
 {
 	struct sd *sd = (struct sd *) gspca_dev;
-
-	PDEBUG(D_PACK, "Packet of length %d arrived", len);
 
 	/* A packet may contain several frames
 	   loop until the whole packet is reached */
@@ -399,14 +373,9 @@ static void stv06xx_pkt_scan(struct gspca_dev *gspca_dev,
 			return;
 		}
 
-		/* First byte seem to be 02=data 2nd byte is unknown??? */
-		if (sd->bridge == BRIDGE_ST6422 && (id & 0xff00) == 0x0200)
-			goto frame_data;
-
 		switch (id) {
 		case 0x0200:
 		case 0x4200:
-frame_data:
 			PDEBUG(D_PACK, "Frame data packet detected");
 
 			if (sd->to_skip) {
@@ -431,10 +400,6 @@ frame_data:
 			/* Create a new frame, chunk length should be zero */
 			gspca_frame_add(gspca_dev, FIRST_PACKET,
 					NULL, 0);
-
-			if (sd->bridge == BRIDGE_ST6422)
-				sd->to_skip = gspca_dev->width * 4;
-
 			if (chunk_len)
 				PDEBUG(D_ERR, "Chunk length is "
 					      "non-zero on a SOF");
@@ -465,10 +430,6 @@ frame_data:
 			PDEBUG(D_PACK, "Chunk 0x0100 detected");
 			/* Unknown chunk with 2 bytes of data,
 			   occurs 2-3 times per USB interrupt */
-			break;
-		case 0x42ff:
-			PDEBUG(D_PACK, "Chunk 0x42ff detected");
-			/* Special chunk seen sometimes on the ST6422 */
 			break;
 		default:
 			PDEBUG(D_PACK, "Unknown chunk 0x%04x detected", id);
@@ -526,8 +487,6 @@ static int stv06xx_config(struct gspca_dev *gspca_dev,
 {
 	struct sd *sd = (struct sd *) gspca_dev;
 
-	PDEBUG(D_PROBE, "Configuring camera");
-
 	sd->desc = sd_desc;
 	sd->bridge = id->driver_info;
 	gspca_dev->sd_desc = &sd->desc;
@@ -555,7 +514,6 @@ static int stv06xx_config(struct gspca_dev *gspca_dev,
 	if (!sd->sensor->probe(sd))
 		return 0;
 
-	sd->sensor = NULL;
 	return -ENODEV;
 }
 
@@ -570,11 +528,11 @@ static const struct usb_device_id device_table[] = {
 	/* Dexxa WebCam USB */
 	{USB_DEVICE(0x046d, 0x0870), .driver_info = BRIDGE_STV602 },
 	/* QuickCam Messenger */
-	{USB_DEVICE(0x046D, 0x08F0), .driver_info = BRIDGE_ST6422 },
+	{USB_DEVICE(0x046D, 0x08f0), .driver_info = BRIDGE_ST6422 },
 	/* QuickCam Communicate */
-	{USB_DEVICE(0x046D, 0x08F5), .driver_info = BRIDGE_ST6422 },
+	{USB_DEVICE(0x046D, 0x08f5), .driver_info = BRIDGE_ST6422 },
 	/* QuickCam Messenger (new) */
-	{USB_DEVICE(0x046D, 0x08F6), .driver_info = BRIDGE_ST6422 },
+	{USB_DEVICE(0x046D, 0x08f6), .driver_info = BRIDGE_ST6422 },
 	{}
 };
 MODULE_DEVICE_TABLE(usb, device_table);
@@ -583,7 +541,6 @@ MODULE_DEVICE_TABLE(usb, device_table);
 static int sd_probe(struct usb_interface *intf,
 			const struct usb_device_id *id)
 {
-	PDEBUG(D_PROBE, "Probing for a stv06xx device");
 	return gspca_dev_probe(intf, id, &sd_desc, sizeof(struct sd),
 			       THIS_MODULE);
 }
@@ -592,7 +549,6 @@ static void sd_disconnect(struct usb_interface *intf)
 {
 	struct gspca_dev *gspca_dev = usb_get_intfdata(intf);
 	struct sd *sd = (struct sd *) gspca_dev;
-	PDEBUG(D_PROBE, "Disconnecting the stv06xx device");
 
 	if (sd->sensor->disconnect)
 		sd->sensor->disconnect(sd);
@@ -610,18 +566,7 @@ static struct usb_driver sd_driver = {
 #endif
 };
 
-/* -- module insert / remove -- */
-static int __init sd_mod_init(void)
-{
-	return usb_register(&sd_driver);
-}
-static void __exit sd_mod_exit(void)
-{
-	usb_deregister(&sd_driver);
-}
-
-module_init(sd_mod_init);
-module_exit(sd_mod_exit);
+module_usb_driver(sd_driver);
 
 module_param(dump_bridge, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(dump_bridge, "Dumps all usb bridge registers at startup");

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#define MODULE_NAME "stk014"
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include "gspca.h"
 #include "jpeg.h"
@@ -137,7 +137,7 @@ static u8 reg_r(struct gspca_dev *gspca_dev,
 			gspca_dev->usb_buf, 1,
 			500);
 	if (ret < 0) {
-		err("reg_r err %d", ret);
+		pr_err("reg_r err %d\n", ret);
 		gspca_dev->usb_err = ret;
 		return 0;
 	}
@@ -162,7 +162,7 @@ static void reg_w(struct gspca_dev *gspca_dev,
 			0,
 			500);
 	if (ret < 0) {
-		err("reg_w err %d", ret);
+		pr_err("reg_w err %d\n", ret);
 		gspca_dev->usb_err = ret;
 	}
 }
@@ -192,7 +192,7 @@ static void rcv_val(struct gspca_dev *gspca_dev,
 			&alen,
 			500);		/* timeout in milliseconds */
 	if (ret < 0) {
-		err("rcv_val err %d", ret);
+		pr_err("rcv_val err %d\n", ret);
 		gspca_dev->usb_err = ret;
 	}
 }
@@ -235,7 +235,7 @@ static void snd_val(struct gspca_dev *gspca_dev,
 			&alen,
 			500);	/* timeout in milliseconds */
 	if (ret < 0) {
-		err("snd_val err %d", ret);
+		pr_err("snd_val err %d\n", ret);
 		gspca_dev->usb_err = ret;
 	} else {
 		if (ads == 0x003f08) {
@@ -315,7 +315,7 @@ static int sd_init(struct gspca_dev *gspca_dev)
 	ret = reg_r(gspca_dev, 0x0740);
 	if (gspca_dev->usb_err >= 0) {
 		if (ret != 0xff) {
-			err("init reg: 0x%02x", ret);
+			pr_err("init reg: 0x%02x\n", ret);
 			gspca_dev->usb_err = -EIO;
 		}
 	}
@@ -349,12 +349,12 @@ static int sd_start(struct gspca_dev *gspca_dev)
 					gspca_dev->iface,
 					gspca_dev->alt);
 	if (ret < 0) {
-		err("set intf %d %d failed",
-			gspca_dev->iface, gspca_dev->alt);
+		pr_err("set intf %d %d failed\n",
+		       gspca_dev->iface, gspca_dev->alt);
 		gspca_dev->usb_err = ret;
 		goto out;
 	}
-	 reg_r(gspca_dev, 0x0630);
+	reg_r(gspca_dev, 0x0630);
 	rcv_val(gspca_dev, 0x000020);	/* << (value ff ff ff ff) */
 	reg_r(gspca_dev, 0x0650);
 	snd_val(gspca_dev, 0x000020, 0xffffffff);
@@ -478,7 +478,7 @@ static int sd_get_jcomp(struct gspca_dev *gspca_dev,
 
 /* sub-driver description */
 static const struct sd_desc sd_desc = {
-	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.ctrls = sd_ctrls,
 	.nctrls = NCTRLS,
 	.config = sd_config,
@@ -507,7 +507,7 @@ static int sd_probe(struct usb_interface *intf,
 }
 
 static struct usb_driver sd_driver = {
-	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.id_table = device_table,
 	.probe = sd_probe,
 	.disconnect = gspca_disconnect,
@@ -517,15 +517,4 @@ static struct usb_driver sd_driver = {
 #endif
 };
 
-/* -- module insert / remove -- */
-static int __init sd_mod_init(void)
-{
-	return usb_register(&sd_driver);
-}
-static void __exit sd_mod_exit(void)
-{
-	usb_deregister(&sd_driver);
-}
-
-module_init(sd_mod_init);
-module_exit(sd_mod_exit);
+module_usb_driver(sd_driver);

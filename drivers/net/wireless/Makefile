@@ -7,7 +7,7 @@ obj-$(CONFIG_IPW2200) += ipw2x00/
 
 obj-$(CONFIG_RTL8192CU) += rtl8188/
 
-#obj-$(CONFIG_RT3070) += rt3070/
+obj-$(CONFIG_RT3070_LS1B) += rt3070_ls1b/
 
 obj-$(CONFIG_HERMES)		+= orinoco/
 

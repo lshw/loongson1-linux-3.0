@@ -966,7 +966,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
 //                show_dma_regs(0xbfe78000,0);
                 status_time = STATUS_TIME_LOOP_E;
-		mdelay(25);    //lxy
+		mdelay(30);    //lxy
                 while(!ls1b_nand_status(info)){
 /*                    if(!(status_time--)){
                         write_z_cmd;

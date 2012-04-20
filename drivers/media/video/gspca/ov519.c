@@ -36,7 +36,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-#define MODULE_NAME "ov519"
+
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/input.h>
 #include "gspca.h"
@@ -49,9 +50,6 @@
 MODULE_AUTHOR("Jean-Francois Moine <http://moinejf.free.fr>");
 MODULE_DESCRIPTION("OV519 USB Camera Driver");
 MODULE_LICENSE("GPL");
-
-/* global parameters */
-static int frame_rate;
 
 /* Number of times to retry a failed I2C transaction. Increase this if you
  * are getting "Failed to read sensor ID..." */
@@ -134,6 +132,7 @@ enum sensors {
 	SEN_OV7670,
 	SEN_OV76BE,
 	SEN_OV8610,
+	SEN_OV9600,
 };
 
 /* Note this is a bit of a hack, but the w9968cf driver needs the code for all
@@ -185,7 +184,7 @@ static const struct ctrl sd_ctrls[] = {
 		.minimum = 0,
 		.maximum = 255,
 		.step    = 1,
-		.default_value = 127,
+		.default_value = 67,
 	    },
 	    .set_control = setexposure,
 	},
@@ -340,6 +339,10 @@ static const unsigned ctrl_dis[] = {
 			(1 << EXPOSURE) |
 			(1 << AUTOGAIN) |
 			(1 << FREQ),
+[SEN_OV9600] =		((1 << NCTRL) - 1)	/* no control */
+			^ ((1 << EXPOSURE)	/* but exposure */
+			 | (1 << AUTOGAIN)),	/* and autogain */
+
 };
 
 static const struct v4l2_pix_format ov519_vga_mode[] = {
@@ -524,6 +527,44 @@ static const struct v4l2_pix_format ovfx2_ov3610_mode[] = {
 		.sizeimage = 2048 * 1536,
 		.colorspace = V4L2_COLORSPACE_SRGB,
 		.priv = 0},
+};
+static const struct v4l2_pix_format ovfx2_ov9600_mode[] = {
+	{640, 480, V4L2_PIX_FMT_SBGGR8, V4L2_FIELD_NONE,
+		.bytesperline = 640,
+		.sizeimage = 640 * 480,
+		.colorspace = V4L2_COLORSPACE_SRGB,
+		.priv = 1},
+	{1280, 1024, V4L2_PIX_FMT_SBGGR8, V4L2_FIELD_NONE,
+		.bytesperline = 1280,
+		.sizeimage = 1280 * 1024,
+		.colorspace = V4L2_COLORSPACE_SRGB},
+};
+
+/* frame rate table */
+/* the table is indexed by the video mode,
+ * so, it must have the size of the biggest format table (5) */
+static const u8 all_rates[] = {30, 25, 20, 15, 10, 5};
+static const struct framerates framerates[] = {
+	{
+		.rates = all_rates,
+		.nrates = ARRAY_SIZE(all_rates),
+	},
+	{
+		.rates = all_rates,
+		.nrates = ARRAY_SIZE(all_rates),
+	},
+	{
+		.rates = all_rates,
+		.nrates = ARRAY_SIZE(all_rates),
+	},
+	{
+		.rates = all_rates,
+		.nrates = ARRAY_SIZE(all_rates),
+	},
+	{
+		.rates = all_rates,
+		.nrates = ARRAY_SIZE(all_rates),
+	},
 };
 
 /* Registers common to OV511 / OV518 */
@@ -737,7 +778,7 @@ static const struct ov_i2c_regvals norm_2610ae[] = {
 	{0x2d, 0x00},	/* 60 Hz filter */
 	{0x24, 0xb0},	/* normal colors */
 	{0x25, 0x90},
-	{0x10, 0x43},
+	{0x10, 0x43},	/* exposure */
 };
 
 static const struct ov_i2c_regvals norm_3620b[] = {
@@ -1807,14 +1848,57 @@ static const struct ov_i2c_regvals norm_7660[] = {
 			| OV7670_COM8_AEC},
 	{0xa1, 0xc8}
 };
+static const struct ov_i2c_regvals norm_9600[] = {
+	{0x12, 0x80},
+	{0x0c, 0x28},
+	{0x11, 0x80},
+	{0x13, 0xb5},
+	{0x14, 0x3e},
+	{0x1b, 0x04},
+	{0x24, 0xb0},
+	{0x25, 0x90},
+	{0x26, 0x94},
+	{0x35, 0x90},
+	{0x37, 0x07},
+	{0x38, 0x08},
+	{0x01, 0x8e},
+	{0x02, 0x85}
+};
 
 /* 7670. Defaults taken from OmniVision provided data,
-*  as provided by Jonathan Corbet of OLPC		*/
+ * as provided by Jonathan Corbet of OLPC
+ * Updated by JF Moine from 7670530.set */
+static const struct ov_regvals init_519_ov7670[] = {
+	{ 0x5d,	0x03 }, /* Turn off suspend mode */
+//	{ 0x53,	0x9b }, /* 0x9f enables the (unused) microcontroller */
+//jfm test
+	{ 0x53,	0x9f },
+	{ OV519_R54_EN_CLK1, 0x0f }, /* bit2 (jpeg enable) */
+	{ 0xa2,	0x20 }, /* a2-a5 are undocumented */
+	{ 0xa3,	0x18 },
+//	{ 0xa4,	0x04 },
+//	{ 0xa5,	0x28 },
+	{ 0x37,	0x00 },	/* SetUsbInit */
+	{ 0x55,	0x02 }, /* 4.096 Mhz audio clock */
+	{0x59, 0x04},			/* jfm */
+	/* Enable both fields, YUV Input, disable defect comp (why?) */
+	{ 0x20,	0x0c },	/* 0x0d swaps U <-> V */
+	{ 0x21,	0x38 },
+	{ 0x22,	0x1d },
+	{ 0x17,	0x50 }, /* undocumented */
+	{ 0x37,	0x00 }, /* undocumented */
+	{ 0x40,	0xff }, /* I2C timeout counter */
+	{ 0x46,	0x00 }, /* I2C clock prescaler */
+//	{0xa0, 0x3f},			/* jfm */
+//	{ 0x59,	0x04 },	/* new from windrv 090403 */
+//test
+	{ 0xff,	0x00 }, /* undocumented */
+	};
 static const struct ov_i2c_regvals norm_7670[] = {
 	{ OV7670_R12_COM7, OV7670_COM7_RESET },
+	{ OV7670_R11_CLKRC, 0x01 },		/* jfm */
 	{ OV7670_R3A_TSLB, 0x04 },		/* OV */
 	{ OV7670_R12_COM7, OV7670_COM7_FMT_VGA }, /* VGA */
-	{ OV7670_R11_CLKRC, 0x01 },
 /*
  * Set the hardware window.  These values from OV don't entirely
  * make sense - hstop is less than hstart.  But they work...
@@ -1862,6 +1946,7 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ OV7670_R00_GAIN, 0x00 },
 	{ OV7670_R10_AECH, 0x00 },
 	{ OV7670_R0D_COM4, 0x40 }, /* magic reserved bit */
+//	{ OV7670_R14_COM9, 0x38 }, /* 4x gain + magic rsvd bit - jfm was 18 */
 	{ OV7670_R14_COM9, 0x18 }, /* 4x gain + magic rsvd bit */
 	{ OV7670_RA5_BD50MAX, 0x05 },
 	{ OV7670_RAB_BD60MAX, 0x07 },
@@ -1870,7 +1955,8 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ OV7670_R26_VPT, 0xe3 },
 	{ OV7670_R9F_HAECC1, 0x78 },
 	{ OV7670_RA0_HAECC2, 0x68 },
-	{ 0xa1, 0x03 }, /* magic */
+//	{ 0xa1, 0x0b },			/* magic - jfm was 03 */
+	{ 0xa1, 0x03 },			/* magic */
 	{ OV7670_RA6_HAECC3, 0xd8 },
 	{ OV7670_RA7_HAECC4, 0xd8 },
 	{ OV7670_RA8_HAECC5, 0xf0 },
@@ -1886,20 +1972,25 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ OV7670_R0E_COM5, 0x61 },
 	{ OV7670_R0F_COM6, 0x4b },
 	{ 0x16, 0x02 },
-	{ OV7670_R1E_MVFP, 0x07 },
+/*	{ OV7670_R1E_MVFP, 0x07 },	 * jfm */
 	{ 0x21, 0x02 },
 	{ 0x22, 0x91 },
 	{ 0x29, 0x07 },
+//	{ 0x33, 0x03 },			/* jfm was 0b */
 	{ 0x33, 0x0b },
 	{ 0x35, 0x0b },
+//	{ 0x37, 0x1c },			/* jfm was 1d */
 	{ 0x37, 0x1d },
 	{ 0x38, 0x71 },
+/*	{ 0x39, 0x2a },			 * jfm --fixme*/
 	{ 0x39, 0x2a },
 	{ OV7670_R3C_COM12, 0x78 },
 	{ 0x4d, 0x40 },
 	{ 0x4e, 0x20 },
+//	{ OV7670_R69_GFIX, 0x55 },	/* jfm was 00 */
 	{ OV7670_R69_GFIX, 0x00 },
 	{ 0x6b, 0x4a },
+//	{ 0x74, 0x19 },			/* jfm was 10 */
 	{ 0x74, 0x10 },
 	{ 0x8d, 0x4f },
 	{ 0x8e, 0x00 },
@@ -1907,7 +1998,9 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ 0x90, 0x00 },
 	{ 0x91, 0x00 },
 	{ 0x96, 0x00 },
+//	{ 0x9a, 0x80 },			/* jfm was 00 */
 	{ 0x9a, 0x00 },
+//	{ 0xb0, 0x8c },			/* jfm was 84 */
 	{ 0xb0, 0x84 },
 	{ 0xb1, 0x0c },
 	{ 0xb2, 0x0e },
@@ -1915,6 +2008,7 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ 0xb8, 0x0a },
 
 /* More reserved magic, some of which tweaks white balance */
+//	{ 0x43, 0x14 },			/* jfm was 0a */
 	{ 0x43, 0x0a },
 	{ 0x44, 0xf0 },
 	{ 0x45, 0x34 },
@@ -1933,7 +2027,8 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ 0x6f, 0x9f },			/* "9e for advance AWB" */
 	{ 0x6a, 0x40 },
 	{ OV7670_R01_BLUE, 0x40 },
-	{ OV7670_R02_RED, 0x60 },
+	{ OV7670_R02_RED, 0x40 },		/* jfm was 60 */
+//	{ OV7670_R02_RED, 0x60 },
 	{ OV7670_R13_COM8, OV7670_COM8_FASTAEC
 			| OV7670_COM8_AECSTEP
 			| OV7670_COM8_BFILT
@@ -1952,7 +2047,10 @@ static const struct ov_i2c_regvals norm_7670[] = {
 
 	{ OV7670_R41_COM16, OV7670_COM16_AWBGAIN },
 	{ OV7670_R3F_EDGE, 0x00 },
-	{ 0x75, 0x05 },
+//fixme: R3f = sharpness - a mettre a 04
+//	{ 0x75, 0x05 },
+	{ 0x75, 0x04 },			/* jfm "lower Sharpness a little" */
+//	{ 0x76, 0x61 },			/* jfm was e1 */
 	{ 0x76, 0xe1 },
 	{ 0x4c, 0x00 },
 	{ 0x77, 0x01 },
@@ -1963,13 +2061,17 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ 0xc9, 0x60 },
 	{ OV7670_R41_COM16, 0x38 },
 	{ 0x56, 0x40 },
-
+	{OV7670_R1E_MVFP, 0x01},	/* jfm */
 	{ 0x34, 0x11 },
-	{ OV7670_R3B_COM11, OV7670_COM11_EXP|OV7670_COM11_HZAUTO },
+	{ OV7670_R3B_COM11, OV7670_COM11_EXP | OV7670_COM11_HZAUTO},
+//	{ OV7670_R3B_COM11, OV7670_COM11_EXP | 0xc0},
+					/* jfm "enable Night mode; fps/4" */
 	{ 0xa4, 0x88 },
+//	{ 0xa4, 0x89 },		/* jfm "Night mode trigger point at 4x Gain" */
 	{ 0x96, 0x00 },
 	{ 0x97, 0x30 },
 	{ 0x98, 0x20 },
+//	{ 0x99, 0x20 },			/* jfm was 30 */
 	{ 0x99, 0x30 },
 	{ 0x9a, 0x84 },
 	{ 0x9b, 0x29 },
@@ -1982,15 +2084,17 @@ static const struct ov_i2c_regvals norm_7670[] = {
 	{ 0x79, 0x01 },
 	{ 0xc8, 0xf0 },
 	{ 0x79, 0x0f },
+//	{ 0xc8, 0x20 },			/* jfm was 00 */
 	{ 0xc8, 0x00 },
 	{ 0x79, 0x10 },
 	{ 0xc8, 0x7e },
-	{ 0x79, 0x0a },
-	{ 0xc8, 0x80 },
+/*	{ 0x79, 0x0a },			 * jfm */
+/*	{ 0xc8, 0x80 },			 * jfm */
 	{ 0x79, 0x0b },
 	{ 0xc8, 0x01 },
 	{ 0x79, 0x0c },
-	{ 0xc8, 0x0f },
+	{ 0xc8, 0x07 },			/* jfm was 0f */
+//	{ 0xc8, 0x0f },
 	{ 0x79, 0x0d },
 	{ 0xc8, 0x20 },
 	{ 0x79, 0x09 },
@@ -2139,7 +2243,7 @@ static void reg_w(struct sd *sd, u16 index, u16 value)
 			sd->gspca_dev.usb_buf, 1, 500);
 leave:
 	if (ret < 0) {
-		err("reg_w %02x failed %d", index, ret);
+		pr_err("reg_w %02x failed %d\n", index, ret);
 		sd->gspca_dev.usb_err = ret;
 		return;
 	}
@@ -2178,7 +2282,7 @@ static int reg_r(struct sd *sd, u16 index)
 		PDEBUG(D_USBI, "GET %02x 0000 %04x %02x",
 			req, index, ret);
 	} else {
-		err("reg_r %02x failed %d", index, ret);
+		pr_err("reg_r %02x failed %d\n", index, ret);
 		sd->gspca_dev.usb_err = ret;
 	}
 
@@ -2203,7 +2307,7 @@ static int reg_r8(struct sd *sd,
 	if (ret >= 0) {
 		ret = sd->gspca_dev.usb_buf[0];
 	} else {
-		err("reg_r8 %02x failed %d", index, ret);
+		pr_err("reg_r8 %02x failed %d\n", index, ret);
 		sd->gspca_dev.usb_err = ret;
 	}
 
@@ -2256,7 +2360,7 @@ static void ov518_reg_w32(struct sd *sd, u16 index, u32 value, int n)
 			0, index,
 			sd->gspca_dev.usb_buf, n, 500);
 	if (ret < 0) {
-		err("reg_w32 %02x failed %d", index, ret);
+		pr_err("reg_w32 %02x failed %d\n", index, ret);
 		sd->gspca_dev.usb_err = ret;
 	}
 }
@@ -2400,9 +2504,12 @@ static int ov518_i2c_r(struct sd *sd, u8 reg)
 
 	/* Initiate 2-byte write cycle */
 	reg_w(sd, R518_I2C_CTL, 0x03);
+	reg_r8(sd, R518_I2C_CTL);
 
 	/* Initiate 2-byte read cycle */
 	reg_w(sd, R518_I2C_CTL, 0x05);
+	reg_r8(sd, R518_I2C_CTL);
+
 	value = reg_r(sd, R51x_I2C_DATA);
 	PDEBUG(D_USBI, "ov518_i2c_r %02x %02x", reg, value);
 	return value;
@@ -2422,11 +2529,9 @@ static void ovfx2_i2c_w(struct sd *sd, u8 reg, u8 value)
 			(u16) value, (u16) reg, NULL, 0, 500);
 
 	if (ret < 0) {
-		err("ovfx2_i2c_w %02x failed %d", reg, ret);
+		pr_err("ovfx2_i2c_w %02x failed %d\n", reg, ret);
 		sd->gspca_dev.usb_err = ret;
 	}
-
-	PDEBUG(D_USBO, "ovfx2_i2c_w %02x %02x", reg, value);
 }
 
 static int ovfx2_i2c_r(struct sd *sd, u8 reg)
@@ -2446,7 +2551,7 @@ static int ovfx2_i2c_r(struct sd *sd, u8 reg)
 		ret = sd->gspca_dev.usb_buf[0];
 		PDEBUG(D_USBI, "ovfx2_i2c_r %02x %02x", reg, ret);
 	} else {
-		err("ovfx2_i2c_r %02x failed %d", reg, ret);
+		pr_err("ovfx2_i2c_r %02x failed %d\n", reg, ret);
 		sd->gspca_dev.usb_err = ret;
 	}
 
@@ -2456,7 +2561,11 @@ static int ovfx2_i2c_r(struct sd *sd, u8 reg)
 static void i2c_w(struct sd *sd, u8 reg, u8 value)
 {
 	if (sd->sensor_reg_cache[reg] == value)
+//fixme:test
+{
+PDEBUG(D_USBO, "i2c_w %02x %02x (cached)", reg, value);
 		return;
+}
 
 	switch (sd->bridge) {
 	case BRIDGE_OV511:
@@ -2686,13 +2795,13 @@ static void write_i2c_regvals(struct sd *sd,
  *
  ***************************************************************************/
 
-/* This initializes the OV2x10 / OV3610 / OV3620 */
+/* This initializes the OV2x10 / OV3610 / OV3620 / OV9600 */
 static void ov_hires_configure(struct sd *sd)
 {
 	int high, low;
 
 	if (sd->bridge != BRIDGE_OVFX2) {
-		err("error hires sensors only supported with ovfx2");
+		pr_err("error hires sensors only supported with ovfx2\n");
 		return;
 	}
 
@@ -2702,19 +2811,32 @@ static void ov_hires_configure(struct sd *sd)
 	high = i2c_r(sd, 0x0a);
 	low = i2c_r(sd, 0x0b);
 	/* info("%x, %x", high, low); */
-	if (high == 0x96 && low == 0x40) {
-		PDEBUG(D_PROBE, "Sensor is an OV2610");
-		sd->sensor = SEN_OV2610;
-	} else if (high == 0x96 && low == 0x41) {
-		PDEBUG(D_PROBE, "Sensor is an OV2610AE");
-		sd->sensor = SEN_OV2610AE;
-	} else if (high == 0x36 && (low & 0x0f) == 0x00) {
-		PDEBUG(D_PROBE, "Sensor is an OV3610");
-		sd->sensor = SEN_OV3610;
-	} else {
-		err("Error unknown sensor type: %02x%02x",
-			high, low);
+	switch (high) {
+	case 0x96:
+		switch (low) {
+		case 0x40:
+			PDEBUG(D_PROBE, "Sensor is a OV2610");
+			sd->sensor = SEN_OV2610;
+			return;
+		case 0x41:
+			PDEBUG(D_PROBE, "Sensor is a OV2610AE");
+			sd->sensor = SEN_OV2610AE;
+			return;
+		case 0xb1:
+			PDEBUG(D_PROBE, "Sensor is a OV9600");
+			sd->sensor = SEN_OV9600;
+			return;
+		}
+		break;
+	case 0x36:
+		if ((low & 0x0f) == 0x00) {
+			PDEBUG(D_PROBE, "Sensor is a OV3610");
+			sd->sensor = SEN_OV3610;
+			return;
+		}
+		break;
 	}
+	pr_err("Error unknown sensor type: %02x%02x\n", high, low);
 }
 
 /* This initializes the OV8110, OV8610 sensor. The OV8110 uses
@@ -2735,7 +2857,7 @@ static void ov8xx0_configure(struct sd *sd)
 	if ((rc & 3) == 1)
 		sd->sensor = SEN_OV8610;
 	else
-		err("Unknown image sensor version: %d", rc & 3);
+		pr_err("Unknown image sensor version: %d\n", rc & 3);
 }
 
 /* This initializes the OV7610, OV7620, or OV76BE sensor. The OV76BE uses
@@ -2753,7 +2875,7 @@ static void ov7xx0_configure(struct sd *sd)
 	/* add OV7670 here
 	 * it appears to be wrongly detected as a 7610 by default */
 	if (rc < 0) {
-		PDEBUG(D_ERR, "Error detecting sensor type");
+		pr_err("Error detecting sensor type\n");
 		return;
 	}
 	if ((rc & 3) == 3) {
@@ -2781,19 +2903,19 @@ static void ov7xx0_configure(struct sd *sd)
 		/* try to read product id registers */
 		high = i2c_r(sd, 0x0a);
 		if (high < 0) {
-			PDEBUG(D_ERR, "Error detecting camera chip PID");
+			pr_err("Error detecting camera chip PID\n");
 			return;
 		}
 		low = i2c_r(sd, 0x0b);
 		if (low < 0) {
-			PDEBUG(D_ERR, "Error detecting camera chip VER");
+			pr_err("Error detecting camera chip VER\n");
 			return;
 		}
 		if (high == 0x76) {
 			switch (low) {
 			case 0x30:
-				err("Sensor is an OV7630/OV7635");
-				err("7630 is not supported by this driver");
+				pr_err("Sensor is an OV7630/OV7635\n");
+				pr_err("7630 is not supported by this driver\n");
 				return;
 			case 0x40:
 				PDEBUG(D_PROBE, "Sensor is an OV7645");
@@ -2810,10 +2932,9 @@ static void ov7xx0_configure(struct sd *sd)
 			case 0x60:
 				PDEBUG(D_PROBE, "Sensor is a OV7660");
 				sd->sensor = SEN_OV7660;
-				sd->invert_led = 0;
 				break;
 			default:
-				PDEBUG(D_PROBE, "Unknown sensor: 0x76%x", low);
+				pr_err("Unknown sensor: 0x76%02x\n", low);
 				return;
 			}
 		} else {
@@ -2821,7 +2942,7 @@ static void ov7xx0_configure(struct sd *sd)
 			sd->sensor = SEN_OV7620;
 		}
 	} else {
-		err("Unknown image sensor version: %d", rc & 3);
+		pr_err("Unknown image sensor version: %d\n", rc & 3);
 	}
 }
 
@@ -2834,7 +2955,7 @@ static void ov6xx0_configure(struct sd *sd)
 	/* Detect sensor (sub)type */
 	rc = i2c_r(sd, OV7610_REG_COM_I);
 	if (rc < 0) {
-		PDEBUG(D_ERR, "Error detecting sensor type");
+		pr_err("Error detecting sensor type\n");
 		return;
 	}
 
@@ -2844,8 +2965,7 @@ static void ov6xx0_configure(struct sd *sd)
 	switch (rc) {
 	case 0x00:
 		sd->sensor = SEN_OV6630;
-		warn("WARNING: Sensor is an OV66308. Your camera may have");
-		warn("been misdetected in previous driver versions.");
+		pr_warn("WARNING: Sensor is an OV66308. Your camera may have been misdetected in previous driver versions.\n");
 		break;
 	case 0x01:
 		sd->sensor = SEN_OV6620;
@@ -2861,11 +2981,10 @@ static void ov6xx0_configure(struct sd *sd)
 		break;
 	case 0x90:
 		sd->sensor = SEN_OV6630;
-		warn("WARNING: Sensor is an OV66307. Your camera may have");
-		warn("been misdetected in previous driver versions.");
+		pr_warn("WARNING: Sensor is an OV66307. Your camera may have been misdetected in previous driver versions.\n");
 		break;
 	default:
-		err("FATAL: Unknown sensor version: 0x%02x", rc);
+		pr_err("FATAL: Unknown sensor version: 0x%02x\n", rc);
 		return;
 	}
 
@@ -3174,16 +3293,16 @@ static void ovfx2_configure(struct sd *sd)
 }
 
 /* set the mode */
-/* This function works for ov7660 only */
+/* This function works for ov7660 and ov7670 only */
 static void ov519_set_mode(struct sd *sd)
 {
-	static const struct ov_regvals bridge_ov7660[2][10] = {
+	static const struct ov_regvals bridge_common[2][10] = {
 		{{0x10, 0x14}, {0x11, 0x1e}, {0x12, 0x00}, {0x13, 0x00},
 		 {0x14, 0x00}, {0x15, 0x00}, {0x16, 0x00}, {0x20, 0x0c},
-		 {0x25, 0x01}, {0x26, 0x00}},
+		 {0x25, 0x01} ,{0x26, 0x00}},
 		{{0x10, 0x28}, {0x11, 0x3c}, {0x12, 0x00}, {0x13, 0x00},
 		 {0x14, 0x00}, {0x15, 0x00}, {0x16, 0x00}, {0x20, 0x0c},
-		 {0x25, 0x03}, {0x26, 0x00}}
+		 {0x25, 0x03} ,{0x26, 0x00}}
 	};
 	static const struct ov_i2c_regvals sensor_ov7660[2][3] = {
 		{{0x12, 0x00}, {0x24, 0x00}, {0x0c, 0x0c}},
@@ -3201,13 +3320,56 @@ static void ov519_set_mode(struct sd *sd)
 /*		{0x36, 0x00}, */
 /*		{0x6b, 0x0a}, */
 	};
+	static const struct ov_i2c_regvals sensor_ov7670_0[] = { /* 320x240 */
+		{OV7670_R3A_TSLB, 0x04},
+		{OV7670_R12_COM7, OV7670_COM7_FMT_QVGA},
+		{OV7670_R17_HSTART, 0x16},
+		{OV7670_R18_HSTOP, 0x04},
+		{OV7670_R32_HREF, 0x80},
+		{OV7670_R19_VSTART, 0x02},
+		{OV7670_R1A_VSTOP, 0x7a},
+		{OV7670_R03_VREF, 0x0a},
+		{OV7670_R0C_COM3, 0x04},
+		{OV7670_R3E_COM14, 0x19},
+		{0x73, 0xf1},
+//		{0xa5, 0x02},
+//		{0xab, 0x03},
+	};
+	static const struct ov_i2c_regvals sensor_ov7670_1[] = { /* 640x480 */
+		{OV7670_R3A_TSLB, 0x04},
+		{OV7670_R12_COM7, OV7670_COM7_FMT_VGA},
+		{OV7670_R17_HSTART, 0x13},
+		{OV7670_R18_HSTOP, 0x01},
+		{OV7670_R32_HREF, 0xb6},
+		{OV7670_R19_VSTART, 0x02},
+		{OV7670_R1A_VSTOP, 0x7a},
+		{OV7670_R03_VREF, 0x0a},
+		{OV7670_R0C_COM3, 0x00},
+		{OV7670_R3E_COM14, 0x00},
+		{0x70, 0x3a},
+		{0x71, 0x35},
+		{0x72, 0x11},
+		{0x73, 0xf0},
+		{0xa2, 0x02},
+//		{0xa5, 0x05},
+//		{0xab, 0x07},
+	};
 
-	write_regvals(sd, bridge_ov7660[sd->gspca_dev.curr_mode],
-			ARRAY_SIZE(bridge_ov7660[0]));
-	write_i2c_regvals(sd, sensor_ov7660[sd->gspca_dev.curr_mode],
-			ARRAY_SIZE(sensor_ov7660[0]));
-	write_i2c_regvals(sd, sensor_ov7660_2,
-			ARRAY_SIZE(sensor_ov7660_2));
+	write_regvals(sd, bridge_common[sd->gspca_dev.curr_mode],
+			ARRAY_SIZE(bridge_common[0]));
+	if (sd->sensor == SEN_OV7660) {
+		write_i2c_regvals(sd, sensor_ov7660[sd->gspca_dev.curr_mode],
+				ARRAY_SIZE(sensor_ov7660[0]));
+		write_i2c_regvals(sd, sensor_ov7660_2,
+				ARRAY_SIZE(sensor_ov7660_2));
+	} else {
+		if (sd->gspca_dev.curr_mode == 0)
+			write_i2c_regvals(sd, sensor_ov7670_0,
+					ARRAY_SIZE(sensor_ov7670_0));
+		else
+			write_i2c_regvals(sd, sensor_ov7670_1,
+					ARRAY_SIZE(sensor_ov7670_1));
+	}
 }
 
 /* set the frame rate */
@@ -3218,44 +3380,40 @@ static void ov519_set_fr(struct sd *sd)
 	u8 clock;
 	/* frame rate table with indices:
 	 *	- mode = 0: 320x240, 1: 640x480
-	 *	- fr rate = 0: 30, 1: 25, 2: 20, 3: 15, 4: 10, 5: 5
+	 *	- fr rate = [0..6] = (frame rate) / 5 - 1
 	 *	- reg = 0: bridge a4, 1: bridge 23, 2: sensor 11 (clock)
 	 */
 	static const u8 fr_tb[2][6][3] = {
-		{{0x04, 0xff, 0x00},
-		 {0x04, 0x1f, 0x00},
-		 {0x04, 0x1b, 0x00},
-		 {0x04, 0x15, 0x00},
+		{{0x04, 0x01, 0x00},
 		 {0x04, 0x09, 0x00},
-		 {0x04, 0x01, 0x00}},
-		{{0x0c, 0xff, 0x00},
-		 {0x0c, 0x1f, 0x00},
-		 {0x0c, 0x1b, 0x00},
-		 {0x04, 0xff, 0x01},
+		 {0x04, 0x15, 0x00},
+		 {0x04, 0x1b, 0x00},
+		 {0x04, 0x1f, 0x00},
+		 {0x04, 0xff, 0x00}},
+		{{0x04, 0x1b, 0x01},
 		 {0x04, 0x1f, 0x01},
-		 {0x04, 0x1b, 0x01}},
+		 {0x04, 0xff, 0x01},
+		 {0x0c, 0x1b, 0x00},
+		 {0x0c, 0x1f, 0x00},
+		 {0x0c, 0xff, 0x00}},
 	};
 
-	if (frame_rate > 0)
-		sd->frame_rate = frame_rate;
-	if (sd->frame_rate >= 30)
-		fr = 0;
-	else if (sd->frame_rate >= 25)
-		fr = 1;
-	else if (sd->frame_rate >= 20)
-		fr = 2;
-	else if (sd->frame_rate >= 15)
-		fr = 3;
-	else if (sd->frame_rate >= 10)
-		fr = 4;
-	else
-		fr = 5;
+	fr = sd->frame_rate / 5 - 1;
 	reg_w(sd, 0xa4, fr_tb[sd->gspca_dev.curr_mode][fr][0]);
 	reg_w(sd, 0x23, fr_tb[sd->gspca_dev.curr_mode][fr][1]);
 	clock = fr_tb[sd->gspca_dev.curr_mode][fr][2];
 	if (sd->sensor == SEN_OV7660)
 		clock |= 0x80;		/* enable double clock */
 	ov518_i2c_w(sd, OV7670_R11_CLKRC, clock);
+	if (sd->sensor == SEN_OV7670) {
+		if (fr > 2) {
+			ov518_i2c_w(sd, 0x9d, 0x99);
+			ov518_i2c_w(sd, 0x9e, 0x7f);
+		} else {
+			ov518_i2c_w(sd, 0x9d, 0x4c);
+			ov518_i2c_w(sd, 0x9e, 0x3f);
+		}
+	}
 }
 
 static void setautogain(struct gspca_dev *gspca_dev)
@@ -3275,6 +3433,7 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	sd->bridge = id->driver_info & BRIDGE_MASK;
 	sd->invert_led = (id->driver_info & BRIDGE_INVERT_LED) != 0;
 
+	cam->mode_framerates = framerates;
 	switch (sd->bridge) {
 	case BRIDGE_OV511:
 	case BRIDGE_OV511PLUS:
@@ -3289,7 +3448,6 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	case BRIDGE_OV519:
 		cam->cam_mode = ov519_vga_mode;
 		cam->nmodes = ARRAY_SIZE(ov519_vga_mode);
-		sd->invert_led = !sd->invert_led;
 		break;
 	case BRIDGE_OVFX2:
 		cam->cam_mode = ov519_vga_mode;
@@ -3301,7 +3459,6 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	case BRIDGE_W9968CF:
 		cam->cam_mode = w9968cf_vga_mode;
 		cam->nmodes = ARRAY_SIZE(w9968cf_vga_mode);
-		cam->reverse_alts = 1;
 		break;
 	}
 
@@ -3359,7 +3516,7 @@ static int sd_init(struct gspca_dev *gspca_dev)
 	} else if (init_ov_sensor(sd, OV_HIRES_SID) >= 0) {
 		ov_hires_configure(sd);
 	} else {
-		err("Can't determine sensor slave IDs");
+		pr_err("Can't determine sensor slave IDs\n");
 		goto error;
 	}
 
@@ -3399,6 +3556,10 @@ static int sd_init(struct gspca_dev *gspca_dev)
 		case SEN_OV3610:
 			cam->cam_mode = ovfx2_ov3610_mode;
 			cam->nmodes = ARRAY_SIZE(ovfx2_ov3610_mode);
+			break;
+		case SEN_OV9600:
+			cam->cam_mode = ovfx2_ov9600_mode;
+			cam->nmodes = ARRAY_SIZE(ovfx2_ov9600_mode);
 			break;
 		default:
 			if (sd->sif) {
@@ -3462,40 +3623,55 @@ static int sd_init(struct gspca_dev *gspca_dev)
 	case SEN_OV7648:
 		write_i2c_regvals(sd, norm_7640, ARRAY_SIZE(norm_7640));
 		break;
+	case SEN_OV7670:
+		sd->ctrls[FREQ].max = 3;	/* auto */
+		sd->ctrls[FREQ].def = 3;
+		/* fall thru */
 	case SEN_OV7660:
 		i2c_w(sd, OV7670_R12_COM7, OV7670_COM7_RESET);
 		msleep(14);
 		reg_w(sd, OV519_R57_SNAPSHOT, 0x23);
-		write_regvals(sd, init_519_ov7660,
-				ARRAY_SIZE(init_519_ov7660));
-		write_i2c_regvals(sd, norm_7660, ARRAY_SIZE(norm_7660));
+		if (sd->sensor == SEN_OV7660) {
+			write_regvals(sd, init_519_ov7660,
+					ARRAY_SIZE(init_519_ov7660));
+			write_i2c_regvals(sd, norm_7660,
+					ARRAY_SIZE(norm_7660));
+		} else {
+			write_regvals(sd, init_519_ov7670,
+					ARRAY_SIZE(init_519_ov7670));
+			write_i2c_regvals(sd, norm_7670,
+					ARRAY_SIZE(norm_7670));
+		}
 		sd->gspca_dev.curr_mode = 1;	/* 640x480 */
 		ov519_set_mode(sd);
 		ov519_set_fr(sd);
-		sd->ctrls[COLORS].max = 4;	/* 0..4 */
-		sd->ctrls[COLORS].val =
-			sd->ctrls[COLORS].def = 2;
-		setcolors(gspca_dev);
-		sd->ctrls[CONTRAST].max = 6;	/* 0..6 */
-		sd->ctrls[CONTRAST].val =
-			sd->ctrls[CONTRAST].def = 3;
+		if (sd->sensor == SEN_OV7660) {
+			sd->ctrls[BRIGHTNESS].max = 6;	/* 0..6 */
+			sd->ctrls[BRIGHTNESS].val =
+				sd->ctrls[BRIGHTNESS].def = 3;
+			sd->ctrls[CONTRAST].max = 6;	/* 0..6 */
+			sd->ctrls[CONTRAST].val =
+				sd->ctrls[CONTRAST].def = 3;
+			sd->ctrls[COLORS].max = 4;	/* 0..4 */
+			sd->ctrls[COLORS].val =
+				sd->ctrls[COLORS].def = 2;
+			setcolors(gspca_dev);
+		}
 		setcontrast(gspca_dev);
-		sd->ctrls[BRIGHTNESS].max = 6;	/* 0..6 */
-		sd->ctrls[BRIGHTNESS].val =
-			sd->ctrls[BRIGHTNESS].def = 3;
 		setbrightness(gspca_dev);
 		sd_reset_snapshot(gspca_dev);
 		ov51x_restart(sd);
 		ov51x_stop(sd);			/* not in win traces */
 		ov51x_led_control(sd, 0);
 		break;
-	case SEN_OV7670:
-		sd->ctrls[FREQ].max = 3;	/* auto */
-		sd->ctrls[FREQ].def = 3;
-		write_i2c_regvals(sd, norm_7670, ARRAY_SIZE(norm_7670));
-		break;
 	case SEN_OV8610:
 		write_i2c_regvals(sd, norm_8610, ARRAY_SIZE(norm_8610));
+		break;
+	case SEN_OV9600:
+		write_i2c_regvals(sd, norm_9600, ARRAY_SIZE(norm_9600));
+
+		/* enable autoexpo */
+/*		i2c_w_mask(sd, 0x13, 0x05, 0x05); */
 		break;
 	}
 	return gspca_dev->usb_err;
@@ -3534,7 +3710,7 @@ static void ov511_mode_init_regs(struct sd *sd)
 	intf = usb_ifnum_to_if(sd->gspca_dev.dev, sd->gspca_dev.iface);
 	alt = usb_altnum_to_altsetting(intf, sd->gspca_dev.alt);
 	if (!alt) {
-		err("Couldn't get altsetting");
+		pr_err("Couldn't get altsetting\n");
 		sd->gspca_dev.usb_err = -EIO;
 		return;
 	}
@@ -3567,9 +3743,6 @@ static void ov511_mode_init_regs(struct sd *sd)
 	reg_w(sd, R511_SNAP_LNDIV, 0x00);
 
 	/******** Set the framerate ********/
-	if (frame_rate > 0)
-		sd->frame_rate = frame_rate;
-
 	switch (sd->sensor) {
 	case SEN_OV6620:
 		/* No framerate control, doesn't like higher rates yet */
@@ -3627,8 +3800,8 @@ static void ov511_mode_init_regs(struct sd *sd)
 	/* Check if we have enough bandwidth to disable compression */
 	fps = (interlaced ? 60 : 30) / (sd->clockdiv + 1) + 1;
 	needed = fps * sd->gspca_dev.width * sd->gspca_dev.height * 3 / 2;
-	/* 1400 is a conservative estimate of the max nr of isoc packets/sec */
-	if (needed > 1400 * packet_size) {
+	/* 1000 isoc packets/sec */
+	if (needed > 1000 * packet_size) {
 		/* Enable Y and UV quantization and compression */
 		reg_w(sd, R511_COMP_EN, 0x07);
 		reg_w(sd, R511_COMP_LUT_EN, 0x03);
@@ -3657,7 +3830,7 @@ static void ov518_mode_init_regs(struct sd *sd)
 	intf = usb_ifnum_to_if(sd->gspca_dev.dev, sd->gspca_dev.iface);
 	alt = usb_altnum_to_altsetting(intf, sd->gspca_dev.alt);
 	if (!alt) {
-		err("Couldn't get altsetting");
+		pr_err("Couldn't get altsetting\n");
 		sd->gspca_dev.usb_err = -EIO;
 		return;
 	}
@@ -3773,29 +3946,6 @@ static void ov518_mode_init_regs(struct sd *sd)
  */
 static void ov519_mode_init_regs(struct sd *sd)
 {
-	static const struct ov_regvals mode_init_519_ov7670[] = {
-		{ 0x5d,	0x03 }, /* Turn off suspend mode */
-		{ 0x53,	0x9f }, /* was 9b in 1.65-1.08 */
-		{ OV519_R54_EN_CLK1, 0x0f }, /* bit2 (jpeg enable) */
-		{ 0xa2,	0x20 }, /* a2-a5 are undocumented */
-		{ 0xa3,	0x18 },
-		{ 0xa4,	0x04 },
-		{ 0xa5,	0x28 },
-		{ 0x37,	0x00 },	/* SetUsbInit */
-		{ 0x55,	0x02 }, /* 4.096 Mhz audio clock */
-		/* Enable both fields, YUV Input, disable defect comp (why?) */
-		{ 0x20,	0x0c },
-		{ 0x21,	0x38 },
-		{ 0x22,	0x1d },
-		{ 0x17,	0x50 }, /* undocumented */
-		{ 0x37,	0x00 }, /* undocumented */
-		{ 0x40,	0xff }, /* I2C timeout counter */
-		{ 0x46,	0x00 }, /* I2C clock prescaler */
-		{ 0x59,	0x04 },	/* new from windrv 090403 */
-		{ 0xff,	0x00 }, /* undocumented */
-		/* windows reads 0x55 at this point, why? */
-	};
-
 	static const struct ov_regvals mode_init_519[] = {
 		{ 0x5d,	0x03 }, /* Turn off suspend mode */
 		{ 0x53,	0x9f }, /* was 9b in 1.65-1.08 */
@@ -3828,19 +3978,13 @@ static void ov519_mode_init_regs(struct sd *sd)
 		}
 		break;
 	case SEN_OV7660:
-		return;		/* done by ov519_set_mode/fr() */
 	case SEN_OV7670:
-		write_regvals(sd, mode_init_519_ov7670,
-				ARRAY_SIZE(mode_init_519_ov7670));
-		break;
+		return;		/* done by ov519_set_mode/fr() */
 	}
 
-	reg_w(sd, OV519_R10_H_SIZE,	sd->gspca_dev.width >> 4);
-	reg_w(sd, OV519_R11_V_SIZE,	sd->gspca_dev.height >> 3);
-	if (sd->sensor == SEN_OV7670 &&
-	    sd->gspca_dev.cam.cam_mode[sd->gspca_dev.curr_mode].priv)
-		reg_w(sd, OV519_R12_X_OFFSETL, 0x04);
-	else if (sd->sensor == SEN_OV7648 &&
+	reg_w(sd, OV519_R10_H_SIZE, sd->gspca_dev.width >> 4);
+	reg_w(sd, OV519_R11_V_SIZE, sd->gspca_dev.height >> 3);
+	if (sd->sensor == SEN_OV7648 &&
 	    sd->gspca_dev.cam.cam_mode[sd->gspca_dev.curr_mode].priv)
 		reg_w(sd, OV519_R12_X_OFFSETL, 0x01);
 	else
@@ -3853,8 +3997,6 @@ static void ov519_mode_init_regs(struct sd *sd)
 	reg_w(sd, 0x26,			0x00); /* Undocumented */
 
 	/******** Set the framerate ********/
-	if (frame_rate > 0)
-		sd->frame_rate = frame_rate;
 
 /* FIXME: These are only valid at the max resolution. */
 	sd->clockdiv = 0;
@@ -3909,24 +4051,6 @@ static void ov519_mode_init_regs(struct sd *sd)
 			break;
 		}
 		break;
-	case SEN_OV7670:		/* guesses, based on 7640 */
-		PDEBUG(D_STREAM, "Setting framerate to %d fps",
-				 (sd->frame_rate == 0) ? 15 : sd->frame_rate);
-		reg_w(sd, 0xa4, 0x10);
-		switch (sd->frame_rate) {
-		case 30:
-			reg_w(sd, 0x23, 0xff);
-			break;
-		case 20:
-			reg_w(sd, 0x23, 0x1b);
-			break;
-		default:
-/*		case 15: */
-			reg_w(sd, 0x23, 0xff);
-			sd->clockdiv = 1;
-			break;
-		}
-		break;
 	}
 }
 
@@ -3934,7 +4058,6 @@ static void mode_init_ov_sensor_regs(struct sd *sd)
 {
 	struct gspca_dev *gspca_dev;
 	int qvga, xstart, xend, ystart, yend;
-	u8 v;
 
 	gspca_dev = &sd->gspca_dev;
 	qvga = gspca_dev->cam.cam_mode[gspca_dev->curr_mode].priv & 1;
@@ -4035,46 +4158,6 @@ static void mode_init_ov_sensor_regs(struct sd *sd)
 		i2c_w_mask(sd, 0x74, qvga ? 0x20 : 0x00, 0x20);
 		i2c_w_mask(sd, 0x12, 0x04, 0x04); /* AWB: 1 */
 		break;
-	case SEN_OV7670:
-		/* set COM7_FMT_VGA or COM7_FMT_QVGA
-		 * do we need to set anything else?
-		 *	HSTART etc are set in set_ov_sensor_window itself */
-		i2c_w_mask(sd, OV7670_R12_COM7,
-			 qvga ? OV7670_COM7_FMT_QVGA : OV7670_COM7_FMT_VGA,
-			 OV7670_COM7_FMT_MASK);
-		i2c_w_mask(sd, 0x13, 0x00, 0x20); /* Select 16 bit data bus */
-		i2c_w_mask(sd, OV7670_R13_COM8, OV7670_COM8_AWB,
-				OV7670_COM8_AWB);
-		if (qvga) {		/* QVGA from ov7670.c by
-					 * Jonathan Corbet */
-			xstart = 164;
-			xend = 28;
-			ystart = 14;
-			yend = 494;
-		} else {		/* VGA */
-			xstart = 158;
-			xend = 14;
-			ystart = 10;
-			yend = 490;
-		}
-		/* OV7670 hardware window registers are split across
-		 * multiple locations */
-		i2c_w(sd, OV7670_R17_HSTART, xstart >> 3);
-		i2c_w(sd, OV7670_R18_HSTOP, xend >> 3);
-		v = i2c_r(sd, OV7670_R32_HREF);
-		v = (v & 0xc0) | ((xend & 0x7) << 3) | (xstart & 0x07);
-		msleep(10);	/* need to sleep between read and write to
-				 * same reg! */
-		i2c_w(sd, OV7670_R32_HREF, v);
-
-		i2c_w(sd, OV7670_R19_VSTART, ystart >> 2);
-		i2c_w(sd, OV7670_R1A_VSTOP, yend >> 2);
-		v = i2c_r(sd, OV7670_R03_VREF);
-		v = (v & 0xc0) | ((yend & 0x3) << 2) | (ystart & 0x03);
-		msleep(10);	/* need to sleep between read and write to
-				 * same reg! */
-		i2c_w(sd, OV7670_R03_VREF, v);
-		break;
 	case SEN_OV6620:
 		i2c_w_mask(sd, 0x14, qvga ? 0x20 : 0x00, 0x20);
 		i2c_w_mask(sd, 0x13, 0x00, 0x20); /* Select 16 bit data bus */
@@ -4085,6 +4168,33 @@ static void mode_init_ov_sensor_regs(struct sd *sd)
 		i2c_w_mask(sd, 0x14, qvga ? 0x20 : 0x00, 0x20);
 		i2c_w_mask(sd, 0x12, 0x04, 0x06); /* AWB: 1 Test pattern: 0 */
 		break;
+	case SEN_OV9600: {
+		const struct ov_i2c_regvals *vals;
+		static const struct ov_i2c_regvals sxga_15[] = {
+			{0x11, 0x80}, {0x14, 0x3e}, {0x24, 0x85}, {0x25, 0x75}
+		};
+		static const struct ov_i2c_regvals sxga_7_5[] = {
+			{0x11, 0x81}, {0x14, 0x3e}, {0x24, 0x85}, {0x25, 0x75}
+		};
+		static const struct ov_i2c_regvals vga_30[] = {
+			{0x11, 0x81}, {0x14, 0x7e}, {0x24, 0x70}, {0x25, 0x60}
+		};
+		static const struct ov_i2c_regvals vga_15[] = {
+			{0x11, 0x83}, {0x14, 0x3e}, {0x24, 0x80}, {0x25, 0x70}
+		};
+
+		/* frame rates:
+		 *	15fps / 7.5 fps for 1280x1024
+		 *	30fps / 15fps for 640x480
+		 */
+		i2c_w_mask(sd, 0x12, qvga ? 0x40 : 0x00, 0x40);
+		if (qvga)
+			vals = sd->frame_rate < 30 ? vga_15 : vga_30;
+		else
+			vals = sd->frame_rate < 15 ? sxga_7_5 : sxga_15;
+		write_i2c_regvals(sd, vals, ARRAY_SIZE(sxga_15));
+		return;
+	    }
 	default:
 		return;
 	}
@@ -4119,10 +4229,11 @@ static void set_ov_sensor_window(struct sd *sd)
 	case SEN_OV2610:
 	case SEN_OV2610AE:
 	case SEN_OV3610:
-	case SEN_OV7670:
+	case SEN_OV9600:
 		mode_init_ov_sensor_regs(sd);
 		return;
 	case SEN_OV7660:
+	case SEN_OV7670:
 		ov519_set_mode(sd);
 		ov519_set_fr(sd);
 		return;
@@ -4265,6 +4376,9 @@ static int sd_start(struct gspca_dev *gspca_dev)
 		setautogain(gspca_dev);
 	if (!(sd->gspca_dev.ctrl_dis & (1 << FREQ)))
 		setfreq_i(sd);
+//fixme: test
+	if (sd->sensor == SEN_OV7670)
+		ov518_i2c_w(sd, OV7670_R3F_EDGE, 0x04);	/* sharpness */
 
 	/* Force clear snapshot state in case the snapshot button was
 	   pressed while we weren't streaming */
@@ -4895,9 +5009,59 @@ static int sd_set_jcomp(struct gspca_dev *gspca_dev,
 	return 0;
 }
 
+/* get stream parameters (framerate) */
+static void sd_get_streamparm(struct gspca_dev *gspca_dev,
+			     struct v4l2_streamparm *parm)
+{
+	struct v4l2_captureparm *cp = &parm->parm.capture;
+	struct v4l2_fract *tpf = &cp->timeperframe;
+	struct sd *sd = (struct sd *) gspca_dev;
+
+	cp->capability |= V4L2_CAP_TIMEPERFRAME;
+	tpf->numerator = 1;
+	tpf->denominator = sd->frame_rate;
+}
+
+/* set stream parameters (framerate) */
+static void sd_set_streamparm(struct gspca_dev *gspca_dev,
+			     struct v4l2_streamparm *parm)
+{
+	struct v4l2_captureparm *cp = &parm->parm.capture;
+	struct v4l2_fract *tpf = &cp->timeperframe;
+	struct sd *sd = (struct sd *) gspca_dev;
+	int fr;
+
+	/* Set requested framerate */
+	fr = tpf->denominator / tpf->numerator;
+	if (fr >= 30)
+		fr = 30;
+	else if (fr >= 25)
+		fr = 25;
+	else if (fr >= 20)
+		fr = 20;
+	else if (fr >= 15)
+		fr = 15;
+	else if (fr >= 10)
+		fr = 10;
+	else
+		fr = 5;
+	sd->frame_rate = fr;
+
+	switch (sd->sensor) {
+	case SEN_OV7660:
+	case SEN_OV7670:
+		ov519_set_fr(sd);
+		break;
+	}
+
+	/* Return the actual framerate */
+	tpf->numerator = 1;
+	tpf->denominator = sd->frame_rate;
+}
+
 /* sub-driver description */
 static const struct sd_desc sd_desc = {
-	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.ctrls = sd_ctrls,
 	.nctrls = ARRAY_SIZE(sd_ctrls),
 	.config = sd_config,
@@ -4911,6 +5075,8 @@ static const struct sd_desc sd_desc = {
 	.querymenu = sd_querymenu,
 	.get_jcomp = sd_get_jcomp,
 	.set_jcomp = sd_set_jcomp,
+	.get_streamparm = sd_get_streamparm,
+	.set_streamparm = sd_set_streamparm,
 #if defined(CONFIG_INPUT) || defined(CONFIG_INPUT_MODULE)
 	.other_input = 1,
 #endif
@@ -4919,23 +5085,24 @@ static const struct sd_desc sd_desc = {
 /* -- module initialisation -- */
 static const struct usb_device_id device_table[] = {
 	{USB_DEVICE(0x041e, 0x4003), .driver_info = BRIDGE_W9968CF },
-	{USB_DEVICE(0x041e, 0x4052), .driver_info = BRIDGE_OV519 },
+	{USB_DEVICE(0x041e, 0x4052),
+		.driver_info = BRIDGE_OV519 | BRIDGE_INVERT_LED },
 	{USB_DEVICE(0x041e, 0x405f), .driver_info = BRIDGE_OV519 },
 	{USB_DEVICE(0x041e, 0x4060), .driver_info = BRIDGE_OV519 },
 	{USB_DEVICE(0x041e, 0x4061), .driver_info = BRIDGE_OV519 },
-	{USB_DEVICE(0x041e, 0x4064),
-		.driver_info = BRIDGE_OV519 | BRIDGE_INVERT_LED },
+	{USB_DEVICE(0x041e, 0x4064), .driver_info = BRIDGE_OV519 },
 	{USB_DEVICE(0x041e, 0x4067), .driver_info = BRIDGE_OV519 },
-	{USB_DEVICE(0x041e, 0x4068),
+	{USB_DEVICE(0x041e, 0x4068), .driver_info = BRIDGE_OV519 },
+	{USB_DEVICE(0x045e, 0x028c),
 		.driver_info = BRIDGE_OV519 | BRIDGE_INVERT_LED },
-	{USB_DEVICE(0x045e, 0x028c), .driver_info = BRIDGE_OV519 },
 	{USB_DEVICE(0x054c, 0x0154), .driver_info = BRIDGE_OV519 },
-	{USB_DEVICE(0x054c, 0x0155),
-		.driver_info = BRIDGE_OV519 | BRIDGE_INVERT_LED },
+	{USB_DEVICE(0x054c, 0x0155), .driver_info = BRIDGE_OV519 },
 	{USB_DEVICE(0x05a9, 0x0511), .driver_info = BRIDGE_OV511 },
 	{USB_DEVICE(0x05a9, 0x0518), .driver_info = BRIDGE_OV518 },
-	{USB_DEVICE(0x05a9, 0x0519), .driver_info = BRIDGE_OV519 },
-	{USB_DEVICE(0x05a9, 0x0530), .driver_info = BRIDGE_OV519 },
+	{USB_DEVICE(0x05a9, 0x0519),
+		.driver_info = BRIDGE_OV519 | BRIDGE_INVERT_LED },
+	{USB_DEVICE(0x05a9, 0x0530),
+		.driver_info = BRIDGE_OV519 | BRIDGE_INVERT_LED },
 	{USB_DEVICE(0x05a9, 0x2800), .driver_info = BRIDGE_OVFX2 },
 	{USB_DEVICE(0x05a9, 0x4519), .driver_info = BRIDGE_OV519 },
 	{USB_DEVICE(0x05a9, 0x8519), .driver_info = BRIDGE_OV519 },
@@ -4960,7 +5127,7 @@ static int sd_probe(struct usb_interface *intf,
 }
 
 static struct usb_driver sd_driver = {
-	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.id_table = device_table,
 	.probe = sd_probe,
 	.disconnect = gspca_disconnect,
@@ -4970,18 +5137,4 @@ static struct usb_driver sd_driver = {
 #endif
 };
 
-/* -- module insert / remove -- */
-static int __init sd_mod_init(void)
-{
-	return usb_register(&sd_driver);
-}
-static void __exit sd_mod_exit(void)
-{
-	usb_deregister(&sd_driver);
-}
-
-module_init(sd_mod_init);
-module_exit(sd_mod_exit);
-
-module_param(frame_rate, int, 0644);
-MODULE_PARM_DESC(frame_rate, "Frame rate (5, 10, 15, 20 or 30 fps)");
+module_usb_driver(sd_driver);

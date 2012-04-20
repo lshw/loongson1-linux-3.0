@@ -17,7 +17,7 @@ static int major;
 
 static struct gpio_keys_platform_data *pkb = NULL; 
 
-//#define DEBUG_BOBODOG
+#define DEBUG_BOBODOG
 #ifdef DEBUG_BOBODOG
 static int bobodog_write(struct file *filp, const char __user *buffer,
 				size_t count, loff_t *ppos)
@@ -70,6 +70,7 @@ static int __devinit bobodog_gpio_probe(struct platform_device *pdev)
 
 	pkb = pdata;
 	for(i = 0;i < pkb->nbuttons;i++) {
+		gpio_request(pkb->buttons[i].gpio,"bobodog_gpio");
 		gpio_direction_output(pkb->buttons[i].gpio, 0);
 	}
 
@@ -106,7 +107,11 @@ static int __init bobodog_init(void)
 
 static void __exit bobodog_exit(void)
 {
+	int i;
 	misc_deregister(&bobodog_misc_device);
+	for(i = 0;i < pkb->nbuttons;i++){
+		gpio_free(pkb->buttons[i].gpio);
+	}
 }
 
 module_init(bobodog_init);

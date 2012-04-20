@@ -1,0 +1,6 @@
+config RT3070_LS1B
+	tristate "loongson-1b of rt3070 Wireless module support"
+	depends on MAC80211
+	select CRC_CCITT
+	select WIRELESS_EXT
+	select WEXT_PRIV

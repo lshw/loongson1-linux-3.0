@@ -137,7 +137,7 @@ static int ls1b_spi_setupxfer(struct spi_device *spi,
 		default: div=bit-1;break;
 	}
 
-	dev_dbg(&spi->dev, "setting pre-scaler to %d (hz %d)\n", div, hz);
+//	dev_dbg(&spi->dev, "setting pre-scaler to %d (hz %d)\n", div, hz);
 	val=readb(hw->regs + REG_SPCR);
 	val &= ~3;
 	val |=div&3;
@@ -195,8 +195,8 @@ static int ls1b_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 {
 	struct ls1b_spi *hw = to_hw(spi);
 
-	dev_dbg(&spi->dev, "txrx: tx %p, rx %p, len %d\n",
-		t->tx_buf, t->rx_buf, t->len);
+//	dev_dbg(&spi->dev, "txrx: tx %p, rx %p, len %d\n",
+//		t->tx_buf, t->rx_buf, t->len);
 		
 	hw->tx = t->tx_buf;
 	hw->rx = t->rx_buf;

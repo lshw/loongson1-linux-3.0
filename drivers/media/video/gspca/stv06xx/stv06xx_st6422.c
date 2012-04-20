@@ -26,6 +26,8 @@
  *
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include "stv06xx_st6422.h"
 
 /* controls */
@@ -41,6 +43,10 @@ enum e_ctrl {
 struct st6422_settings {
 	struct gspca_ctrl ctrls[NCTRLS];
 };
+
+static void st6422_pkt_scan(struct gspca_dev *gspca_dev,
+			u8 *data,
+			int len);
 
 static struct v4l2_pix_format st6422_mode[] = {
 	/* Note we actually get 124 lines of data, of which we skip the 4st
@@ -136,7 +142,7 @@ static int st6422_probe(struct sd *sd)
 	if (sd->bridge != BRIDGE_ST6422)
 		return -ENODEV;
 
-	info("st6422 sensor detected");
+	pr_info("st6422 sensor detected\n");
 
 	sensor_settings = kmalloc(sizeof *sensor_settings, GFP_KERNEL);
 	if (!sensor_settings)
@@ -147,6 +153,7 @@ static int st6422_probe(struct sd *sd)
 	sd->gspca_dev.cam.ctrls = sensor_settings->ctrls;
 	sd->desc.ctrls = st6422_ctrl;
 	sd->desc.nctrls = ARRAY_SIZE(st6422_ctrl);
+	sd->desc.pkt_scan = st6422_pkt_scan;
 	sd->sensor_priv = sensor_settings;
 
 	return 0;
@@ -333,8 +340,7 @@ static int st6422_start(struct sd *sd)
 		return err;
 
 	/* commit settings */
-	err = stv06xx_write_bridge(sd, 0x143f, 0x01);
-	return (err < 0) ? err : 0;
+	return stv06xx_write_bridge(sd, 0x143f, 0x01);
 }
 
 static int st6422_stop(struct sd *sd)
@@ -342,6 +348,79 @@ static int st6422_stop(struct sd *sd)
 	PDEBUG(D_STREAM, "Halting stream");
 
 	return 0;
+}
+
+static void st6422_pkt_scan(struct gspca_dev *gspca_dev,
+			u8 *data,
+			int len)
+{
+	struct sd *sd = (struct sd *) gspca_dev;
+	int id, chunk_len, skip;
+
+	/* A packet may contain several frames
+	   loop until the whole packet is reached */
+	while (len) {
+		if (len < 4) {
+			PDEBUG(D_PACK, "Packet is smaller than 4 bytes");
+			return;
+		}
+
+		/* Capture the id */
+		id = (data[0] << 8) | data[1];
+
+		/* Capture the chunk length */
+		chunk_len = (data[2] << 8) | data[3];
+		PDEBUG(D_PACK, "Chunk id: %04x, length: %04x", id, chunk_len);
+
+		data += 4;
+		len -= 4;
+
+		if (len < chunk_len) {
+			PDEBUG(D_ERR, "URB packet length is smaller"
+				" than the specified chunk length");
+			gspca_dev->last_packet_type = DISCARD_PACKET;
+			return;
+		}
+
+		switch (id >> 8) {
+		case 0x02:
+			if (sd->to_skip) {
+				skip = sd->to_skip < chunk_len ?
+						sd->to_skip : chunk_len;
+				data += skip;
+				len -= skip;
+				chunk_len -= skip;
+				sd->to_skip -= skip;
+			}
+			gspca_frame_add(gspca_dev, INTER_PACKET,
+					data, chunk_len);
+			break;
+		case 0x80:
+		case 0xc0:
+			if (id & 0x0001) {
+
+				/* start a new frame,
+				 * chunk length should be zero */
+				gspca_frame_add(gspca_dev, FIRST_PACKET,
+					NULL, 0);
+
+				sd->to_skip = gspca_dev->width * 4;
+				break;
+			}
+
+			/* End of frame detected */
+			gspca_frame_add(gspca_dev, LAST_PACKET,
+					NULL, 0);
+			break;
+		case 0x42:	/* chunk 42ff ignored */
+			break;
+		default:
+			PDEBUG(D_PACK, "Unknown chunk 0x%04x detected", id);
+			/* Unknown chunk */
+		}
+		data    += chunk_len;
+		len     -= chunk_len;
+	}
 }
 
 static void st6422_set_brightness(struct gspca_dev *gspca_dev)

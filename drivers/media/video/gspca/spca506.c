@@ -216,7 +216,7 @@ static void spca506_SetNormeInput(struct gspca_dev *gspca_dev,
 		setbit1 = 0x02;
 	videomask = (0x48 | setbit0 | setbit1);
 	reg_w(gspca_dev->dev, 0x08, videomask, 0x0000);
-	spca506_WriteI2c(gspca_dev, (0xc0 | (channel & 0x0F)), 0x02);
+	spca506_WriteI2c(gspca_dev, (0xc0 | (channel & 0x0f)), 0x02);
 
 	if (norme & V4L2_STD_NTSC)
 		spca506_WriteI2c(gspca_dev, 0x33, 0x0e);
@@ -300,7 +300,7 @@ static int sd_init(struct gspca_dev *gspca_dev)
 	struct usb_device *dev = gspca_dev->dev;
 
 	reg_w(dev, 0x03, 0x00, 0x0004);
-	reg_w(dev, 0x03, 0xFF, 0x0003);
+	reg_w(dev, 0x03, 0xff, 0x0003);
 	reg_w(dev, 0x03, 0x00, 0x0000);
 	reg_w(dev, 0x03, 0x1c, 0x0001);
 	reg_w(dev, 0x03, 0x18, 0x0001);
@@ -325,7 +325,7 @@ static int sd_init(struct gspca_dev *gspca_dev)
 	reg_w(dev, 0x03, 0x00, 0x0004);
 	reg_w(dev, 0x03, 0x00, 0x0003);
 	reg_w(dev, 0x03, 0x00, 0x0004);
-	reg_w(dev, 0x03, 0xFF, 0x0003);
+	reg_w(dev, 0x03, 0xff, 0x0003);
 	reg_w(dev, 0x02, 0x00, 0x0000);
 	reg_w(dev, 0x03, 0x60, 0x0000);
 	reg_w(dev, 0x03, 0x18, 0x0001);
@@ -413,7 +413,7 @@ static int sd_start(struct gspca_dev *gspca_dev)
 	reg_w(dev, 0x03, 0x00, 0x0004);
 	reg_w(dev, 0x03, 0x00, 0x0003);
 	reg_w(dev, 0x03, 0x00, 0x0004);
-	reg_w(dev, 0x03, 0xFF, 0x0003);
+	reg_w(dev, 0x03, 0xff, 0x0003);
 	reg_w(dev, 0x02, 0x00, 0x0000);
 	reg_w(dev, 0x03, 0x60, 0x0000);
 	reg_w(dev, 0x03, 0x18, 0x0001);
@@ -717,17 +717,11 @@ static struct usb_driver sd_driver = {
 /* -- module insert / remove -- */
 static int __init sd_mod_init(void)
 {
-	int ret;
-	ret = usb_register(&sd_driver);
-	if (ret < 0)
-		return ret;
-	PDEBUG(D_PROBE, "registered");
-	return 0;
+	return usb_register(&sd_driver);
 }
 static void __exit sd_mod_exit(void)
 {
 	usb_deregister(&sd_driver);
-	PDEBUG(D_PROBE, "deregistered");
 }
 
 module_init(sd_mod_init);

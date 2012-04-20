@@ -1,8 +1,8 @@
 /*
  *		Mars-Semi MR97311A library
- *		Copyright (C) 2005 <bradlch@hotmail.com>
  *
- * V4L2 by Jean-Francois Moine <http://moinejf.free.fr>
+ * Copyright (C) 2009-2011 Jean-Francois Moine (http://moinejf.free.fr)
+ * Copyright (C) 2005 <bradlch@hotmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #define MODULE_NAME "mars"
 
 #include "gspca.h"
 #include "jpeg.h"
 
-MODULE_AUTHOR("Michel Xhaard <mxhaard@users.sourceforge.net>");
+MODULE_AUTHOR("Jean-Francois Moine <http://moinejf.free.fr>");
 MODULE_DESCRIPTION("GSPCA/Mars USB Camera Driver");
 MODULE_LICENSE("GPL");
 
@@ -178,8 +180,8 @@ static void reg_w(struct gspca_dev *gspca_dev,
 			&alen,
 			500);	/* timeout in milliseconds */
 	if (ret < 0) {
-		err("reg write [%02x] error %d",
-			gspca_dev->usb_buf[0], ret);
+		pr_err("reg write [%02x] error %d\n",
+		       gspca_dev->usb_buf[0], ret);
 		gspca_dev->usb_err = ret;
 	}
 }
@@ -261,7 +263,6 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	cam->nmodes = ARRAY_SIZE(vga_mode);
 	cam->ctrls = sd->ctrls;
 	sd->quality = QUALITY_DEF;
-	gspca_dev->nbalt = 9;		/* use the altsetting 08 */
 	return 0;
 }
 
@@ -515,15 +516,4 @@ static struct usb_driver sd_driver = {
 #endif
 };
 
-/* -- module insert / remove -- */
-static int __init sd_mod_init(void)
-{
-	return usb_register(&sd_driver);
-}
-static void __exit sd_mod_exit(void)
-{
-	usb_deregister(&sd_driver);
-}
-
-module_init(sd_mod_init);
-module_exit(sd_mod_exit);
+module_usb_driver(sd_driver);

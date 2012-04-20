@@ -20,6 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #define MODULE_NAME "nw80x"
 
 #include "gspca.h"
@@ -32,6 +34,7 @@ static int webcam;
 
 /* controls */
 enum e_ctrl {
+	BRIGHTNESS,
 	GAIN,
 	EXPOSURE,
 	AUTOGAIN,
@@ -629,6 +632,13 @@ static const u8 spacecam_start[] = {
 	0x04, 0x06, 0x01, 0xc3,
 	0x04, 0x05, 0x01, 0x40,
 	0x04, 0x04, 0x01, 0x40,
+
+	0x00, 0x91, 0x02, 0x60, 0x02,	/* exposure */
+	0x00, 0x03, 0x02, 0xca, 0x01,
+	0x05, 0x02, 0x01, 0x02,		/* SIF - length = 2 bytes */
+	0x06, 0x00, 0x02, 0xc0, 0x70,	/* ?? / gain */
+	0x05, 0x05, 0x01, 0x20,
+	0x05, 0x05, 0x01, 0x21,		/* SIF - write */
 	0, 0, 0
 };
 /* et31x110 - pas106 - other Trust SpaceCam120 */
@@ -1571,7 +1581,7 @@ static void reg_w(struct gspca_dev *gspca_dev,
 			len,
 			500);
 	if (ret < 0) {
-		err("reg_w err %d", ret);
+		pr_err("reg_w err %d\n", ret);
 		gspca_dev->usb_err = ret;
 	}
 }
@@ -1592,7 +1602,7 @@ static void reg_r(struct gspca_dev *gspca_dev,
 			0x00, index,
 			gspca_dev->usb_buf, len, 500);
 	if (ret < 0) {
-		err("reg_r err %d", ret);
+		pr_err("reg_r err %d\n", ret);
 		gspca_dev->usb_err = ret;
 		return;
 	}
@@ -1665,6 +1675,34 @@ static int swap_bits(int v)
 	return r;
 }
 
+static void setbrightness(struct gspca_dev *gspca_dev)
+{
+	struct sd *sd = (struct sd *) gspca_dev;
+	u8 lut[17];
+	int i, brightness, v;
+	static const u8 lut_spacecam[17] = {
+		0x00, 0x28, 0x3d, 0x4c, 0x5a, 0x65, 0x6f, 0x79,
+		0x82, 0x8a, 0x91, 0x99, 0x9f, 0x9f, 0x9f, 0x9f,
+		0x9f
+	};
+
+	switch (sd->webcam) {
+	case SpaceCam:
+		/* 0..253 -> 0..506 */
+		brightness = sd->ctrls[BRIGHTNESS].val * 2;
+		for (i = 0; i < sizeof lut; i++) {
+			v = lut_spacecam[i] * brightness
+				/ lut_spacecam[sizeof lut - 1];
+			if (v > 0xf9)
+				v = 0xf9;
+			lut[i] = v;
+		}
+		reg_w(gspca_dev, 0x1041, lut, sizeof lut);
+/*fixme: 1048 for nw801*/
+		break;
+	}
+}
+
 static void setgain(struct gspca_dev *gspca_dev)
 {
 	struct sd *sd = (struct sd *) gspca_dev;
@@ -1685,6 +1723,19 @@ static void setgain(struct gspca_dev *gspca_dev)
 		v[1] = val >> 5;
 		reg_w(gspca_dev, 0x101d, v, 2);	/* SIF reg0/1 (AGC) */
 		break;
+#if 0
+	case SpaceCam:
+		v[0] = 0x02;			/* SIF 2 bytes */
+		reg_w(gspca_dev, 0x0502, v, 1);
+		v[0] = 0x04;			/* ?? */
+		v[1] = val;
+		reg_w(gspca_dev, 0x0600, v, 2);
+		v[0] = 0x20;
+		reg_w(gspca_dev, 0x0505, v, 1);
+		v[0] = 0x21;			/* SIF write */
+		reg_w(gspca_dev, 0x0505, v, 1);
+		break;
+#endif
 	}
 }
 
@@ -1707,6 +1758,16 @@ static void setexposure(struct gspca_dev *gspca_dev)
 		v[0] = val;
 		v[1] = val >> 8;
 		reg_w(gspca_dev, 0x101b, v, 2);
+		break;
+	case SpaceCam:
+		val = val * 2 + 0x132;
+		v[0] = val;
+		v[1] = val >> 8;
+		reg_w(gspca_dev, 0x0091, v, 2);
+		val = 0x1b5;		/* fixme */
+		v[0] = val;
+		v[1] = val >> 8;
+		reg_w(gspca_dev, 0x0003, v, 2);
 		break;
 	}
 }
@@ -1761,8 +1822,8 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	if ((unsigned) webcam >= NWEBCAMS)
 		webcam = 0;
 	sd->webcam = webcam;
-	gspca_dev->cam.reverse_alts = 1;
 	gspca_dev->cam.ctrls = sd->ctrls;
+	gspca_dev->cam.needs_full_bandwidth = 1;
 	sd->ag_cnt = -1;
 
 	/*
@@ -1802,7 +1863,8 @@ static int sd_config(struct gspca_dev *gspca_dev,
 		}
 	}
 	if (webcam_chip[sd->webcam] != sd->bridge) {
-		err("Bad webcam type %d for NW80%d", sd->webcam, sd->bridge);
+		pr_err("Bad webcam type %d for NW80%d\n",
+		       sd->webcam, sd->bridge);
 		gspca_dev->usb_err = -ENODEV;
 		return gspca_dev->usb_err;
 	}
@@ -1848,6 +1910,14 @@ static int sd_config(struct gspca_dev *gspca_dev,
 		sd->ctrls[EXPOSURE].max = 315;
 		sd->ctrls[EXPOSURE].def = 150;
 		break;
+	case SpaceCam:
+#if 0
+		sd->ctrls[GAIN].def = 180;
+#endif
+		sd->ctrls[EXPOSURE].max = 358;
+		sd->ctrls[EXPOSURE].def = 150;
+		gspca_dev->ctrl_dis = (1 << GAIN) | (1 << AUTOGAIN);
+		break;
 	default:
 		gspca_dev->ctrl_dis = (1 << GAIN) | (1 << EXPOSURE)
 					 | (1 << AUTOGAIN);
@@ -1858,6 +1928,9 @@ static int sd_config(struct gspca_dev *gspca_dev,
 	if (!(gspca_dev->ctrl_dis & (1 << AUTOGAIN)))
 		gspca_dev->ctrl_inac = (1 << GAIN) | (1 << EXPOSURE);
 #endif
+	if (sd->webcam != SpaceCam)
+		gspca_dev->ctrl_dis |= (1 << BRIGHTNESS);
+
 	return gspca_dev->usb_err;
 }
 
@@ -1922,6 +1995,7 @@ static int sd_start(struct gspca_dev *gspca_dev)
 		break;
 	}
 
+	setbrightness(gspca_dev);
 	setgain(gspca_dev);
 	setexposure(gspca_dev);
 	setautogain(gspca_dev);
@@ -2029,6 +2103,18 @@ static void do_autogain(struct gspca_dev *gspca_dev)
 
 /* V4L2 controls supported by the driver */
 static const struct ctrl sd_ctrls[NCTRLS] = {
+[BRIGHTNESS] = {
+	    {
+		.id      = V4L2_CID_BRIGHTNESS,
+		.type    = V4L2_CTRL_TYPE_INTEGER,
+		.name    = "Brightness",
+		.minimum = 0,
+		.maximum = 253,
+		.step    = 1,
+		.default_value = 80
+	    },
+	    .set_control = setbrightness
+	},
 [GAIN] = {
 	    {
 		.id      = V4L2_CID_GAIN,
@@ -2112,21 +2198,11 @@ static struct usb_driver sd_driver = {
 #ifdef CONFIG_PM
 	.suspend = gspca_suspend,
 	.resume = gspca_resume,
+	.reset_resume = gspca_resume,
 #endif
 };
 
-/* -- module insert / remove -- */
-static int __init sd_mod_init(void)
-{
-	return usb_register(&sd_driver);
-}
-static void __exit sd_mod_exit(void)
-{
-	usb_deregister(&sd_driver);
-}
-
-module_init(sd_mod_init);
-module_exit(sd_mod_exit);
+module_usb_driver(sd_driver);
 
 module_param(webcam, int, 0644);
 MODULE_PARM_DESC(webcam,
