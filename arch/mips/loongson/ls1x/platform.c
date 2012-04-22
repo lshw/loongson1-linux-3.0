@@ -23,10 +23,8 @@
 #include <linux/spi/spi.h>		//lxy
 #include <linux/spi/mmc_spi.h>		//lqx
 #include <linux/mmc/host.h>
-#include <linux/gpio.h>
 #include <linux/mtd/partitions.h>
 #include <linux/spi/flash.h>
-//#include <asm/mach-loongson/ls1b/gpio_keys.h>	//lqx
 #include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
@@ -37,6 +35,7 @@
 #include <asm/mach-loongson/ls1x/spi.h>
 #include <asm/mach-loongson/ls1x/fb.h>
 #include <linux/gpio_keys.h>
+#include <asm/gpio.h>
 
 #include <linux/phy.h> //lv
 #include <linux/stmmac.h> //lv
@@ -293,52 +292,31 @@ static struct platform_device ls1b_rtc_device = {
 /* I2C devices fitted. */
 
 /***************2007******************/
-#define	tsc_irq	(LS1B_BOARD_GPIO_FIRST_IRQ + 60)
+#define TSC2007_GPIO_IRQ	60
 static int ts_get_pendown_state(void)
 {
-	int val = 0;
-#if 0
-	gpio_free(GPIO_FN_INTC_IRQ0);
-	gpio_request(GPIO_PTZ0, NULL);
-	gpio_direction_input(GPIO_PTZ0);
-
-	val = gpio_get_value(GPIO_PTZ0);
-
-	gpio_free(GPIO_PTZ0);
-	gpio_request(GPIO_FN_INTC_IRQ0, NULL);
-#endif
-	val = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_IN1));
-	
-	return val & (1 <<(60&0x1f)) ? 0 : 1;
+	return !gpio_get_value(TSC2007_GPIO_IRQ);
 }
 
-void ts_init()
+void ts_init(void)
 {
-	unsigned int ret;
-	int gpio = tsc_irq - LS1B_BOARD_GPIO_FIRST_IRQ;
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)); //GPIO0	0xbfd010c0
-	ret |= (1 << (gpio & 0x1f)); //GPIO50
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)) = ret;	
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1));//GPIO0 
-	ret |= (1 << (gpio & 0x1f));
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1)) = ret;
-
-	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (gpio & 0x1f));	
+	ls1b_gpio_direction_input(NULL, TSC2007_GPIO_IRQ);		/* 输入使能 */
+	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (TSC2007_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (TSC2007_GPIO_IRQ & 0x1f));
 }
 
-void ts_clear_penirq()
+void ts_clear_penirq(void)
 {
-	int gpio = tsc_irq - LS1B_BOARD_GPIO_FIRST_IRQ;
-	(ls1b_board_hw0_icregs + 3) -> int_en &= ~(1 << (gpio & 0x1f));
+//	int gpio = tsc_irq - LS1B_BOARD_GPIO_FIRST_IRQ;
+	(ls1b_board_hw0_icregs + 3) -> int_en &= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
 }
 
 
 static struct tsc2007_platform_data tsc2007_info = {
-	.model			= 2007,
+	.model				= 2007,
 	.x_plate_ohms		= 180,
 	.get_pendown_state	= ts_get_pendown_state,
 	.init_platform_hw	= ts_init,
@@ -347,32 +325,24 @@ static struct tsc2007_platform_data tsc2007_info = {
 /***************2007******************/
 
 /***************ft5x0x****************/
-#define	ft5x0x_ts_irq	(LS1B_BOARD_GPIO_FIRST_IRQ + 38)
-void ft5x0x_irq_init()
+#define FT5X0X_GPIO_IRQ		38
+#define FT5X0X_GPIO_WAUP	39
+void ft5x0x_irq_init(void)
 {
-	unsigned int ret;
-	int gpio = ft5x0x_ts_irq - LS1B_BOARD_GPIO_FIRST_IRQ;
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)); //GPIO0	0xbfd010c0
-	ret |= (1 << (gpio & 0x1f)); //GPIO50
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)) = ret;	
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1));//GPIO0 
-	ret |= (1 << (gpio & 0x1f));
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1)) = ret;
+	ls1b_gpio_direction_input(NULL, FT5X0X_GPIO_IRQ);		/* 输入使能 */
 
-	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (gpio & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (gpio & 0x1f));	
+	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));	
 }
 
-void ft5x0x_wake_up()
+void ft5x0x_wake_up(void)
 {
-	*(volatile int *)0xbfd010c4 |= 0x80;
-	*(volatile int *)0xbfd010d4 &= ~0x80;
-	*(volatile int *)0xbfd010f4 &= ~0x80;
+	ls1b_gpio_direction_output(NULL, FT5X0X_GPIO_WAUP, 0);		/* 输出使能 */
 	msleep(10);
-	*(volatile int *)0xbfd010f4 |= 0x80;
+	gpio_set_value(FT5X0X_GPIO_WAUP, 1);
 	msleep(10);
 }
 
@@ -385,12 +355,12 @@ static struct ft5x0x_ts_platform_data ft5x0x_info = {
 static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
 	{
 		I2C_BOARD_INFO("tsc2007", 0x48),
-		.irq = tsc_irq,
+		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
 		.platform_data	= &tsc2007_info,
 	},
 	{
 		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
-		.irq = ft5x0x_ts_irq,
+		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
 		.platform_data	= &ft5x0x_info,
 	},
 };
@@ -787,14 +757,14 @@ static struct flash_platform_data flash = {
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
-#define DETECT_GPIO  40
+#define DETECT_GPIO  41
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
 {
 	return !gpio_get_value(DETECT_GPIO);
 }
 
-#if 0
+#if 1
 #define MMC_SPI_CARD_DETECT_INT  (LS1B_BOARD_GPIO_FIRST_IRQ + DETECT_GPIO)
 /* 中断方式方式探测card的插拔 */
 static int ls1b_mmc_spi_init(struct device *dev,
@@ -812,43 +782,34 @@ static void ls1b_mmc_spi_exit(struct device *dev, void *data)
 
 static struct mmc_spi_platform_data mmc_spi = {
 	/* 中断方式方式探测card的插拔 */
-//	.init = ls1b_mmc_spi_init,
-//	.exit = ls1b_mmc_spi_exit,
-	.detect_delay = 100,	/* msecs */
+	.init = ls1b_mmc_spi_init,
+	.exit = ls1b_mmc_spi_exit,
+	.detect_delay = 1200,	/* msecs */
 	/* 轮询方式方式探测card的插拔 */
-//	.get_cd = mmc_spi_get_cd,
+	.get_cd = mmc_spi_get_cd,
 //	.caps = MMC_CAP_NEEDS_POLL,
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
-#define GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
+#define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
 int ads7846_pendown_state(unsigned int pin)
 {
-	unsigned int ret;
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_IN1)); //读回的数值是反码？
-	ret = ((ret >> (GPIO_IRQ & 0x1f)) & 0x01);
-	return !ret;
+	return !gpio_get_value(ADS7846_GPIO_IRQ);
 }
 	
 int ads7846_detect_penirq(void)
 {
-	unsigned int ret;
 	//配置GPIO0
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)); //GPIO0 0xbfd010c0 使能GPIO
-	ret |= (1 << (GPIO_IRQ & 0x1f)); //GPIO50
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)) = ret;
+	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);		/* 输入使能 */
+		
+	(ls1b_board_hw0_icregs + 3) -> int_edge &= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs + 3) -> int_en		|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
 	
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1));//GPIO0 设置GPIO输入使能
-	ret |= (1 << (GPIO_IRQ & 0x1f));
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1)) = ret;
-	(ls1b_board_hw0_icregs + 3) -> int_edge &= ~(1 << (GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en		|= (1 << (GPIO_IRQ & 0x1f));
-	
-	return (LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IRQ);
+	return (LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
 }
 	
 static struct ads7846_platform_data ads_info = {
@@ -898,7 +859,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.chip_select 	= SPI0_CS1,
 		.max_speed_hz 	= 500*1000,
 		.mode 			= SPI_MODE_1,
-		.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IRQ,
+		.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
@@ -1252,14 +1213,14 @@ int ls1b_platform_init(void)
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	/* 轮询方式探测card的插拔 */
-	gpio_request(DETECT_GPIO, NULL);		/* 设置引脚为GPIO模式 */
-	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
+//	gpio_request(DETECT_GPIO, NULL);		/* 设置引脚为GPIO模式 */
+	ls1b_gpio_direction_input(NULL, DETECT_GPIO);		/* 输入使能 */
 	/* 中断方式探测card的插拔 */
-//	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (DETECT_GPIO & 0x1f));		/* 边沿触发方式寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 电平触发方式寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断清空寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 中断置位寄存器 */
-//	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断使能寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (DETECT_GPIO & 0x1f));		/* 边沿触发方式寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 电平触发方式寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断清空寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 中断置位寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断使能寄存器 */
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846

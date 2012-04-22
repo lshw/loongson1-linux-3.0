@@ -1,7 +1,7 @@
 /* compilation option */
 #define GSPCA_DEBUG 1
 
-#include "gspca.h.orig"
+#include "gspca.orig.h"
 #include <linux/version.h>
 
 #undef GSPCA_VERSION

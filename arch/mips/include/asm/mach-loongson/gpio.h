@@ -18,6 +18,9 @@
 extern void gpio_set_value(unsigned gpio, int value);
 extern int gpio_get_value(unsigned gpio);
 extern int gpio_cansleep(unsigned gpio);
+extern int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio);
+extern int ls1b_gpio_direction_output(struct gpio_chip *chip,
+		unsigned gpio, int level);
 
 /* The chip can do interrupt
  * but it has not been tested and doc not clear

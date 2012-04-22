@@ -104,7 +104,7 @@ int gpio_cansleep(unsigned gpio)
 }
 EXPORT_SYMBOL(gpio_cansleep);
 
-static int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
+int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 {
 	u32 temp;
 	u32 mask;
@@ -136,8 +136,9 @@ static int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 
 	return 0;
 }
+EXPORT_SYMBOL(ls1b_gpio_direction_input);
 
-static int ls1b_gpio_direction_output(struct gpio_chip *chip,
+int ls1b_gpio_direction_output(struct gpio_chip *chip,
 		unsigned gpio, int level)
 {
 	u32 temp;
@@ -172,6 +173,7 @@ static int ls1b_gpio_direction_output(struct gpio_chip *chip,
 
 	return 0;
 }
+EXPORT_SYMBOL(ls1b_gpio_direction_output);
 
 static int ls1b_gpio_get_value(struct gpio_chip *chip, unsigned gpio)
 {
