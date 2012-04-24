@@ -44,7 +44,7 @@
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
 
-
+#ifdef CONFIG_MTD_NAND_LS1B
 struct ls1b_nand_platform_data{
     int enable_arbiter;
     struct mtd_partition *parts;
@@ -109,11 +109,44 @@ static struct mtd_partition ls1b_nand_partitions[]={
 };
 
 static struct ls1b_nand_platform_data ls1b_nand_parts = {
-        .enable_arbiter =   1,
-        .parts          =   ls1b_nand_partitions,
-        .nr_parts       =   ARRAY_SIZE(ls1b_nand_partitions),
-    
+	.enable_arbiter =   1,
+	.parts          =   ls1b_nand_partitions,
+	.nr_parts       =   ARRAY_SIZE(ls1b_nand_partitions),
 };
+
+static struct resource ls1b_nand_resources[] = {
+    [0] = {
+        .start      =0,
+        .end        =0,
+        .flags      =IORESOURCE_DMA,    
+    },
+    [1] = {
+        .start      =0x1fe78000,
+        .end        =0x1fe78020,
+        .flags      =IORESOURCE_MEM,
+    },
+    [2] = {
+        .start      =0x1fd01160,
+        .end        =0x1fd01160,
+        .flags      =IORESOURCE_MEM,
+    },
+    [3] = {
+        .start      =LS1B_BOARD_DMA0_IRQ,
+        .end        =LS1B_BOARD_DMA0_IRQ,
+        .flags      =IORESOURCE_IRQ,
+    },
+};
+
+struct platform_device ls1b_nand_device = {
+    .name       ="ls1b-nand",
+    .id         =-1,
+    .dev        ={
+        .platform_data = &ls1b_nand_parts,
+    },
+    .num_resources  =ARRAY_SIZE(ls1b_nand_resources),
+    .resource       =ls1b_nand_resources,
+};
+#endif //CONFIG_MTD_NAND_LS1B
 
 static struct plat_serial8250_port uart8250_data[] = {
 {.mapbase=0xbfe40000, .membase=(void *)0xbfe40000, .irq=2, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
@@ -143,47 +176,49 @@ static struct platform_device uart8250_device = {
 	}
 };
 
-static struct resource ls1b_ahci_resources[] = { 
- [0] = {
-   .start          = 0x1fe30000,
-   .end            = 0x1fe30000+0x1ff,
-   .flags          = IORESOURCE_MEM,
- },
- [1] = {
-   .start          = 36,
-   .end            = 36,
-   .flags          = IORESOURCE_IRQ,
- },
+#ifdef LOONGSON_AHCI
+static struct resource ls1b_ahci_resources[] = {
+	[0] = {
+		.start          = 0x1fe30000,
+		.end            = 0x1fe30000+0x1ff,
+		.flags          = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start          = 36,
+		.end            = 36,
+		.flags          = IORESOURCE_IRQ,
+	},
 };
 
 static void __iomem *ls1b_ahci_map_table[6];
 
 static struct platform_device ls1b_ahci_device = {
- .name           = "ls1b-ahci",
- .id             = -1,
- .dev = {
-   .platform_data = ls1b_ahci_map_table,
- },
- .num_resources  = ARRAY_SIZE(ls1b_ahci_resources),
- .resource       = ls1b_ahci_resources,
+	.name           = "ls1b-ahci",
+	.id             = -1,
+	.dev = {
+		.platform_data = ls1b_ahci_map_table,
+	},
+	.num_resources  = ARRAY_SIZE(ls1b_ahci_resources),
+	.resource       = ls1b_ahci_resources,
 };
+#endif //#ifdef LOONGSON_AHCI
 
 /*
  * ohci
  */
-static int dma_mask=-1;
-
-static struct resource ls1b_ohci_resources[] = { 
- [0] = {
-   .start          = LS1B_USB_OHCI_BASE,
-   .end            = (LS1B_USB_OHCI_BASE + 0x1000 - 1),
-   .flags          = IORESOURCE_MEM,
- },
- [1] = {
-   .start          = LS1B_BOARD_OHCI_IRQ,
-   .end            = LS1B_BOARD_OHCI_IRQ,
-   .flags          = IORESOURCE_IRQ,
- },
+#ifdef CONFIG_USB_OHCI_HCD_LS1B
+static u64 ls1b_ohci_dma_mask = -1;
+static struct resource ls1b_ohci_resources[] = {
+	[0] = {
+		.start          = LS1B_USB_OHCI_BASE,
+		.end            = (LS1B_USB_OHCI_BASE + 0x1000 - 1),
+		.flags          = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start          = LS1B_BOARD_OHCI_IRQ,
+		.end            = LS1B_BOARD_OHCI_IRQ,
+		.flags          = IORESOURCE_IRQ,
+	},
 };
 
 static struct ls1b_usbh_data  ls1b_ohci_platform_data={
@@ -195,31 +230,33 @@ static struct ls1b_usbh_data  ls1b_ohci_platform_data={
 };
 
 static struct platform_device ls1b_ohci_device = {
- .name           = "ls1b-ohci",
- .id             = -1,
- .dev = {
-   .platform_data = &ls1b_ohci_platform_data,
-   .dma_mask=&dma_mask,
- },
- .num_resources  = ARRAY_SIZE(ls1b_ohci_resources),
- .resource       = ls1b_ohci_resources,
+	.name           = "ls1b-ohci",
+	.id             = -1,
+	.dev = {
+		.platform_data = &ls1b_ohci_platform_data,
+		.dma_mask = &ls1b_ohci_dma_mask,
+	},
+	.num_resources  = ARRAY_SIZE(ls1b_ohci_resources),
+	.resource       = ls1b_ohci_resources,
 };
+#endif //#ifdef CONFIG_USB_OHCI_HCD_LS1B
 
 /*
  * ehci
  */
-
+#ifdef CONFIG_USB_EHCI_HCD_LS1B
+static u64 ls1b_ehci_dma_mask = -1;
 static struct resource ls1b_ehci_resources[] = { 
- [0] = {
-   .start          = LS1B_USB_EHCI_BASE,
-   .end            = (LS1B_USB_EHCI_BASE + 0x6b),
-   .flags          = IORESOURCE_MEM,
- },
- [1] = {
-   .start          = LS1B_BOARD_EHCI_IRQ,
-   .end            = LS1B_BOARD_EHCI_IRQ,
-   .flags          = IORESOURCE_IRQ,
- },
+	[0] = {
+		.start          = LS1B_USB_EHCI_BASE,
+		.end            = (LS1B_USB_EHCI_BASE + 0x6b),
+		.flags          = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start          = LS1B_BOARD_EHCI_IRQ,
+		.end            = LS1B_BOARD_EHCI_IRQ,
+		.flags          = IORESOURCE_IRQ,
+	},
 };
 
 static struct ls1b_usbh_data  ls1b_ehci_platform_data={
@@ -231,20 +268,22 @@ static struct ls1b_usbh_data  ls1b_ehci_platform_data={
 };
 
 static struct platform_device ls1b_ehci_device = {
- .name           = "ls1b-ehci",
- .id             = -1,
- .dev = {
-   .platform_data = &ls1b_ehci_platform_data,
-   .dma_mask=&dma_mask,
- },
- .num_resources  = ARRAY_SIZE(ls1b_ehci_resources),
- .resource       = ls1b_ehci_resources,
+	.name           = "ls1b-ehci",
+	.id             = -1,
+	.dev = {
+		.platform_data = &ls1b_ehci_platform_data,
+		.dma_mask = &ls1b_ehci_dma_mask,
+	},
+	.num_resources  = ARRAY_SIZE(ls1b_ehci_resources),
+	.resource       = ls1b_ehci_resources,
 };
+#endif //#ifdef CONFIG_USB_EHCI_HCD_LS1B
+
 
 /*
 * watchdog
 */
-
+#ifdef CONFIG_LS1B_WDT
 static struct resource ls1b_wat_resource[] = {
 	[0]={
 		.start      = LS1B_BOARD_WAT_BASE,
@@ -259,11 +298,12 @@ static struct platform_device ls1b_wat_device = {
 	.num_resources  = ARRAY_SIZE(ls1b_wat_resource),
 	.resource   = ls1b_wat_resource,
 };
+#endif //#ifdef CONFIG_LS1B_WDT
 
 /*
 *RTC
 */
-
+#ifdef CONFIG_RTC_DRV_LS1B
 static struct resource ls1b_rtc_resource[] = {
 	[0]={
 		.start      = LS1B_BOARD_RTC_BASE,
@@ -283,21 +323,20 @@ static struct platform_device ls1b_rtc_device = {
 	.num_resources  = ARRAY_SIZE(ls1b_rtc_resource),
 	.resource   = ls1b_rtc_resource,
 };
+#endif //#ifdef CONFIG_RTC_DRV_LS1B
 
 /*
 *I2C
 */
-
 /* I2C devices fitted. */
-
-/***************2007******************/
+#ifdef CONFIG_TOUCHSCREEN_TSC2007
 #define TSC2007_GPIO_IRQ	60
 static int ts_get_pendown_state(void)
 {
 	return !gpio_get_value(TSC2007_GPIO_IRQ);
 }
 
-void ts_init(void)
+int ts_init(void)
 {
 	ls1b_gpio_direction_input(NULL, TSC2007_GPIO_IRQ);		/* 输入使能 */
 	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
@@ -305,14 +344,13 @@ void ts_init(void)
 	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (TSC2007_GPIO_IRQ & 0x1f));
 	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
 	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (TSC2007_GPIO_IRQ & 0x1f));
+	return 0;
 }
 
 void ts_clear_penirq(void)
 {
-//	int gpio = tsc_irq - LS1B_BOARD_GPIO_FIRST_IRQ;
 	(ls1b_board_hw0_icregs + 3) -> int_en &= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
 }
-
 
 static struct tsc2007_platform_data tsc2007_info = {
 	.model				= 2007,
@@ -321,12 +359,12 @@ static struct tsc2007_platform_data tsc2007_info = {
 	.init_platform_hw	= ts_init,
 //	.clear_penirq		= ts_clear_penirq,
 };
-/***************2007******************/
+#endif //#ifdef CONFIG_TOUCHSCREEN_TSC2007
 
-/***************ft5x0x****************/
+#ifdef CONFIG_TOUCHSCREEN_FT5X0X
 #define FT5X0X_GPIO_IRQ		38
 #define FT5X0X_GPIO_WAUP	39
-void ft5x0x_irq_init(void)
+int ft5x0x_irq_init(void)
 {
 	ls1b_gpio_direction_input(NULL, FT5X0X_GPIO_IRQ);		/* 输入使能 */
 
@@ -334,41 +372,26 @@ void ft5x0x_irq_init(void)
 	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
 	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));
 	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));	
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));
+	return 0;
 }
 
-void ft5x0x_wake_up(void)
+int ft5x0x_wake_up(void)
 {
 	ls1b_gpio_direction_output(NULL, FT5X0X_GPIO_WAUP, 0);		/* 输出使能 */
 	msleep(10);
 	gpio_set_value(FT5X0X_GPIO_WAUP, 1);
 	msleep(10);
+	return 0;
 }
 
 static struct ft5x0x_ts_platform_data ft5x0x_info = {
 	.init_platform_hw	= ft5x0x_irq_init,
 	.wake_platform_hw	= ft5x0x_wake_up,
 };
-/***************ft5x0x****************/
-
-static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
-	{
-		I2C_BOARD_INFO("tsc2007", 0x48),
-		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
-		.platform_data	= &tsc2007_info,
-	},
-	{
-		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
-		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
-		.platform_data	= &ft5x0x_info,
-	},
-};
+#endif //#ifdef CONFIG_TOUCHSCREEN_FT5X0X
 
 #ifdef CONFIG_VIDEO_GC0308
-#define GC0308_ENABLED
-#endif
-
-#ifdef GC0308_ENABLED
 static struct gc0308_platform_data gc0308_plat = {
 	.default_width = 640,
 	.default_height = 480,
@@ -376,53 +399,31 @@ static struct gc0308_platform_data gc0308_plat = {
 	.freq = 24000000,
 	.is_mipi = 0,
 };
+#endif //#ifdef CONFIG_VIDEO_GC0308
 
-static struct i2c_board_info __initdata gc0308_i2c_info[] = {
+#ifdef CONFIG_LS1B_I2C
+static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
+#ifdef CONFIG_TOUCHSCREEN_TSC2007
+	{
+		I2C_BOARD_INFO("tsc2007", 0x48),
+		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
+		.platform_data	= &tsc2007_info,
+	},
+#endif
+#ifdef CONFIG_TOUCHSCREEN_FT5X0X
+	{
+		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
+		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
+		.platform_data	= &ft5x0x_info,
+	},
+#endif
+#ifdef CONFIG_VIDEO_GC0308
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
 		.platform_data = &gc0308_plat,
 	},
-};
-#if 0
-static struct s3c_platform_camera gc0308 = {
-//#ifdef CAM_ITU_CH_A
-	.id		= CAMERA_PAR_A,
-//#else
-//	.id		= CAMERA_PAR_B,
-//#endif
-	.type		= CAM_TYPE_ITU,
-	.fmt		= ITU_601_YCBCR422_8BIT,
-	.order422	= CAM_ORDER422_8BIT_CBYCRY,
-	.i2c_busnum	= 1,
-	.info		= &gc0308_i2c_info,
-	.pixelformat	= V4L2_PIX_FMT_YUYV,
-	.srclk_name	= "mout_mpll",
-	.clk_name	= "sclk_cam1",
-	.clk_rate	= 24000000,             /* 24MHz */
-	.line_length	= 640,              /* 640*480 */
-	/* default resol for preview kind of thing */
-	.width		= 640,
-	.height		= 480,
-	.window		= {
-		.left   = 16,
-		.top    = 0,
-		.width  = 640 - 16,
-		.height = 480,
-	},
-
-	/* Polarity */
-	.inv_pclk	= 0,
-	.inv_vsync	= 1,
-	.inv_href	= 0,
-	.inv_hsync	= 0,
-
-	.initialized	= 0,
-};
 #endif
-#endif
-
-
-
+};
 
 static struct resource ls1b_i2c_resource[] = {
 	[0]={
@@ -444,18 +445,13 @@ static struct platform_device ls1b_i2c_device = {
 	.id			= 0,
 	.num_resources	= ARRAY_SIZE(ls1b_i2c_resource),
 	.resource	= ls1b_i2c_resource,
-
 };
+#endif //#ifdef CONFIG_LS1B_I2C
 
 /*
  * dc
  */
-
-//static struct platform_device ls1b_dc_device = {
-// .name           = "ls1b-lcd",
-// .id             = -1,
-//};
-
+#ifdef CONFIG_FB_LS1B
 static struct resource ls1b_lcd_resource[] = {
 	[0] = {
 		.start = LS1B_LCD_BASE,
@@ -465,13 +461,14 @@ static struct resource ls1b_lcd_resource[] = {
 };
 
 struct platform_device ls1b_dc_device = {
-	.name		  = "ls1b-lcd",
-	.id		  = -1,
-	.num_resources	  = ARRAY_SIZE(ls1b_lcd_resource),
-	.resource	  = ls1b_lcd_resource,
-	.dev              = {
+	.name			= "ls1b-lcd",
+	.id				= -1,
+	.num_resources	= ARRAY_SIZE(ls1b_lcd_resource),
+	.resource		= ls1b_lcd_resource,
+	.dev			= {
 	}
 };
+#endif //#ifdef CONFIG_FB_LS1B
 
 /*
  * gmac
@@ -640,44 +637,12 @@ struct platform_device ls1b_gmac1_phy = {
 	},
 };
 
-static struct resource ls1b_nand_resources[] = {
-    [0] = {
-        .start      =0,
-        .end        =0,
-        .flags      =IORESOURCE_DMA,    
-    },
-    [1] = {
-        .start      =0x1fe78000,
-        .end        =0x1fe78020,
-        .flags      =IORESOURCE_MEM,
-    },
-    [2] = {
-        .start      =0x1fd01160,
-        .end        =0x1fd01160,
-        .flags      =IORESOURCE_MEM,
-    },
-    [3] = {
-        .start      =LS1B_BOARD_DMA0_IRQ,
-        .end        =LS1B_BOARD_DMA0_IRQ,
-        .flags      =IORESOURCE_IRQ,
-    },
-};
-
-struct platform_device ls1b_nand_device = {
-    .name       ="ls1b-nand",
-    .id         =-1,
-    .dev        ={
-        .platform_data = &ls1b_nand_parts,
-    },
-    .num_resources  =ARRAY_SIZE(ls1b_nand_resources),
-    .resource       =ls1b_nand_resources,
-};
-
+#ifdef CONFIG_SND_LS1B
 static struct platform_device ls1b_audio_device = {
- .name           = "ls1b-audio",
- .id             = -1,
+	.name           = "ls1b-audio",
+	.id             = -1,
 };
-
+#endif
 
 #ifdef CONFIG_MTD_M25P80
 static struct mtd_partition partitions[] = {
@@ -813,21 +778,18 @@ int ads7846_detect_penirq(void)
 	
 static struct ads7846_platform_data ads_info = {
 	.model				= 7846,
-	.vref_delay_usecs		= 1,
-//	.vref_mv			= 0,
-	.keep_vref_on			= 0,
-//	.settle_delay_usecs 	= 150,
-//	.penirq_recheck_delay_usecs = 1,
-	.x_plate_ohms			= 800,
-	.pressure_min		 = 0,//需要定义采用0
-	.pressure_max		 = 15000,//需要定义采用15000
-	.debounce_rep			= 3,
-	.debounce_max			= 10,
-	.debounce_tol			= 50,
-	.get_pendown_state		= ads7846_pendown_state,
-	.filter_init			= NULL,
+	.vref_delay_usecs	= 1,
+	.keep_vref_on		= 0,
+	.x_plate_ohms		= 800,
+	.pressure_min		= 0,
+	.pressure_max		= 15000,
+	.debounce_rep		= 3,
+	.debounce_max		= 10,
+	.debounce_tol		= 50,
+	.get_pendown_state	= ads7846_pendown_state,
+	.filter_init		= NULL,
 	.filter 			= NULL,
-	.filter_cleanup 		= NULL,
+	.filter_cleanup 	= NULL,
 };
 #endif /* TOUCHSCREEN_ADS7846 */
 
@@ -901,7 +863,7 @@ static struct platform_device ls1b_spi0_device = {
 		.platform_data	= &ls1b_spi0_platdata,//&ls1b_spi_devices,
 	},
 };
-#endif /* LS1B_SPI0 */
+#endif //#ifdef CONFIG_LS1B_SPI0
 
 #ifdef CONFIG_LS1B_SPI1 /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
@@ -945,9 +907,10 @@ static struct platform_device ls1b_spi1_device = {
 		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
 	},
 };
-#endif
+#endif	//#ifdef CONFIG_LS1B_SPI1
 
 /************************************************/	//GPIO && buzzer && button
+#ifdef CONFIG_KEYBOARD_GPIO_POLLED
 static struct gpio_keys_button ls1b_gpio_button[] = {
 	[0] = {
 		.code		= 'A',
@@ -989,7 +952,9 @@ static struct platform_device ls1b_gpio_key_device = {
 		.platform_data = &ls1b_gpio_key_dat,
 	},
 };
+#endif //#ifdef CONFIG_KEYBOARD_GPIO_POLLED
 
+#ifdef CONFIG_LS1B_BUZZER
 static struct gpio_keys_button ls1b_gpio_buzzer[] = {
 	[0] = {
 		.gpio	= 40,	//57
@@ -1015,7 +980,9 @@ static struct platform_device ls1b_gpio_buzzer_device = {
 		.platform_data = &ls1b_gpio_buzzer_data,
 	},
 };
+#endif //#ifdef CONFIG_LS1B_BUZZER
 
+#ifdef CONFIG_LS1B_IR
 #define GPIO_IR 61
 static struct resource ls1b_ir_resource[] = {
 	[0] = {
@@ -1031,8 +998,10 @@ static struct platform_device ls1b_ir_device = {
 	.num_resources	= ARRAY_SIZE(ls1b_ir_resource),
 	.resource	= ls1b_ir_resource,
 };
+#endif //#ifdef CONFIG_LS1B_IR
 
 //xhm
+#ifdef CONFIG_LS1B_BBDIO
 static struct gpio_keys_button ls1b_bobodogio_button[] = {
 	[0]  = { .gpio = 4, },	
 	[1]  = { .gpio = 5, },
@@ -1063,7 +1032,9 @@ static struct platform_device ls1b_bobodogio_dog = {
 		.platform_data = &ls1b_bobodogio_dog_data,
 	},
 };
+#endif //#ifdef CONFIG_LS1B_BBDIO
 
+#ifdef CONFIG_LS1B_PWM_DRIVER
 static struct resource ls1b_pwm0_resource[] = {
 	[0]={
 		.start	= LS1B_PWM0_BASE,
@@ -1093,19 +1064,31 @@ static struct platform_device ls1b_pwm_device = {
 	.num_resources	= ARRAY_SIZE(ls1b_pwm0_resource),
 	.resource	= ls1b_pwm0_resource,
 };
+#endif //#ifdef CONFIG_LS1B_PWM_DRIVER
 
 /***********************************************/
-
-
-
-
 static struct platform_device *ls1b_platform_devices[] __initdata = {
-    &ls1b_nand_device,
+#ifdef CONFIG_MTD_NAND_LS1B
+	&ls1b_nand_device,
+#endif
+
 	&uart8250_device,
-//	&ls1b_ahci_device,
+
+#ifdef LOONGSON_AHCI
+	&ls1b_ahci_device,
+#endif
+
+#ifdef CONFIG_USB_OHCI_HCD_LS1B
 	&ls1b_ohci_device,
+#endif
+#ifdef CONFIG_USB_EHCI_HCD_LS1B
 	&ls1b_ehci_device,
+#endif
+
+#ifdef CONFIG_FB_LS1B
 	&ls1b_dc_device,
+#endif
+
 #ifdef CONFIG_LS1B_GMAC0_OPEN   //lv
 	&ls1b_gmac0_mac,
 	&ls1b_gmac0_phy,
@@ -1114,21 +1097,49 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_gmac1_mac,
 	&ls1b_gmac1_phy,
 #endif
+
+#ifdef CONFIG_LS1B_WDT
 	&ls1b_wat_device,
+#endif
+
+#ifdef CONFIG_RTC_DRV_LS1B
 	&ls1b_rtc_device,
+#endif
+
+#ifdef CONFIG_LS1B_I2C
 	&ls1b_i2c_device,
+#endif
+
+#ifdef CONFIG_SND_LS1B
 	&ls1b_audio_device,
+#endif
+
 #ifdef CONFIG_LS1B_SPI0
 	&ls1b_spi0_device,
 #endif
 #ifdef CONFIG_LS1B_SPI1
 	&ls1b_spi1_device,
 #endif
+
+#ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
+#endif
+	
+#ifdef CONFIG_LS1B_BUZZER
 	&ls1b_gpio_buzzer_device,
+#endif
+
+#ifdef CONFIG_LS1B_PWM_DRIVER
 	&ls1b_pwm_device,
+#endif
+
+#ifdef CONFIG_LS1B_IR
 	&ls1b_ir_device,//zwl
+#endif
+
+#ifdef CONFIG_LS1B_BBDIO
 	&ls1b_bobodogio_dog,
+#endif
 };
 
 #define AHCI_PCI_BAR  5
@@ -1139,20 +1150,23 @@ int ls1b_platform_init(void)
 	int pll,ctrl,clk,i;
 	unsigned int ddr_clk, apb_clk;
 
+#ifdef LOONGSON_AHCI
 	ls1b_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1b_ahci_resources[0].start,0x200);
-#ifdef CONFIG_LS1A_MACH
-	*(volatile int *)0xbff10204 = 0;
-	*(volatile int *)0xbff10204;
-	mdelay(1);
-	/*ls1f usb reset stop*/
-	*(volatile int *)0xbff10204 = 0x40000000;
-#else
-	*(volatile int *)0xbfd00424 &= ~0x80000000;
-	*(volatile int *)0xbfd00424;
-	mdelay(1);
-	/*ls1g usb reset stop*/
-	*(volatile int *)0xbfd00424 |= 0x80000000;
 #endif
+	
+#ifdef CONFIG_LS1A_MACH
+	*(volatile int *)0xbfd00420 &= ~0x200000;/* enable USB */
+	*(volatile int *)0xbff10204 = 0;
+	mdelay(5);
+	*(volatile int *)0xbff10204 |= 0x40000000;/*ls1a usb reset stop*/
+#else
+#if defined(CONFIG_USB_EHCI_HCD_LS1B) || defined(CONFIG_USB_OHCI_HCD_LS1B)
+	*(volatile int *)0xbfd00424 &= ~0x800;/* enable USB */
+	*(volatile int *)0xbfd00424 &= ~0x80000000;/*ls1g usb reset*/
+	mdelay(5);
+	*(volatile int *)0xbfd00424 |= 0x80000000;/*ls1g usb reset stop*/
+#endif
+#endif	//CONFIG_LS1A_MACH
 
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
 	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) = 0x1;
@@ -1204,9 +1218,8 @@ int ls1b_platform_init(void)
 #endif
 #endif
 
+#ifdef CONFIG_LS1B_I2C
 	i2c_register_board_info(0, ls1b_i2c_devs, ARRAY_SIZE(ls1b_i2c_devs));
-#ifdef GC0308_ENABLED
-	i2c_register_board_info(0, gc0308_i2c_info, ARRAY_SIZE(gc0308_i2c_info));
 #endif
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)

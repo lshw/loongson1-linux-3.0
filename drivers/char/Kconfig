@@ -188,23 +188,26 @@ config VIRTIO_CONSOLE
 	  the port which can be used by udev scripts to create a
 	  symlink to the device.
 
-
-config BUZZER	
-        tristate "loongson1b-bsp buzzer"
-        help
-          buzzer driver.
+config LS1B_BUZZER
+	bool "ls1b bsp buzzer"
+	default	n
+	help
+	  buzzer driver.
           
-config 74LV165_BUTTON	
-        tristate "loongson1b-bsp 74LV165_BUTTON"
-        help
-          key button driver.
+config LS1B_74LV165_BUTTON
+	bool "ls1b bsp 74lv165 button"
+	default	n
+	help
+	  key button driver.
           
 config LS1B_PWM_DRIVER
-	bool	"ls1b pwm driver"
+	bool "ls1b pwm driver"
 	default	n
+	help
+	 pwm.
 
 config LS1B_BBDIO
-	bool	"ls1b bobodog IO driver"
+	bool "ls1b bobodog IO driver"
 	default	n
 	help
 	  ls1b bobodog IO driver.
