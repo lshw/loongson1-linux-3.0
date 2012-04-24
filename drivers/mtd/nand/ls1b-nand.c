@@ -587,7 +587,7 @@ static int ls1b_nand_verify_buf(struct mtd_info *mtd,const uint8_t *buf, int len
             show_debug(info->data_buff,0x20);
         while(len--){
             if(buf[i++] != ls1b_nand_read_byte(mtd) ){
-                printk("????????? verify error..., i= %d !                ", i-1);
+//                printk(KERN_INFO "????????? verify error..., i= %d !                ", i-1);
                 return -1;
             }
         }
@@ -677,7 +677,7 @@ static irqreturn_t ls1b_nand_irq(int irq,void *devid)
 			udelay(50);	//lxy
 			break;
 		default:
-			printk(KERN_ERR "this never happend!!!^^^^^^^^^^^^^^&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+//			printk(KERN_ERR "this never happend!!!^^^^^^^^^^^^^^&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
 			break;
 	}
 	complete(&info->cmd_complete);
@@ -821,7 +821,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 #if 1 
             case NAND_CMD_READOOB:
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
 
@@ -851,7 +851,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 //            case NAND_CMD_READOOB:
             case NAND_CMD_READ0:
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
                 info->state = STATE_BUSY;
@@ -880,7 +880,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 break;
             case NAND_CMD_SEQIN:
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
                 info->state = STATE_BUSY;
@@ -893,12 +893,12 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
             case NAND_CMD_PAGEPROG:
 //                info->coherent = 0;
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
                 info->state = STATE_BUSY;
                 if(cmd_prev != NAND_CMD_SEQIN){
-                    printk("Prev cmd don't complete...\n");
+                    printk(KERN_INFO "Prev cmd don't complete...\n");
                     break;
                 }
                 if(info->buf_count <= 0 )
@@ -951,7 +951,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 break;
             case NAND_CMD_ERASE1:
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
                 info->state = STATE_BUSY;
@@ -980,7 +980,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 break;
             case NAND_CMD_STATUS:
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
                 info->state = STATE_BUSY;
@@ -991,7 +991,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 break;
             case NAND_CMD_READID:
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
                 info->state = STATE_BUSY;
@@ -1025,14 +1025,14 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 //		   while (((id_val_h = _NAND_IDH) & 0xff000000) == 0xec)
 //			   id_val_l = _NAND_IDL;
 
-                   printk("id_val_l=0x%08x\nid_val_h=0x%08x\n",id_val_l,id_val_h);
+//                   printk("id_val_l=0x%08x\nid_val_h=0x%08x\n",id_val_l,id_val_h);
                    _NAND_SET_REG(0xc,timing);
 		   udelay(50);
                    data[0]  = (id_val_h & 0xff);
                    data[1]  = (id_val_l & 0xff000000)>>24;
                    data[2]  = (id_val_l & 0x00ff0000)>>16;
                    data[3]  = (id_val_l & 0x0000ff00)>>8;
-                printk(KERN_ERR "IDS=============================0x%x\n",*((int *)(info->data_buff)));
+//                printk(KERN_ERR "IDS=============================0x%x\n",*((int *)(info->data_buff)));
 
                }
 //                info->state = STATE_READY;
@@ -1045,7 +1045,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
 
 	    case NAND_CMD_RNDOUT:	//lxy
                 if(info->state == STATE_BUSY){
-                    printk("nandflash chip if busy...\n");
+                    printk(KERN_INFO "nandflash chip if busy...\n");
                     return;
                 }
 		info->buf_count = mtd->oobsize + mtd->writesize;
@@ -1318,3 +1318,4 @@ module_init(ls1b_nand_init);
 module_exit(ls1b_nand_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Loongson_1g NAND controller driver");
+

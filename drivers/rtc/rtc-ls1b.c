@@ -5,11 +5,11 @@
 #include <linux/interrupt.h>
 #include <linux/slab.h>
 
-#define 	RTC_TOYIM	0x00
+#define RTC_TOYIM	0x00
 #define	RTC_TOYWLO	0x04
 #define	RTC_TOYWHI	0x08
-#define 	RTC_TOYRLO	0x0c
-#define 	RTC_TOYRHI	0x10
+#define RTC_TOYRLO	0x0c
+#define RTC_TOYRHI	0x10
 #define	RTC_TOYMH0	0x14
 #define	RTC_TOYMH1	0x18
 #define	RTC_TOYMH2	0x1c
@@ -287,7 +287,6 @@ static struct platform_driver ls1b_rtc_driver = {
 
 static int __init ls1b_rtc_init(void)
 {
-	printk(KERN_EMERG "ls1b rtc init\n");
 	return platform_driver_register(&ls1b_rtc_driver);
 }
 

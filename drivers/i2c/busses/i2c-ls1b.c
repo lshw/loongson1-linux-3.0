@@ -114,7 +114,7 @@ static int ls1b_xfer(struct i2c_adapter *adap, struct i2c_msg *pmsg, int num)
 		while(i2c_readb(i2c, REG_I2C_SR) & I2C_S_RUN);
 
 		if (i2c_readb(i2c, REG_I2C_SR) & I2C_S_RNOACK) {
-			printk(" slave addr no ack !!\n");
+			dev_err(&adap->dev, "slave addr no ack !!\n");
 			i2c_writeb(i2c, REG_I2C_CR, I2C_C_STOP);
 			return 0;
 		}
@@ -169,9 +169,7 @@ static int ls1b_i2c_probe(struct platform_device *pdev)
 	struct ls1b_i2c *i2c;
 	struct resource *res;
 	int result;
-	
-	printk(KERN_EMERG "i2c-ls1b probe\n");
-	
+
 	/* map the registers */
 	res =  platform_get_resource(pdev,	IORESOURCE_MEM, 0);  //通过platform_device 获取i2c IO资源
 	if (res == NULL) {
@@ -193,7 +191,7 @@ static int ls1b_i2c_probe(struct platform_device *pdev)
 	//龙芯 在/include/asm-mips/io.h中定义
 	i2c->base = ioremap(res->start, res->end - res->start + 1);
 	if (!i2c->base) {
-		printk(KERN_ERR "i2c-ls1b - failed to map controller\n");
+		dev_err(&pdev->dev, "i2c-ls1b - failed to map controller\n");
 		result = -ENOMEM;
 		goto fail1;
 	}
@@ -210,7 +208,7 @@ static int ls1b_i2c_probe(struct platform_device *pdev)
 	
 	if (i2c->irq != 0){
 		if ((result = request_irq(i2c->irq, ls1b_i2c_isr, IRQF_SHARED, "i2c-ls1b", i2c)) < 0) {
-			printk(KERN_ERR "i2c-ls1b - failed to attach interrupt\n");
+			dev_err(&pdev->dev, "i2c-ls1b - failed to attach interrupt\n");
 			goto fail_irq;
 		}
 	}
@@ -230,10 +228,9 @@ static int ls1b_i2c_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, i2c);
 	
 	if ((result = i2c_add_numbered_adapter(&i2c->adap) < 0)) {
-		printk(KERN_ERR "i2c-ls1b - failed to add adapter\n");
+		dev_err(&pdev->dev, "i2c-ls1b - failed to add adapter\n");
 		goto fail0;
 	}
-	printk(KERN_EMERG "i2c-ls1b probe ok\n");
 	return 0;
 
 #if 0
@@ -303,7 +300,6 @@ static struct platform_driver ls1b_i2c_driver = {
 
 static int __init i2c_ls1b_init (void)
 {
-	printk(KERN_EMERG "i2c-ls1b init\n");
 	return platform_driver_register(&ls1b_i2c_driver);
 }
 

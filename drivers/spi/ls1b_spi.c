@@ -264,8 +264,6 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 	int i;
 	unsigned char val;
 	
-	printk(KERN_EMERG "loongson 1B spi probe begin\n");
-	
 	//分配SPI主机控制器结构体 第二个参数 指预分配私有数据大小
 	//分配spi_master结构体并做简单的初始化赋值(spi masr是作为一个SPI类初始化的)，同时分配(清零)自定义的sb2f_spi结构体
 	master = spi_alloc_master(&pdev->dev, sizeof(struct ls1b_spi));
@@ -358,7 +356,6 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 	writeb(val, hw->regs + REG_PARAM);
 	
 #ifndef USE_POLL
-	printk(KERN_EMERG "SPI IRQ mode\n");
  	writeb(0xd0, hw->regs + REG_SPCR);	//THF
 #else
  	writeb(0x50, hw->regs + REG_SPCR);	//THF
@@ -373,7 +370,6 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot claim IRQ\n");
 		goto err_no_irq;
 	}
-	printk(KERN_EMERG "SPI master IRQ num = %d\n", hw->irq);
 #endif
 
 	/* setup any gpio we can */
@@ -403,8 +399,6 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 	}
 #endif
 */
-
-	printk(KERN_EMERG "loongson 1B spi probe done\n");
 	return 0;
 
  err_register:
@@ -498,3 +492,4 @@ module_exit(ls1b_spi_exit);
 MODULE_DESCRIPTION("loongson 1B SPI Driver");
 MODULE_AUTHOR("tanghaifeng <tanghaifeng-gz@loongson.cn");
 MODULE_LICENSE("GPL");
+
