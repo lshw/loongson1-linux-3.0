@@ -115,32 +115,31 @@ static struct ls1b_nand_platform_data ls1b_nand_parts = {
     
 };
 
-static struct plat_serial8250_port uart8250_data[12] = {
-{ .mapbase=0xbfe40000,.membase=(void *)0xbfe40000,.irq=2,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe44000,.membase=(void *)0xbfe44000,.irq=3,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe48000,.membase=(void *)0xbfe48000,.irq=4,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe4c000,.membase=(void *)0xbfe4c000,.irq=5,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe6c000,.membase=(void *)0xbfe6c000,.irq=29,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe7c000,.membase=(void *)0xbfe7c000,.irq=30,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,},
+static struct plat_serial8250_port uart8250_data[] = {
+{.mapbase=0xbfe40000, .membase=(void *)0xbfe40000, .irq=2, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe44000, .membase=(void *)0xbfe44000, .irq=3, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe48000, .membase=(void *)0xbfe48000, .irq=4, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe4c000, .membase=(void *)0xbfe4c000, .irq=5, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe6c000, .membase=(void *)0xbfe6c000, .irq=29, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe7c000, .membase=(void *)0xbfe7c000, .irq=30, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-{ .mapbase=0xbfe41000,.membase=(void *)0xbfe41000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe42000,.membase=(void *)0xbfe42000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe43000,.membase=(void *)0xbfe43000,.irq=LS1B_BOARD_UART0_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
+{.mapbase=0xbfe41000, .membase=(void *)0xbfe41000, .irq=LS1B_BOARD_UART0_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe42000, .membase=(void *)0xbfe42000, .irq=LS1B_BOARD_UART0_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe43000, .membase=(void *)0xbfe43000, .irq=LS1B_BOARD_UART0_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
 #endif
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-{ .mapbase=0xbfe45000,.membase=(void *)0xbfe45000,.irq=LS1B_BOARD_UART1_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe46000,.membase=(void *)0xbfe46000,.irq=LS1B_BOARD_UART1_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
-{ .mapbase=0xbfe47000,.membase=(void *)0xbfe47000,.irq=LS1B_BOARD_UART1_IRQ,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,.iotype=UPIO_MEM,.regshift   = 0,},
+{.mapbase=0xbfe45000, .membase=(void *)0xbfe45000, .irq=LS1B_BOARD_UART1_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe46000, .membase=(void *)0xbfe46000, .irq=LS1B_BOARD_UART1_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
+{.mapbase=0xbfe47000, .membase=(void *)0xbfe47000, .irq=LS1B_BOARD_UART1_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
 #endif
-//{ .uartclk = 1843200, .mapbase=0xbff003f8,.membase=(void *)0xbff003f8,.irq=0,.flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,.iotype=UPIO_MEM,.regshift   = 0,}, 
-{}
+{.flags = 0,}
 };
 
 static struct platform_device uart8250_device = {
 	.name = "serial8250",
 	.id = PLAT8250_DEV_PLATFORM,
- .dev = {
-   .platform_data = uart8250_data,
+	.dev = {
+		.platform_data = uart8250_data,
 	}
 };
 
@@ -1138,7 +1137,7 @@ int ls1b_platform_init(void)
 {
 	unsigned int data;
 	int pll,ctrl,clk,i;
-	unsigned int ddr_clk,uart_clk;
+	unsigned int ddr_clk, apb_clk;
 
 	ls1b_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1b_ahci_resources[0].start,0x200);
 #ifdef CONFIG_LS1A_MACH
@@ -1168,18 +1167,17 @@ int ls1b_platform_init(void)
 
 #ifdef CONFIG_LS1A_MACH
 	pll	= *(volatile unsigned int *)(0xbfe78030);
-        ddr_clk  =  (((pll>>8)&7)+3)*33333333;
-//	ddr_clk = 33333333*3/3;
+	ddr_clk = (((pll>>8)&7)+3)*33333333;
 #else
-	
 	pll	= *(volatile unsigned int *)(0xbfe78030);
 	ctrl = *(volatile unsigned int *)(0xbfe78034);	 
-	clk=(12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
-	ddr_clk=(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
-//	ddr_clk = 33333333*3/3;
+	clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
+	ddr_clk = (ctrl&(1<<19)) ? clk/((ctrl>>14)&0x1f) : clk/2;
 #endif
-	for(i=0; i<12; i++)
-		uart8250_data[i].uartclk = ddr_clk/2;
+	apb_clk = ddr_clk/2;
+	for(i=0; i<CONFIG_SERIAL_8250_NR_UARTS; i++) {
+		uart8250_data[i].uartclk = apb_clk;
+	}
 
 #if 0
 //	clk = *(volatile unsigned int *)(0xbfd010c0);

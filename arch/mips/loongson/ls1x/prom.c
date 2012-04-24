@@ -83,9 +83,9 @@ void __init prom_init(void)
 #ifndef CONFIG_PMON
 #define CONFIG_PMON
 #endif
-	prom_printf("Booting Linux kernel...\n");
+//	prom_printf("Booting Linux kernel...\n");
 	system_state = SYSTEM_BOOTING;
-	prom_printf("system_state: %d\taddr:%08x\n", system_state, &system_state);
+//	prom_printf("system_state: %d\taddr:%08x\n", system_state, &system_state);
 #ifdef CONFIG_PMON
 	prom_init_cmdline();
 
@@ -166,7 +166,7 @@ void __init prom_init(void)
 	if (memsize == 0) 
 		memsize = 64;
 
-	prom_printf("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
+//	prom_printf("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
 //	printk("busclock=%ld, cpuclock=%ld,memsize=%d,highmemsize=%d\n", bus_clock, ls1b_cpu_clock,memsize,highmemsize);
 }
 

@@ -23,13 +23,13 @@ void ls232_restart(char *command)
 {
 	unsigned long *watchdogEn 		= (unsigned long *)0xbfe5c060;	//lxy
 	unsigned long *watchdogSet		= (unsigned long *)0xbfe5c064;
-	unsigned long *watchdogCount		= (unsigned long *)0xbfe5c068;
+	unsigned long *watchdogCount	= (unsigned long *)0xbfe5c068;
 	
 	//__asm__ __volatile__("jr\t%0"::"r"(0xbfc00000));
 	*watchdogEn 	= 0x1;
 	*watchdogCount 	= 0x1;
 	*watchdogSet	= 0x1;
-	printk ("going to reboot.......\n");
+	printk (KERN_NOTICE "going to reboot.......\n");
 }
 
 void ls232_halt(void)

@@ -70,55 +70,13 @@ unsigned long bus_clock;
 unsigned int  memsize;
 unsigned int  highmemsize = 0;
 
-#if 1
-//#include "rx8025-rtc.c"
-//extern int rx8025_readTime(unsigned char headAddr,unsigned char tailAddr);
-//extern volatile unsigned char rtcRegister[];
 static unsigned long ls232_rtc_get_time(void)
 {
-        struct rtc_time *rtc_tm;
+	struct rtc_time *rtc_tm;
 	static unsigned int epoch= 1900;
-//        prom_printf("ls232_rtc_get_time \n");
-#if 0	//lxy
-        rx8025_readTime(0,6);
-        rtc_tm->tm_sec = (rtcRegister[0] & 0x7F);
-        rtc_tm->tm_min=(rtcRegister[1]& 0x7F);
-        rtc_tm->tm_hour=(rtcRegister[2] &0x3F);
-        rtc_tm->tm_wday=(rtcRegister[3] & 0x07);
-        rtc_tm->tm_mday=(rtcRegister[4]&0x3F);
-        rtc_tm->tm_mon=(rtcRegister[5]& 0x1F);
-        rtc_tm->tm_year=(rtcRegister[6]); //zgj + ((rtcRegister[6])>=70 ? 1900 : 2000);
-
-
-                BCD_TO_BIN(rtc_tm->tm_sec);
-                BCD_TO_BIN(rtc_tm->tm_min);
-                BCD_TO_BIN(rtc_tm->tm_hour);
-                BCD_TO_BIN(rtc_tm->tm_mday);
-                BCD_TO_BIN(rtc_tm->tm_mon);
-                BCD_TO_BIN(rtc_tm->tm_year);
-                BCD_TO_BIN(rtc_tm->tm_wday);
-#endif
 	rtc_tm->tm_year +=  ((rtc_tm->tm_year >=70) ? 1900 : 2000);
-#if 0
-	printk(KERN_INFO "Get DATE: %4d-%02d-%02d (wday=%d)  TIME: %2d:%02d:%02d\n",
-                rtc_tm->tm_year, rtc_tm->tm_mon, rtc_tm->tm_mday, rtc_tm->tm_wday,
-                rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec);
-#endif
-        /*
-         * Account for differences between how the RTC uses the values
-         * and how they are defined in a struct rtc_time;
-         */
-#if 0
-        if ((rtc_tm->tm_year += (epoch - 1900)) <= 69)
-                rtc_tm->tm_year += 100;
-
-        rtc_tm->tm_mon--;
-#endif
-
-        return mktime(rtc_tm->tm_year,rtc_tm->tm_mon, rtc_tm->tm_mday,rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec);
+	return mktime(rtc_tm->tm_year,rtc_tm->tm_mon, rtc_tm->tm_mday,rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec);
 }
-
-#endif
 
 #if 0
 void __init plat_timer_setup(struct irqaction *irq)
@@ -129,9 +87,8 @@ void __init plat_timer_setup(struct irqaction *irq)
 
 void __init plat_time_init(void)
 {
-      /* setup mips r4k timer */
-      mips_hpt_frequency = ls1b_cpu_clock / 2;
-//      cp0_compare_irq = 7;
+	/* setup mips r4k timer */
+	mips_hpt_frequency = ls1b_cpu_clock / 2;
 }
 
 static unsigned long __init mips_rtc_get_time(void)
@@ -158,7 +115,7 @@ void  __init plat_mem_setup(void)
 {
 	unsigned char status;
 	
-  	prom_printf("LS232 CPU board\n");
+//  prom_printf("LS232 CPU board\n");
 
 	set_io_port_base(PTR_PAD(0xbc000000));
 	
@@ -174,7 +131,7 @@ void  __init plat_mem_setup(void)
 
 	__wbflush = wbflush_sb2f;
 
-	prom_printf("memsize=%d,highmemsize=%d\n",memsize,highmemsize);
+//	prom_printf("memsize=%d,highmemsize=%d\n",memsize,highmemsize);
 	add_memory_region(0, memsize<<20, BOOT_MEM_RAM);  
 
 #ifdef CONFIG_VT
