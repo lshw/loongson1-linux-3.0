@@ -556,7 +556,11 @@ struct platform_device ls1b_gmac0_mac = {
 
 static struct plat_stmmacphy_data  phy0_private_data = {
 	.bus_id = 0,
-	.phy_addr = 0,
+#ifdef CONFIG_RTL8305SC
+	.phy_addr = 4,
+#else
+	.phy_addr = -1,
+#endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
 	

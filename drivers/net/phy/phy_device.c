@@ -732,7 +732,11 @@ int genphy_update_link(struct phy_device *phydev)
 		return status;
 
 	if ((status & BMSR_LSTATUS) == 0)
+#ifdef CONFIG_RTL8305SC
+		phydev->link = 1;
+#else
 		phydev->link = 0;
+#endif
 	else
 		phydev->link = 1;
 
@@ -789,10 +793,15 @@ int genphy_read_status(struct phy_device *phydev)
 			return adv;
 
 		lpa &= adv;
-
+#ifdef CONFIG_RTL8305SC	
+		phydev->speed = SPEED_100;
+		phydev->duplex = DUPLEX_FULL;
+		phydev->pause = phydev->asym_pause = 0;
+#else
 		phydev->speed = SPEED_10;
 		phydev->duplex = DUPLEX_HALF;
 		phydev->pause = phydev->asym_pause = 0;
+#endif
 
 		if (lpagb & (LPA_1000FULL | LPA_1000HALF)) {
 			phydev->speed = SPEED_1000;

@@ -10,6 +10,13 @@ config STMMAC_ETH
 	  platforms.
 
 if STMMAC_ETH
+config RTL8305SC
+	bool "STMMAC support RTL8305SC"
+	default n
+	help
+	  Selecting this option, stmmac will support switch controller
+	  rtl8305sc.
+	
 
 config STMMAC_DA
 	bool "STMMAC DMA arbitration scheme"
