@@ -10,35 +10,38 @@
  * Author: jsun@mvista.com or jsun@junsun.net
  *         guoyi@ict.ac.cn
  */
-#include <linux/sched.h>
-#include <linux/mm.h>
-#include <asm/io.h>
-#include <asm/pgtable.h>
-#include <asm/processor.h>
-#include <asm/reboot.h>
-#include <asm/system.h>
-#include <linux/delay.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
+#include <linux/pm.h>
 
-void ls232_restart(char *command)
+#include <asm/reboot.h>
+
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
+
+static void ls232_restart(char *command)
 {
-	unsigned long *watchdogEn 		= (unsigned long *)0xbfe5c060;	//lxy
-	unsigned long *watchdogSet		= (unsigned long *)0xbfe5c064;
-	unsigned long *watchdogCount	= (unsigned long *)0xbfe5c068;
+	void __iomem *wdt_base = ioremap(LS1B_BOARD_WAT_BASE, 0x0f);
 	
-	//__asm__ __volatile__("jr\t%0"::"r"(0xbfc00000));
-	*watchdogEn 	= 0x1;
-	*watchdogCount 	= 0x1;
-	*watchdogSet	= 0x1;
-	printk (KERN_NOTICE "going to reboot.......\n");
+	writel(1, wdt_base + WDT_EN);
+	writel(1, wdt_base + WDT_TIMER);
+	writel(1, wdt_base + WDT_SET);
+	
+	while (1) {
+		__asm__(".set push;\n"
+			".set mips3;\n"
+			"wait;\n"
+			".set pop;\n"
+		);
+	}
 }
 
-void ls232_halt(void)
+static void ls232_halt(void)
 {
 	printk(KERN_NOTICE "\n** You can safely turn off the power\n");
 	while(1);
 }
 
-void ls232_power_off(void)
+static void ls232_power_off(void)
 {
 	ls232_halt();
 }
