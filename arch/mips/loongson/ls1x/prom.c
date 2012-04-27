@@ -14,8 +14,6 @@
  * Free Software Foundation;  either version 2 of the  License, or (at your
  * option) any later version.
  */
-//#include <linux/config.h>
-//#include <linux/autoconf.h>
 #include <generated/autoconf.h>
 #include <linux/init.h>
 #include <linux/string.h>
@@ -26,6 +24,7 @@
 
 #include <asm/addrspace.h>
 #include <asm/bootinfo.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
 #include <asm/mach-loongson/ls1x/fb.h>
 
 #define	CL_SIZE COMMAND_LINE_SIZE
@@ -33,7 +32,7 @@ extern char arcs_cmdline[CL_SIZE];
 
 extern unsigned long bus_clock;
 extern unsigned long ls1b_cpu_clock;
-extern unsigned int  memsize,highmemsize;
+extern unsigned int  memsize, highmemsize;
 extern int putDebugChar(unsigned char byte);
 extern void prom_printf(char *fmt, ...);
 
@@ -118,11 +117,16 @@ void __init prom_init(void)
 	}
 
 	if (bus_clock == 0){
+	#ifdef CONFIG_LS1A_MACH
+		pll	= *(volatile unsigned int *)(0xbfe78030);
+		ddr_clk = (((pll>>8)&7)+3)*APB_CLK;
+	#else
 		pll = PLL_FREQ_REG(0);
 		ctrl = PLL_FREQ_REG(4);
-		clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
-		ls1b_cpu_clock = ((ctrl&0x300)==0x300)?33333333:(ctrl&(1<<25))?clk/((ctrl>>20)&0x1f):clk/2;
-		bus_clock = ((ctrl&0xc00)==0xc00)?33333333:(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
+		clk = (12+(pll&0x3f))*APB_CLK/2 + ((pll>>8)&0x3ff)*APB_CLK/2/1024;
+		ls1b_cpu_clock = ((ctrl&0x300)==0x300) ? APB_CLK : (ctrl&(1<<25)) ? clk/((ctrl>>20)&0x1f) : clk/2;
+		bus_clock = ((ctrl&0xc00)==0xc00) ? APB_CLK : (ctrl&(1<<19)) ? clk/((ctrl>>14)&0x1f) : clk/2;
+	#endif
 	}
 	
 	tmp = strstr(arcs_cmdline, "video=ls1bfb:vga");
@@ -153,9 +157,9 @@ void __init prom_init(void)
 		
 		pll = PLL_FREQ_REG(0);
 		ctrl = PLL_FREQ_REG(4);
-		clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
-		ls1b_cpu_clock = ((ctrl&0x300)==0x300)?33333333:(ctrl&(1<<25))?clk/((ctrl>>20)&0x1f):clk/2;
-		bus_clock = ((ctrl&0xc00)==0xc00)?33333333:(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
+		clk = (12+(pll&0x3f))*APB_CLK/2 + ((pll>>8)&0x3ff)*APB_CLK/2/1024;
+		ls1b_cpu_clock = ((ctrl&0x300)==0x300)?APB_CLK:(ctrl&(1<<25))?clk/((ctrl>>20)&0x1f):clk/2;
+		bus_clock = ((ctrl&0xc00)==0xc00)?APB_CLK:(ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
 	}
 	
 #else

@@ -41,6 +41,10 @@
 #include <linux/stmmac.h> //lv
 #include <asm-generic/sizes.h> //lv
 
+extern unsigned long bus_clock;
+extern unsigned long ls1b_cpu_clock;
+extern unsigned int  memsize, highmemsize;
+
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
 
@@ -149,21 +153,96 @@ struct platform_device ls1b_nand_device = {
 #endif //CONFIG_MTD_NAND_LS1B
 
 static struct plat_serial8250_port uart8250_data[] = {
-{.mapbase=0xbfe40000, .membase=(void *)0xbfe40000, .irq=2, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe44000, .membase=(void *)0xbfe44000, .irq=3, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe48000, .membase=(void *)0xbfe48000, .irq=4, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe4c000, .membase=(void *)0xbfe4c000, .irq=5, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe6c000, .membase=(void *)0xbfe6c000, .irq=29, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe7c000, .membase=(void *)0xbfe7c000, .irq=30, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST, .iotype=UPIO_MEM, .regshift = 0,},
+{
+	.mapbase = LS1B_BOARD_UART0_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART0_BASE),
+	.irq = LS1B_BOARD_UART0_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART1_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART1_BASE),
+	.irq = LS1B_BOARD_UART1_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART2_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART2_BASE),
+	.irq = LS1B_BOARD_UART2_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART3_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART3_BASE),
+	.irq = LS1B_BOARD_UART3_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART4_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART4_BASE),
+	.irq = LS1B_BOARD_UART4_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART5_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART5_BASE),
+	.irq = LS1B_BOARD_UART5_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-{.mapbase=0xbfe41000, .membase=(void *)0xbfe41000, .irq=LS1B_BOARD_UART0_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe42000, .membase=(void *)0xbfe42000, .irq=LS1B_BOARD_UART0_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe43000, .membase=(void *)0xbfe43000, .irq=LS1B_BOARD_UART0_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
+{
+	.mapbase = LS1B_BOARD_UART6_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART6_BASE),
+	.irq = LS1B_BOARD_UART0_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART7_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART7_BASE),
+	.irq = LS1B_BOARD_UART0_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART8_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART8_BASE),
+	.irq = LS1B_BOARD_UART0_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},
 #endif
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-{.mapbase=0xbfe45000, .membase=(void *)0xbfe45000, .irq=LS1B_BOARD_UART1_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe46000, .membase=(void *)0xbfe46000, .irq=LS1B_BOARD_UART1_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
-{.mapbase=0xbfe47000, .membase=(void *)0xbfe47000, .irq=LS1B_BOARD_UART1_IRQ, .flags=UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ, .iotype=UPIO_MEM, .regshift = 0,},
+{
+	.mapbase = LS1B_BOARD_UART9_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART9_BASE),
+	.irq = LS1B_BOARD_UART1_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART10_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART10_BASE),
+	.irq = LS1B_BOARD_UART1_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},{
+	.mapbase = LS1B_BOARD_UART11_BASE,
+	.membase = (void __iomem*)KSEG1ADDR(LS1B_BOARD_UART11_BASE),
+	.irq = LS1B_BOARD_UART1_IRQ,
+	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
+	.iotype = UPIO_MEM,
+	.regshift = 0,
+},
 #endif
 {.flags = 0,}
 };
@@ -1150,9 +1229,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 int ls1b_platform_init(void)
 {
-	unsigned int data;
-	int pll,ctrl,clk,i;
-	unsigned int ddr_clk, apb_clk;
+	int i;
+	unsigned int apb_clk;
 
 #ifdef LOONGSON_AHCI
 	ls1b_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1b_ahci_resources[0].start,0x200);
@@ -1176,23 +1254,13 @@ int ls1b_platform_init(void)
 	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) = 0x1;
 #endif
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-	data = (*(volatile unsigned char *)(LS1B_UART_SPLIT));
-	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) = data | 0x2;
+	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) |= 0x2;
 
-	data = (*(volatile unsigned int *)(LS1B_GPIO_MUX_CTRL1));
-	(*(volatile unsigned int *)(LS1B_GPIO_MUX_CTRL1))= data | 0x30;
+	(*(volatile unsigned int *)(LS1B_GPIO_MUX_CTRL1)) |= 0x30;
 #endif
-
-#ifdef CONFIG_LS1A_MACH
-	pll	= *(volatile unsigned int *)(0xbfe78030);
-	ddr_clk = (((pll>>8)&7)+3)*33333333;
-#else
-	pll	= *(volatile unsigned int *)(0xbfe78030);
-	ctrl = *(volatile unsigned int *)(0xbfe78034);	 
-	clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
-	ddr_clk = (ctrl&(1<<19)) ? clk/((ctrl>>14)&0x1f) : clk/2;
-#endif
-	apb_clk = ddr_clk/2;
+	
+	/* uart clock */
+	apb_clk = bus_clock/2;
 	for(i=0; i<CONFIG_SERIAL_8250_NR_UARTS; i++) {
 		uart8250_data[i].uartclk = apb_clk;
 	}
@@ -1228,7 +1296,6 @@ int ls1b_platform_init(void)
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	/* 轮询方式探测card的插拔 */
-//	gpio_request(DETECT_GPIO, NULL);		/* 设置引脚为GPIO模式 */
 	ls1b_gpio_direction_input(NULL, DETECT_GPIO);		/* 输入使能 */
 	/* 中断方式探测card的插拔 */
 	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (DETECT_GPIO & 0x1f));		/* 边沿触发方式寄存器 */
@@ -1259,24 +1326,33 @@ int ls1b_platform_init(void)
 
 //modify by lvling
 #if CONFIG_LS1B_GMAC0_OPEN && CONFIG_LS1B_GMAC1_OPEN//open gmac0 and gmac1  
-  printk("open gmac0 and gmac1.\n");
-  (*(volatile unsigned int *)0xbfd00420) |= (1 << 4 | 1 << 3);
-  (*(volatile unsigned int *)0xbfd00424) |= (0xf);
+	printk("open gmac0 and gmac1.\n");
+	/* 寄存器0xbfd00424有GMAC的使能开关 */
+	(*(volatile unsigned int *)0xbfd00424) &= ~((1<<13) | (1<<12));	/* 使能GMAC0 GMAC1 */
+	(*(volatile unsigned int *)0xbfd00420) |= (1 << 4 | 1 << 3);
+	(*(volatile unsigned int *)0xbfd00424) |= (0xf);
 
 #elif (CONFIG_LS1B_GMAC0_OPEN) && (~CONFIG_LS1B_GMAC1_OPEN)//open gmac0,close gmac1
-  printk("open gmac0 close gmac1.\n");
-  (*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
-  (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
-  (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);  //open uart0/1
+	printk("open gmac0 close gmac1.\n");
+	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 12);	//使能GMAC0
+	(*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
+
+	(*(volatile unsigned int *)0xbfd00424) |= (1 << 13);	//禁止GMAC1
+	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
+	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4); //open uart0/1
 
 #elif (~CONFIG_LS1BGMAC0_OPEN) && (CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
-  printk("close gmac0 open gmac1.\n");
-  (*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
-  (*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
-  (*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
+	printk("close gmac0 open gmac1.\n");
+	(*(volatile unsigned int *)0xbfd00424) |= (1 << 12);	//禁止GMAC0
+	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
+
+	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 13);	//使能GMAC1
+	(*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
+	(*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
   
 #else
-  (*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);  //open uart0/1
+	(*(volatile unsigned int *)0xbfd00424) |= ((1<<13) | (1<<12));	/* 禁止GMAC0 GMAC1 */
+	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);	//open uart0/1
 #endif
 
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));

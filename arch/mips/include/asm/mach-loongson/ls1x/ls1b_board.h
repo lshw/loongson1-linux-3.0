@@ -48,8 +48,8 @@
 /* AHB BUS control regs */
 #define LS1B_BOARD_AHB_MISC_BASE	 0x1f003200
 #define AHB_MISC_CTRL		0x00
-//#define AHB_CLK			33333333
-#define AHB_CLK			50000000
+#define AHB_CLK			33333333
+//#define AHB_CLK			50000000
 /* Interrupt register */
 #define REG_INT_EDGE		0x04
 #define REG_INT_STEER		0x08
@@ -83,16 +83,15 @@
 #define	REG_SPPR			0x04
 #define	REG_SPCSR			0x05
 #define	REG_SPTR			0x06
-#define	LS1B_BOARD_SPI0_BASE		0x1fe80000		//lxy
 
 #if 1
-#define LS1B_BOARD_SPI0_BASE		0x1fe80000 	//THF
-#define LS1B_BOARD_SPI1_BASE		0x1fec0000 	//THF
+#define LS1B_BOARD_SPI0_BASE		0x1fe80000
+#define LS1B_BOARD_SPI1_BASE		0x1fec0000
 #define REG_SPCR				0x00	//控制寄存器
 #define REG_SPSR				0x01	//状态寄存器
 #define REG_SPDR				0x02	//数据寄存器（TxFIFO）
-#define REG_TXFIFO    		0x02	//数据传输寄存器 输出	//THF
-#define REG_RXFIFO    		0x02	//数据传输寄存器 输入	//THF
+#define REG_TXFIFO    		0x02	//数据传输寄存器 输出
+#define REG_RXFIFO    		0x02	//数据传输寄存器 输入
 #define REG_SPER				0x03	//外部寄存器
 #define REG_PARAM     		0x04	//SPI Flash参数控制寄存器
 #define REG_SOFTCS    		0x05	//SPI Flash片选控制寄存器
@@ -108,21 +107,32 @@
 #define SPI1_CS2				2
 #endif
 
-
+/* pwm regs */
 #define LS1B_PWM0_BASE	0x1fe5c000
 #define LS1B_PWM1_BASE	0x1fe5c010
 #define LS1B_PWM2_BASE	0x1fe5c020
 #define LS1B_PWM3_BASE	0x1fe5c030
 
+/* gamc regs */
+#define LS1B_BOARD_GMAC1_BASE		0x1fe10000
+#define LS1B_BOARD_GMAC2_BASE		0x1fe20000
 
 /* UART regs */
-#define LS1B_BOARD_GMAC1_BASE		 0x1fe10000
-#define LS1B_BOARD_GMAC2_BASE         	 0x1fe20000
-#define LS1B_BOARD_UART0_BASE		 0x1fe40000
-#define LS1B_BOARD_UART1_BASE		 0x1fe44000
-#define LS1B_BOARD_UART2_BASE		 0x1fe48000
-#define LS1B_BOARD_UART3_BASE		 0x1fe4c000
-#define LS1B_UART_SPLIT             	 0xbfe78038
+#define LS1B_BOARD_UART0_BASE		0x1fe40000
+#define LS1B_BOARD_UART1_BASE		0x1fe44000
+#define LS1B_BOARD_UART2_BASE		0x1fe48000
+#define LS1B_BOARD_UART3_BASE		0x1fe4c000
+#define LS1B_BOARD_UART4_BASE		0x1fe6c000
+#define LS1B_BOARD_UART5_BASE		0x1fe7c000
+
+#define LS1B_BOARD_UART6_BASE		0x1fe41000
+#define LS1B_BOARD_UART7_BASE		0x1fe42000
+#define LS1B_BOARD_UART8_BASE		0x1fe43000
+#define LS1B_BOARD_UART9_BASE		0x1fe45000
+#define LS1B_BOARD_UART10_BASE		0x1fe46000
+#define LS1B_BOARD_UART11_BASE		0x1fe47000
+
+#define LS1B_UART_SPLIT				0xbfe78038
 
 /*watchdog*/
 #define LS1B_BOARD_WAT_BASE			0x1fe5c060
