@@ -147,6 +147,7 @@
 #define LS1B_BOARD_I2C_BASE			0x1fe58000
 
 /* APB BUS control regs */
+#define LS1X_CLK_BASE			0x1fe78030
 #define LS1B_BOARD_APB_MISC_BASE	 0x1f004100
 #define REG_GPIO_OE_APB 	0x00
 #define REG_GPIO_R_APB		0x10
@@ -158,6 +159,9 @@
 #define LS1B_AC97_REGS_BASE 0x1fe74000
 //PCI
 #define LS1B_BOARD_PCI_REGS_BASE		 0x1f002000
+
+#include <regs-clk.h>
+
 struct ls1b_usbh_data {
     u8      ports;      /* number of ports on root hub */
     u8      vbus_pin[]; /* port power-control pin */

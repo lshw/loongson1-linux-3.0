@@ -85,11 +85,13 @@ void __init plat_timer_setup(struct irqaction *irq)
 }
 #endif
 
+#if 0
 void __init plat_time_init(void)
 {
 	/* setup mips r4k timer */
 	mips_hpt_frequency = ls1b_cpu_clock / 2;
 }
+#endif
 
 static unsigned long __init mips_rtc_get_time(void)
 {
