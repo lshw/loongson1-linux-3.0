@@ -634,11 +634,16 @@ struct platform_device ls1b_gmac0_mac = {
 };
 
 static struct plat_stmmacphy_data  phy0_private_data = {
+#ifdef CONFIG_LS1A_MACH
+	.bus_id = 0,
+	.phy_addr = 1,
+#else
 	.bus_id = 0,
 #ifdef CONFIG_RTL8305SC
 	.phy_addr = 4,
 #else
-	.phy_addr = -1,
+	.phy_addr = 0,
+#endif
 #endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
@@ -1258,7 +1263,7 @@ int ls1b_platform_init(void)
 
 	(*(volatile unsigned int *)(LS1B_GPIO_MUX_CTRL1)) |= 0x30;
 #endif
-	
+
 	/* uart clock */
 	apb_clk = bus_clock/2;
 	for(i=0; i<CONFIG_SERIAL_8250_NR_UARTS; i++) {

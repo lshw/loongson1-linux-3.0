@@ -39,6 +39,7 @@ typedef unsigned int uint32;
 #ifdef CONFIG_64BIT
 #define         BASE                    (0xffffffffbfe44000)
 #else
+//#define         BASE                    (0xbfe40000)//0xbfe6c000//(0xbfe40000)
 #define         BASE                    (0xbfe48000)//0xbfe6c000//(0xbfe40000)
 #endif
 

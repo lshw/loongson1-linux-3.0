@@ -48,7 +48,11 @@
 /* AHB BUS control regs */
 #define LS1B_BOARD_AHB_MISC_BASE	 0x1f003200
 #define AHB_MISC_CTRL		0x00
+#ifdef	CONFIG_LS1A_MACH
+#define AHB_CLK			12000000
+#else
 #define AHB_CLK			33333333
+#endif
 //#define AHB_CLK			50000000
 /* Interrupt register */
 #define REG_INT_EDGE		0x04

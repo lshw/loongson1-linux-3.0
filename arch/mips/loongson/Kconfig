@@ -151,4 +151,23 @@ config LOONGSON_MC146818
 	bool
 	default n
 
+config PCI_AUTO
+	bool "auto asign pci resource"
+	default y
+	depends on LS1A_MACH
+
+config DISABLE_PCI
+	bool "disable pci"
+	default n
+	depends on LS1A_MACH
+
+config LOONGSON_BIGPCI
+	bool 'use large pci memory'
+	default n
+	depends on LS1A_MACH
+
+config LOONGSON_FIX_RANDOM_INSTRUCTION_FETCH_SIDE_EFFECT_TO_DEVICE
+	bool 'fix random instruction fetch\'s side effect to device for loongson cpu(special compiler)'
+	default n
+
 endif # MACH_LOONGSON
