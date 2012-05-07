@@ -810,6 +810,7 @@ static struct flash_platform_data flash = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
 #define DETECT_GPIO  41
+//#define DETECT_GPIO  56
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
 {
@@ -888,7 +889,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.modalias	= "w25q64",		//"m25p80",
 		.bus_num 		= 0,
 		.chip_select	= 0,
-		.max_speed_hz	= 80 * 1000 * 1000,
+		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
 	},
 #endif
@@ -897,7 +898,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.modalias	= "mcp3201",
 		.bus_num 		= 0,
 		.chip_select	= 0,
-		.max_speed_hz	= 80 * 1000 * 1000,
+		.max_speed_hz	= 80000000,
 	},
 #endif
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
@@ -906,7 +907,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.platform_data = &ads_info,
 		.bus_num 		= 0,
 		.chip_select 	= SPI0_CS1,
-		.max_speed_hz 	= 500*1000,
+		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
 		.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
@@ -916,7 +917,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.modalias		= "mmc_spi",		//mmc spi,
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS2,
-		.max_speed_hz	= 25 * 1000 * 1000,
+		.max_speed_hz	= 25000000,
 		.platform_data	= &mmc_spi,
 	},
 #endif
@@ -936,9 +937,9 @@ static struct resource ls1b_spi0_resource[] = {
 };
 
 static struct ls1b_spi_info ls1b_spi0_platdata = {
-//	.pin_cs = SPI0_CS0,// CS 片选
 	.board_size = ARRAY_SIZE(ls1b_spi0_devices),
 	.board_info = ls1b_spi0_devices,
+	.bus_num	= 0,
 	.num_cs		= SPI0_CS3 + 1,
 };
 
@@ -960,7 +961,7 @@ static struct spi_board_info ls1b_spi1_devices[] = {
 		.modalias		= "mmc_spi",		//mmc spi,
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS0,
-		.max_speed_hz	= 25 * 1000 * 1000,
+		.max_speed_hz	= 25000000,
 		.platform_data	= &mmc_spi,
 	},
 #endif
@@ -980,9 +981,9 @@ static struct resource ls1b_spi1_resource[] = {
 };
 
 static struct ls1b_spi_info ls1b_spi1_platdata = {
-//	.pin_cs = SPI1_CS0,// CS 片选
 	.board_size = ARRAY_SIZE(ls1b_spi1_devices),
 	.board_info = ls1b_spi1_devices,
+	.bus_num	= 1,
 	.num_cs		= 3,
 };
 
