@@ -820,7 +820,11 @@ static int mach_mode_option(char *mode_option)
 			mode = i;
 			mode_tmp = i;
 			mach_info->xres.defval = vgamode[i].hr;
+			mach_info->xres.min = vgamode[i].hr;
+			mach_info->xres.max = vgamode[i].hr;
 			mach_info->yres.defval = vgamode[i].vr;
+			mach_info->yres.min = vgamode[i].vr;
+			mach_info->yres.max = vgamode[i].vr;
 			mach_info->regs.hdisplay = (vgamode[mode].hfl<<16) | vgamode[mode].hr;
 			mach_info->regs.hsync = 0x40000000 | (vgamode[mode].hse<<16) | vgamode[mode].hss;
 			mach_info->regs.vdisplay = (vgamode[mode].vfl<<16) | vgamode[mode].vr;
@@ -873,7 +877,7 @@ static int mach_mode_option(char *mode_option)
 			mach_info->bpp.defval = 16;
 			break;
 	}
-	/* 计算帧频 和像素频率 */
+
 	p = strchr(mode_option, '@');
 	frame_rate = simple_strtoul(p+1, NULL, 0);
 	if ((frame_rate<10) || (frame_rate>300)){
@@ -894,29 +898,22 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret;
 	int i;
-	
-	/*获取LCD硬件相关信息数据，在前面讲过内核使用s3c24xx_fb_set_platdata函数将LCD的硬件相关信息保存到
-	 了LCD平台数据中，所以这里我们就从平台数据中取出来在驱动中使用*/
-//	mach_info = pdev->dev.platform_data;
+
 	if (mach_mode_option(mode_option)) {
 		return -EINVAL;
 	} 
 
 	mregs = &mach_info->regs;
-	
-	/*给fb_info分配空间，大小为ls1bfb_info结构的内存，framebuffer_alloc定义在fb.h中在fbsysfs.c中实现*/
+
 	fbinfo = framebuffer_alloc(sizeof(struct ls1bfb_info), &pdev->dev);
 	if (!fbinfo) {
 		return -ENOMEM;
 	}
 
-	/*这里的用途其实就是将fb_info的成员par(注意是一个void类型的指针)指向这里的私有变量结构体info，
-     目的是到其他接口函数中再取出fb_info的成员par，从而能继续使用这里的私有变量*/
 	info = fbinfo->par;
 	info->fb = fbinfo;
 	info->dev = &pdev->dev;
-	
-	/*重新将LCD平台设备数据设置为fbinfo，好在后面的一些函数中来使用*/
+
 	platform_set_drvdata(pdev, fbinfo);
 
 	dprintk("devinit\n");
@@ -927,32 +924,26 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 
 //	info->mach_info = pdev->dev.platform_data;
 	info->mach_info = mach_info;
-	
-	/*下面就开始初始化填充fb_info结构体*/
-	/*首先初始化fb_info中代表LCD固定参数的结构体fb_fix_screeninfo*/
-    /*像素值与显示内存的映射关系有5种，定义在fb.h中。现在采用FB_TYPE_PACKED_PIXELS方式，在该方式下，
-    像素值与内存直接对应，比如在显示内存某单元写入一个"1"时，该单元对应的像素值也将是"1"，这使得应用层
-    把显示内存映射到用户空间变得非常方便。Linux中当LCD为TFT屏时，显示驱动管理显示内存就是基于这种方式*/
+
 	fbinfo->fix.type			= FB_TYPE_PACKED_PIXELS;
-	fbinfo->fix.type_aux		= 0;	/*以下这些根据fb_fix_screeninfo定义中的描述，当没有硬件时都设为0*/
+	fbinfo->fix.type_aux		= 0;
 	fbinfo->fix.xpanstep		= 0;
 	fbinfo->fix.ypanstep		= 0;
 	fbinfo->fix.ywrapstep	= 0;
-	fbinfo->fix.accel			= FB_ACCEL_NONE;	/* 没有硬件加速器 */
+	fbinfo->fix.accel			= FB_ACCEL_NONE;
 	
-	/*接着，再初始化fb_info中代表LCD可变参数的结构体fb_var_screeninfo*/
-	fbinfo->var.nonstd		= 0;	/* 标准像素格式 非0时表示非标准像素格式 */
+
+	fbinfo->var.nonstd		= 0;
 //	fbinfo->var.nonstd		= FB_NONSTD_HAM;
-	fbinfo->var.activate		= FB_ACTIVATE_NOW;	/* 表示准备设置变量 */
+	fbinfo->var.activate		= FB_ACTIVATE_NOW;
 	fbinfo->var.height		= mach_info->height;
 	fbinfo->var.width			= mach_info->width;
-	fbinfo->var.accel_flags	= 0;	/* 加速标记 */
-	fbinfo->var.vmode			= FB_VMODE_NONINTERLACED; /* 不使用隔行扫描 */
-	
-	/*指定对底层硬件操作的函数指针*/
+	fbinfo->var.accel_flags	= 0;
+	fbinfo->var.vmode			= FB_VMODE_NONINTERLACED;
+
 	fbinfo->fbops				= &ls1bfb_ops;
 	fbinfo->flags				= FBINFO_FLAG_DEFAULT;
-	fbinfo->pseudo_palette	= &info->pseudo_pal;	//伪16色颜色表
+	fbinfo->pseudo_palette	= &info->pseudo_pal;
 
 	fbinfo->var.xres				= mach_info->xres.defval;
 	fbinfo->var.xres_virtual    = mach_info->xres.defval;
@@ -960,19 +951,10 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 	fbinfo->var.yres_virtual    = mach_info->yres.defval;
 	fbinfo->var.bits_per_pixel  = mach_info->bpp.defval;
 
-//	fbinfo->var.upper_margin    = (mregs->vdisplay >> 16) - ((mregs->vsync >> 16) & 0xFFF);
-//	fbinfo->var.lower_margin		= (mregs->vsync & 0xFFF) - (mregs->vdisplay & 0xFFF);
-//	fbinfo->var.vsync_len		= ((mregs->vsync >> 16) & 0xFFF) - (mregs->vsync & 0xFFF);
-	
-//	fbinfo->var.left_margin		= (mregs->hdisplay >> 16) - ((mregs->hsync >> 16) & 0xFFF);
-//	fbinfo->var.right_margin		= (mregs->hsync & 0xFFF) - (mregs->hdisplay & 0xFFF);
-//	fbinfo->var.hsync_len		= ((mregs->hsync >> 16) & 0xFFF) - (mregs->hsync & 0xFFF);
-//	fbinfo->var.pixclock			= (1000*1000*1000) / (mach_info->pclk/1000);
 	{
 	unsigned long long div;
 	div = 1000000000000ULL;
 	do_div(div, mach_info->pclk);
-//	fbinfo->var.pixclock			= div;
 	}
 	if (mode_type == TYPE_VGA){
 		fbinfo->fix.smem_len = 0x500000;
@@ -982,12 +964,10 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 					mach_info->yres.max *
 					mach_info->bpp.max / 8;
 	}
-	
-	/*初始化色调色板(颜色表)为空*/
+
 	for (i = 0; i < 256; i++)
 		info->palette_buffer[i] = PALETTE_BUFF_CLEAR;
-	
-	/*申请LCD IO端口所占用的IO空间(注意理解IO空间和内存空间的区别),request_mem_region定义在ioport.h中*/
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
 		dev_err(&pdev->dev, "no I/O memory resource defined\n");
@@ -1012,7 +992,6 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 	dprintk("got LCD region\n");
 
 	/* Initialize video memory */
-	/*申请帧缓冲设备fb_info的显示缓冲区空间*/
 	ret = ls1bfb_map_video_memory(info);
 	if (ret) {
 		printk( KERN_ERR "Failed to allocate video RAM: %d\n", ret);
@@ -1020,13 +999,10 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 		goto failed_free_res;
 	}
 	dprintk("got video memory\n");
-	
-	/*初始化完fb_info后，开始对LCD各寄存器进行初始化*/
+
 	ret = ls1bfb_init_registers(info);
-	/*初始化完寄存器后，开始检查fb_info中的可变参数*/
 	ret = ls1bfb_check_var(&fbinfo->var, fbinfo);
-	
-	/*最后，注册这个帧缓冲设备fb_info到系统中, register_framebuffer定义在fb.h中在fbmem.c中实现*/
+
 	ret = register_framebuffer(fbinfo);
 	if (ret < 0) {
 		printk(KERN_ERR "Failed to register framebuffer device: %d\n", ret);
@@ -1034,8 +1010,6 @@ static int __init ls1bfb_probe(struct platform_device *pdev)
 	}
 
 	/* create device files */
-	/*对设备文件系统的支持(对设备文件系统的理解请参阅：嵌入式Linux之我行——设备文件系统剖析与使用)
-     创建frambuffer设备文件，device_create_file定义在linux/device.h中*/
 	device_create_file(&pdev->dev, &dev_attr_debug);
 
 	printk(KERN_INFO "fb%d: %s frame buffer device\n",
