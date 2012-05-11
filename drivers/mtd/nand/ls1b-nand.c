@@ -966,7 +966,7 @@ static void ls1b_nand_cmdfunc(struct mtd_info *mtd, unsigned command,int column,
                 nand_setup(NAND_ADDRL|NAND_ADDRH|NAND_OP_NUM|NAND_CMD,info);
 //                show_dma_regs(0xbfe78000,0);
                 status_time = STATUS_TIME_LOOP_E;
-		mdelay(30);    //lxy
+		mdelay(50);    //lxy
                 while(!ls1b_nand_status(info)){
 /*                    if(!(status_time--)){
                         write_z_cmd;
@@ -1101,7 +1101,7 @@ static void ls1b_nand_init_info(struct ls1b_nand_info *info)
     info->page_addr = -1;
     info->nand_addrl = 0x0;
     info->nand_addrh = 0x0;
-    info->nand_timing = 0x412; //0xa40;// 0x4<<8 | 0x12;
+    info->nand_timing = 0x513; //0xa40;// 0x4<<8 | 0x12;
 //    info->nand_timing = 0x6<<8 | 0x16;	//lxy
     info->nand_op_num = 0x0;
     info->nand_cs_rdy_map = 0x00000000;
