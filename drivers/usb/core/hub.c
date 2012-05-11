@@ -3008,7 +3008,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				break;
   		}
 
-		printk ("lxy: in %s !----3---->\n", __FUNCTION__);
+//		printk ("lxy: in %s !----3---->\n", __FUNCTION__);
 		retval = usb_get_device_descriptor(udev, 8);
 		if (retval < 8) {
 			dev_err(&udev->dev,

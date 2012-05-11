@@ -286,11 +286,11 @@ static struct platform_device ls1b_ahci_device = {
  * ohci
  */
 #ifdef CONFIG_USB_OHCI_HCD_LS1B
-static u64 ls1b_ohci_dma_mask = -1;
+static u64 ls1b_ohci_dma_mask = DMA_BIT_MASK(32);
 static struct resource ls1b_ohci_resources[] = {
 	[0] = {
 		.start          = LS1B_USB_OHCI_BASE,
-		.end            = (LS1B_USB_OHCI_BASE + 0x1000 - 1),
+		.end            = (LS1B_USB_OHCI_BASE + 0x100 - 1),
 		.flags          = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -299,7 +299,7 @@ static struct resource ls1b_ohci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-
+/*
 static struct ls1b_usbh_data  ls1b_ohci_platform_data={
 #ifdef CONFIG_LS1A_MACH
 	.ports=4,
@@ -307,13 +307,14 @@ static struct ls1b_usbh_data  ls1b_ohci_platform_data={
 	.ports=1,
 #endif
 };
-
+*/
 static struct platform_device ls1b_ohci_device = {
 	.name           = "ls1b-ohci",
-	.id             = -1,
+	.id             = 0,
 	.dev = {
-		.platform_data = &ls1b_ohci_platform_data,
+//		.platform_data = &ls1b_ohci_platform_data,
 		.dma_mask = &ls1b_ohci_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	},
 	.num_resources  = ARRAY_SIZE(ls1b_ohci_resources),
 	.resource       = ls1b_ohci_resources,
@@ -324,11 +325,11 @@ static struct platform_device ls1b_ohci_device = {
  * ehci
  */
 #ifdef CONFIG_USB_EHCI_HCD_LS1B
-static u64 ls1b_ehci_dma_mask = -1;
+static u64 ls1b_ehci_dma_mask = DMA_BIT_MASK(32);
 static struct resource ls1b_ehci_resources[] = { 
 	[0] = {
 		.start          = LS1B_USB_EHCI_BASE,
-		.end            = (LS1B_USB_EHCI_BASE + 0x6b),
+		.end            = (LS1B_USB_EHCI_BASE + 0x100 - 1),
 		.flags          = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -337,7 +338,7 @@ static struct resource ls1b_ehci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-
+/*
 static struct ls1b_usbh_data  ls1b_ehci_platform_data={
 #ifdef CONFIG_LS1A_MACH
 	.ports=4,
@@ -345,13 +346,14 @@ static struct ls1b_usbh_data  ls1b_ehci_platform_data={
 	.ports=1,
 #endif
 };
-
+*/
 static struct platform_device ls1b_ehci_device = {
 	.name           = "ls1b-ehci",
-	.id             = -1,
+	.id             = 0,
 	.dev = {
-		.platform_data = &ls1b_ehci_platform_data,
+//		.platform_data = &ls1b_ehci_platform_data,
 		.dma_mask = &ls1b_ehci_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	},
 	.num_resources  = ARRAY_SIZE(ls1b_ehci_resources),
 	.resource       = ls1b_ehci_resources,

@@ -1171,9 +1171,9 @@ MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR (DRIVER_AUTHOR);
 MODULE_LICENSE ("GPL");
 
-#ifdef CONFIG_USB_EHCI_HCD_LS1B		//lxy
-#include "ehci-ls1b.c"
-#define	PLATFORM_DRIVER		ehci_ls1b_driver
+#ifdef CONFIG_USB_EHCI_HCD_LS1B
+#include "ehci-ls1x.c"
+#define	PLATFORM_DRIVER		ehci_hcd_ls1x_driver
 #endif
 
 
