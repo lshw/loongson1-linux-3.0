@@ -384,27 +384,12 @@ static struct platform_device ls1b_wat_device = {
 /*
 *RTC
 */
-#ifdef CONFIG_RTC_DRV_LS1B
-static struct resource ls1b_rtc_resource[] = {
-	[0]={
-		.start      = LS1B_BOARD_RTC_BASE,
-		.end        = (LS1B_BOARD_RTC_BASE + 0x54),
-		.flags      = IORESOURCE_MEM,
-	},
-	[1]={
-		.start      = LS1B_BOARD_TOY0_IRQ,
-		.end        = LS1B_BOARD_TOY0_IRQ,
-		.flags      = IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device ls1b_rtc_device = {
-	.name       = "ls1b-rtc",
+#ifdef CONFIG_RTC_DRV_LOONGSON1
+static struct platform_device ls1x_rtc_device = {
+	.name       = "ls1x-rtc",
 	.id         = -1,
-	.num_resources  = ARRAY_SIZE(ls1b_rtc_resource),
-	.resource   = ls1b_rtc_resource,
 };
-#endif //#ifdef CONFIG_RTC_DRV_LS1B
+#endif //#ifdef CONFIG_RTC_DRV_LOONGSON1
 
 /*
 *I2C
@@ -1193,8 +1178,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_wat_device,
 #endif
 
-#ifdef CONFIG_RTC_DRV_LS1B
-	&ls1b_rtc_device,
+#ifdef CONFIG_RTC_DRV_LOONGSON1
+	&ls1x_rtc_device,
 #endif
 
 #ifdef CONFIG_LS1B_I2C

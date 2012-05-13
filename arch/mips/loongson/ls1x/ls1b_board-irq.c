@@ -79,7 +79,6 @@ void disable_ls1b_board_irq(struct irq_data *irq_data);
 void enable_ls1b_board_irq(struct irq_data *irq_data);
 
 extern void set_debug_traps(void);
-// extern void mips_timer_interrupt(int irq, struct pt_regs *regs);
 extern void mips_timer_interrupt(int irq);
 extern asmlinkage void ls1b_board_IRQ(void);
 
@@ -130,11 +129,8 @@ static struct irq_chip ls1b_board_irq_chip = {
 	.irq_ack = ack_ls1b_board_irq,		//lxy
 	.irq_mask = disable_ls1b_board_irq,
 	.irq_unmask = enable_ls1b_board_irq,
-//	.irq_eoi = enable_ls1b_board_irq,
-//	.irq_end = end_ls1b_board_irq,
 };
 
-// void ls1b_board_hw0_irqdispatch(struct pt_regs *regs)
 void ls1b_board_hw_irqdispatch(int n)
 {
 	int irq;
@@ -146,22 +142,17 @@ void ls1b_board_hw_irqdispatch(int n)
 	intstatus = (ls1b_board_hw0_icregs+n)->int_isr;
 	
 	irq=ffs(intstatus);
-//	prom_printf("irq=%d,n=%d,realirq=%d\n",irq,n,n*32+irq-1);
 	
 	if(!irq){
-//		printk("Unknow interrupt status %x intstatus %x \n" , status, intstatus);
 		return; 
 	}
 	else do_IRQ(n*32+irq-1);
 }
 
-void ls1b_board_irq_init(u32 irq_base)
+void ls1b_board_irq_init(void)
 {
-//	extern irq_desc_t irq_desc[];
 	u32 i;
 	for (i= 0; i<= LS1B_BOARD_LAST_IRQ; i++) {
 		irq_set_chip_and_handler(i, &ls1b_board_irq_chip, handle_level_irq);
-		//set_irq_chip_and_handler(i, &ls1b_board_irq_chip, handle_level_irq);	//lxy
 	}
-
 }

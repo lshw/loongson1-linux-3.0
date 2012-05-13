@@ -145,7 +145,7 @@
 #define WDT_SET						0x08
 
 /*RTC*/
-#define LS1B_BOARD_RTC_BASE         0x1fe64020
+#define LS1X_RTC_BASE				0x1fe64000
 
 /*I2C*/
 #define LS1B_BOARD_I2C_BASE			0x1fe58000

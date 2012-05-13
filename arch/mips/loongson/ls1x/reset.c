@@ -4,11 +4,6 @@
  * Free Software Foundation;  either version 2 of the  License, or (at your
  * option) any later version.
  *
- * Copyright (C) 1997, 2001 Ralf Baechle
- * Copyright 2001 MontaVista Software Inc.
- * Copyright 2003 ICT CAS
- * Author: jsun@mvista.com or jsun@junsun.net
- *         guoyi@ict.ac.cn
  */
 #include <linux/io.h>
 #include <linux/kernel.h>
@@ -37,14 +32,19 @@ static void ls232_restart(char *command)
 
 static void ls232_halt(void)
 {
-	printk(KERN_NOTICE "\n** You can safely turn off the power\n");
-	while(1);
+	pr_notice("\n\n** You can safely turn off the power now **\n\n");
+	while (1) {
+		if (cpu_wait)
+			cpu_wait();
+	}
 }
 
+/*
 static void ls232_power_off(void)
 {
 	ls232_halt();
 }
+*/
 
 void mips_reboot_setup(void)
 {

@@ -26,8 +26,7 @@
  *  675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-//#include <linux/config.h>
-//#include <linux/autoconf.h>
+
 #include <generated/autoconf.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -52,7 +51,7 @@
 #include <linux/console.h>
 #include <linux/screen_info.h>
 #endif
-// #include <asm/ict/tc-godson.h>
+
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 
 extern void prom_printf(char *fmt, ...);
@@ -64,40 +63,10 @@ extern void mips_reboot_setup(void);
 #define PTR_PAD(p) (p)
 #endif
 
-
 unsigned long ls1b_cpu_clock;
 unsigned long bus_clock;
 unsigned int  memsize;
 unsigned int  highmemsize = 0;
-
-static unsigned long ls232_rtc_get_time(void)
-{
-	struct rtc_time *rtc_tm;
-	static unsigned int epoch= 1900;
-	rtc_tm->tm_year +=  ((rtc_tm->tm_year >=70) ? 1900 : 2000);
-	return mktime(rtc_tm->tm_year,rtc_tm->tm_mon, rtc_tm->tm_mday,rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec);
-}
-
-#if 0
-void __init plat_timer_setup(struct irqaction *irq)
-{
-      setup_irq(MIPS_CPU_IRQ_BASE+7, irq);  
-}
-#endif
-
-#if 0
-void __init plat_time_init(void)
-{
-	/* setup mips r4k timer */
-	mips_hpt_frequency = ls1b_cpu_clock / 2;
-}
-#endif
-
-static unsigned long __init mips_rtc_get_time(void)
-{
-	//return mc146818_get_cmos_time();
-	return mktime(2009,11,28,12,30,20);
-}
 
 void (*__wbflush)(void);
 EXPORT_SYMBOL(__wbflush);	//lxy
@@ -115,10 +84,6 @@ static void wbflush_sb2f(void)
 
 void  __init plat_mem_setup(void)
 {
-	unsigned char status;
-	
-//  prom_printf("LS232 CPU board\n");
-
 	set_io_port_base(PTR_PAD(0xbc000000));
 	
 	ioport_resource.start = 0;
@@ -128,12 +93,8 @@ void  __init plat_mem_setup(void)
 
 	mips_reboot_setup();
 
-//	board_time_init = sb2f_time_init;
-//	rtc_mips_get_time = mips_rtc_get_time;
-
 	__wbflush = wbflush_sb2f;
 
-//	prom_printf("memsize=%d,highmemsize=%d\n",memsize,highmemsize);
 	add_memory_region(0, memsize<<20, BOOT_MEM_RAM);  
 
 #ifdef CONFIG_VT
