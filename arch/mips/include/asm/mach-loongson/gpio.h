@@ -13,6 +13,7 @@
 #ifndef	__STLS2F_GPIO_H
 #define	__STLS2F_GPIO_H
 
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 #include <asm-generic/gpio.h>
 
 extern void gpio_set_value(unsigned gpio, int value);
@@ -27,12 +28,14 @@ extern int ls1b_gpio_direction_output(struct gpio_chip *chip,
  */
 static inline int gpio_to_irq(int gpio)
 {
-	return -EINVAL;
+//	return -EINVAL;
+	return LS1B_BOARD_GPIO_FIRST_IRQ + gpio;
 }
 
 static inline int irq_to_gpio(int gpio)
 {
-	return -EINVAL;
+//	return -EINVAL;
+	return irq - LS1B_BOARD_GPIO_FIRST_IRQ;
 }
 
 #endif				/* __STLS2F_GPIO_H */

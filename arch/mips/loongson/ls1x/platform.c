@@ -1142,6 +1142,34 @@ static struct platform_device ls1b_pwm_device = {
 };
 #endif //#ifdef CONFIG_LS1B_PWM_DRIVER
 
+/**
+ * Rotary encoder input device
+ */
+#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
+#define GPIO_ROTARY_A 59
+#define GPIO_ROTARY_B 51
+
+static struct rotary_encoder_platform_data raumfeld_rotary_encoder_info = {
+	.steps		= 30,
+	.axis		= REL_X,
+	.relative_axis	= 1,
+	.rollover	= false,
+	.gpio_a		= GPIO_ROTARY_A,
+	.gpio_b		= GPIO_ROTARY_B,
+	.inverted_a	= 0,
+	.inverted_b	= 0,
+	.half_period	= 1,
+};
+
+static struct platform_device rotary_encoder_device = {
+	.name		= "rotary-encoder",
+	.id		= 0,
+	.dev		= {
+		.platform_data = &raumfeld_rotary_encoder_info,
+	}
+};
+#endif //#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_MTD_NAND_LS1B
@@ -1215,6 +1243,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_LS1B_BBDIO
 	&ls1b_bobodogio_dog,
+#endif
+
+#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
+	&rotary_encoder_device,
 #endif
 };
 
@@ -1296,6 +1328,20 @@ int ls1b_platform_init(void)
 	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断清空寄存器 */
 	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 中断置位寄存器 */
 	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断使能寄存器 */
+#endif
+
+#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
+	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (GPIO_ROTARY_A & 0x1f));	/* 边沿触发方式寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_ROTARY_A & 0x1f));	/* 电平触发方式寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_ROTARY_A & 0x1f));	/* 中断清空寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_ROTARY_A & 0x1f));	/* 中断置位寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (GPIO_ROTARY_A & 0x1f));	/* 中断使能寄存器 */
+
+	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (GPIO_ROTARY_B & 0x1f));	/* 边沿触发方式寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_ROTARY_B & 0x1f));	/* 电平触发方式寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_ROTARY_B & 0x1f));	/* 中断清空寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_ROTARY_B & 0x1f));	/* 中断置位寄存器 */
+	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (GPIO_ROTARY_B & 0x1f));	/* 中断使能寄存器 */
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
