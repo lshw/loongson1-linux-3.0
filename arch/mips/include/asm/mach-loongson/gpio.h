@@ -32,7 +32,7 @@ static inline int gpio_to_irq(int gpio)
 	return LS1B_BOARD_GPIO_FIRST_IRQ + gpio;
 }
 
-static inline int irq_to_gpio(int gpio)
+static inline int irq_to_gpio(int irq)
 {
 //	return -EINVAL;
 	return irq - LS1B_BOARD_GPIO_FIRST_IRQ;
