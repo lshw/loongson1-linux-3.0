@@ -36,11 +36,15 @@ struct rotary_encoder {
 
 	unsigned int irq_a;
 	unsigned int irq_b;
+	unsigned int irq_c;
 
 	bool armed;
 	unsigned char dir;	/* 0 - clockwise, 1 - CCW */
 
 	char last_stable;
+	
+	struct delayed_work work;
+	spinlock_t lock;
 };
 
 static int rotary_encoder_get_state(struct rotary_encoder_platform_data *pdata)
@@ -140,6 +144,42 @@ static irqreturn_t rotary_encoder_half_period_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static void report_key(struct work_struct *work)
+{
+	struct rotary_encoder *encoder =
+		container_of(work, struct rotary_encoder, work.work);
+	struct input_dev *input_dev = encoder->input;
+	struct rotary_encoder_platform_data *pdata = encoder->pdata;
+	int state = (gpio_get_value_cansleep(pdata->gpio_c) ? 1 : 0) ^ pdata->active_low;
+
+	if (state) {
+		input_report_key(input_dev, pdata->key, state);
+		input_sync(input_dev);
+	}
+	input_report_key(input_dev, pdata->key, 0);
+	input_sync(input_dev);
+	
+	/* Enable IRQs again */
+	spin_lock_irq(&encoder->lock);
+	enable_irq(encoder->irq_c);
+	spin_unlock_irq(&encoder->lock);
+}
+
+static irqreturn_t key_interrupt(int irq, void *dev_id)
+{
+	struct rotary_encoder *encoder = dev_id;
+	unsigned long flags;
+
+	spin_lock_irqsave(&encoder->lock, flags);
+	
+	disable_irq_nosync(encoder->irq_c);
+	schedule_delayed_work(&encoder->work,
+		msecs_to_jiffies(encoder->pdata->debounce_ms));
+
+	spin_unlock_irqrestore(&encoder->lock, flags);
+	return IRQ_HANDLED;
+}
+
 static int __devinit rotary_encoder_probe(struct platform_device *pdev)
 {
 	struct rotary_encoder_platform_data *pdata = pdev->dev.platform_data;
@@ -165,6 +205,9 @@ static int __devinit rotary_encoder_probe(struct platform_device *pdev)
 	encoder->pdata = pdata;
 	encoder->irq_a = gpio_to_irq(pdata->gpio_a);
 	encoder->irq_b = gpio_to_irq(pdata->gpio_b);
+	if (pdata->key) {
+		encoder->irq_c = gpio_to_irq(pdata->gpio_c);
+	}
 
 	/* create and register the input driver */
 	input->name = pdev->name;
@@ -178,6 +221,13 @@ static int __devinit rotary_encoder_probe(struct platform_device *pdev)
 		input->evbit[0] = BIT_MASK(EV_ABS);
 		input_set_abs_params(encoder->input,
 				     pdata->axis, 0, pdata->steps, 0, 1);
+	}
+	
+	if (pdata->key) {
+		input->evbit[0] |= BIT_MASK(EV_KEY);
+		__set_bit(pdata->key, input->keybit);
+		INIT_DELAYED_WORK(&encoder->work, report_key);
+		spin_lock_init(&encoder->lock);
 	}
 
 	err = input_register_device(input);
@@ -214,6 +264,22 @@ static int __devinit rotary_encoder_probe(struct platform_device *pdev)
 			pdata->gpio_b);
 		goto exit_free_gpio_a;
 	}
+	
+	if (pdata->key) {
+		err = gpio_request(pdata->gpio_c, DRV_NAME);
+		if (err) {
+			dev_err(&pdev->dev, "unable to request GPIO %d\n",
+				pdata->gpio_c);
+			goto exit_free_gpio_b;
+		}
+
+		err = gpio_direction_input(pdata->gpio_c);
+		if (err) {
+			dev_err(&pdev->dev, "unable to set GPIO %d for input\n",
+				pdata->gpio_c);
+			goto exit_free_gpio_b;
+		}
+	}
 
 	/* request the IRQs */
 	if (pdata->half_period) {
@@ -229,7 +295,7 @@ static int __devinit rotary_encoder_probe(struct platform_device *pdev)
 	if (err) {
 		dev_err(&pdev->dev, "unable to request IRQ %d\n",
 			encoder->irq_a);
-		goto exit_free_gpio_b;
+		goto exit_free_gpio_c;
 	}
 
 	err = request_irq(encoder->irq_b, handler,
@@ -241,12 +307,29 @@ static int __devinit rotary_encoder_probe(struct platform_device *pdev)
 		goto exit_free_irq_a;
 	}
 
+	if (pdata->key) {
+		err = request_irq(encoder->irq_c, key_interrupt,
+			  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+			  DRV_NAME, encoder);
+		if (err) {
+			dev_err(&pdev->dev, "unable to request IRQ %d\n",
+				encoder->irq_c);
+			goto exit_free_irq_b;
+		}
+	}
+
 	platform_set_drvdata(pdev, encoder);
 
 	return 0;
 
+exit_free_irq_b:
+	free_irq(encoder->irq_b, encoder);
 exit_free_irq_a:
 	free_irq(encoder->irq_a, encoder);
+exit_free_gpio_c:
+	if (pdata->key) {
+		gpio_free(pdata->gpio_c);
+	}
 exit_free_gpio_b:
 	gpio_free(pdata->gpio_b);
 exit_free_gpio_a:
@@ -269,6 +352,9 @@ static int __devexit rotary_encoder_remove(struct platform_device *pdev)
 	free_irq(encoder->irq_b, encoder);
 	gpio_free(pdata->gpio_a);
 	gpio_free(pdata->gpio_b);
+	if (pdata->key) {
+		gpio_free(pdata->gpio_c);
+	}
 	input_unregister_device(encoder->input);
 	platform_set_drvdata(pdev, NULL);
 	kfree(encoder);
