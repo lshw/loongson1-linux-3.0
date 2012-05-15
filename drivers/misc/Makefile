@@ -2,6 +2,7 @@
 # Makefile for misc devices that really don't fit anywhere else.
 #
 
+obj-$(CONFIG_EASY_DAB_AUDIO)	+= easy_spi_dab.o	
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
 obj-$(CONFIG_ILI9341)	+= ili9341.o
 obj-$(CONFIG_ST7565R)	+= st7565r.o

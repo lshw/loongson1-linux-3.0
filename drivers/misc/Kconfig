@@ -32,6 +32,13 @@ config ST7565R
 	  To compile this driver as a module, choose M here: the
 	  module will be called st7565r.
 
+config EASY_DAB_AUDIO
+	tristate "easynetting spi dab autio supported"
+	depends on SPI
+	default n
+	help
+	  loongson-gz for easynetting network radio project
+
 config	SSD1305
 	tristate "SSD1305 OLED Controller"
 	default n

@@ -908,6 +908,14 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.platform_data	= &mmc_spi,
 	},
 #endif
+#if defined(CONFIG_EASY_DAB_AUDIO)
+	{	
+		.modalias	= "easy_dab",
+		.bus_num 	= 0,
+		.chip_select	= SPI0_CS1,
+		.max_speed_hz	= 10000000,
+	},
+#endif
 };
 	
 static struct resource ls1b_spi0_resource[] = {
