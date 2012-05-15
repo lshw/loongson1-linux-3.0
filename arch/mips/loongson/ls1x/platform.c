@@ -14,32 +14,35 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/resource.h>
-#include <ls1b_board.h>
-#include <ls1b_board_int.h>
 #include <linux/serial_8250.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/delay.h>
-#include <linux/spi/spi.h>		//lxy
-#include <linux/spi/mmc_spi.h>		//lqx
-#include <linux/mmc/host.h>
-#include <linux/mtd/partitions.h>
+#include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <linux/spi/ads7846.h>
+#include <linux/spi/mmc_spi.h>
+#include <linux/mmc/host.h>
+#include <linux/phy.h>
+#include <linux/stmmac.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
 #include <linux/i2c/ft5x06_ts.h>
-#include <media/gc0308_platform.h>		//lxy
 #include <linux/videodev2.h>
-#include <linux/spi/ads7846.h>
+#include <linux/gpio_keys.h>
+#include <linux/input.h>
+#include <linux/input/matrix_keypad.h>
+#include <linux/rotary_encoder.h>
+
+#include <media/gc0308_platform.h>
+
+#include <ls1b_board.h>
+#include <ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 #include <asm/mach-loongson/ls1x/spi.h>
 #include <asm/mach-loongson/ls1x/fb.h>
-#include <linux/gpio_keys.h>
 #include <asm/gpio.h>
-
-#include <linux/phy.h> //lv
-#include <linux/stmmac.h> //lv
-#include <asm-generic/sizes.h> //lv
+#include <asm-generic/sizes.h>
 
 extern unsigned long bus_clock;
 extern unsigned long ls1b_cpu_clock;
@@ -908,14 +911,6 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.platform_data	= &mmc_spi,
 	},
 #endif
-#if defined(CONFIG_EASY_DAB_AUDIO)
-	{	
-		.modalias	= "easy_dab",
-		.bus_num 	= 0,
-		.chip_select	= SPI0_CS1,
-		.max_speed_hz	= 10000000,
-	},
-#endif
 };
 	
 static struct resource ls1b_spi0_resource[] = {
@@ -958,6 +953,15 @@ static struct spi_board_info ls1b_spi1_devices[] = {
 		.chip_select	= SPI1_CS0,
 		.max_speed_hz	= 25000000,
 		.platform_data	= &mmc_spi,
+	},
+#endif
+
+#if defined(CONFIG_EASY_DAB_AUDIO)
+	{	
+		.modalias		= "easy_dab",
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS1,
+		.max_speed_hz	= 10000000,
 	},
 #endif
 };
@@ -1178,6 +1182,72 @@ static struct platform_device rotary_encoder_device = {
 };
 #endif //#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
 
+/* matrix keypad */
+#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
+static const uint32_t ls1bkbd_keymap[] = {
+	KEY(0, 0, KEY_A),
+	KEY(0, 1, KEY_B),
+	KEY(0, 2, KEY_C),
+	KEY(0, 3, KEY_D),
+
+	KEY(1, 0, KEY_E),
+	KEY(1, 1, KEY_F),
+	KEY(1, 2, KEY_G),
+	KEY(1, 3, KEY_H),
+};
+
+static struct matrix_keymap_data ls1bkbd_keymap_data = {
+	.keymap			= ls1bkbd_keymap,
+	.keymap_size	= ARRAY_SIZE(ls1bkbd_keymap),
+};
+
+static const int ls1bkbd_row_gpios[] =
+	{ 30, 28 };
+static const int ls1bkbd_col_gpios[] =
+	{ 29, 58, 50, 52 };
+
+static struct matrix_keypad_platform_data ls1bkbd_pdata = {
+	.keymap_data		= &ls1bkbd_keymap_data,
+	.row_gpios			= ls1bkbd_row_gpios,
+	.col_gpios			= ls1bkbd_col_gpios,
+	.num_row_gpios		= ARRAY_SIZE(ls1bkbd_row_gpios),
+	.num_col_gpios		= ARRAY_SIZE(ls1bkbd_col_gpios),
+	.col_scan_delay_us	= 5,
+	.debounce_ms		= 25,
+	.active_low			= 1,
+	.wakeup				= 1,
+	.no_autorepeat		= 0,
+};
+
+static struct platform_device ls1bkbd_device = {
+	.name	= "matrix-keypad",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &ls1bkbd_pdata,
+	},
+};
+
+static void __init board_mkp_init(void)
+{
+	/* 使能矩阵键盘的行中断,低电平触发方式. */
+	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (30 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (30 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (30 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (30 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (30 & 0x1f));
+
+	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (28 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (28 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (28 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (28 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (28 & 0x1f));
+}
+#else
+static inline void board_mkp_init(void)
+{
+}
+#endif	//#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_MTD_NAND_LS1B
@@ -1255,6 +1325,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
 	&rotary_encoder_device,
+#endif
+
+#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
+	&ls1bkbd_device,
 #endif
 };
 
@@ -1351,6 +1425,8 @@ int ls1b_platform_init(void)
 	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_ROTARY_B & 0x1f));	/* 中断置位寄存器 */
 	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (GPIO_ROTARY_B & 0x1f));	/* 中断使能寄存器 */
 #endif
+
+	board_mkp_init();
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
 	ads7846_detect_penirq();
