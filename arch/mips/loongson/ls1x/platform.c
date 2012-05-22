@@ -33,6 +33,7 @@
 #include <linux/input.h>
 #include <linux/input/matrix_keypad.h>
 #include <linux/rotary_encoder.h>
+#include <linux/ssd1305.h>
 
 #include <media/gc0308_platform.h>
 
@@ -1276,6 +1277,35 @@ static inline void board_mkp_init(void)
 }
 #endif	//#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
 
+#ifdef CONFIG_FB_SSD1305
+static struct ssd1305_platform_data ssd1305_pdata = {
+	.gpio_outpu = REG_GPIO_OUT0,
+	.gpios_res = 17,
+	.gpios_cs = 16,
+	.gpios_dc = 18,
+	.gpios_rd = 20,
+	.gpios_wr = 19,
+	
+	.gpios_d0 = 8,
+	.gpios_d1 = 9,
+	.gpios_d2 = 10,
+	.gpios_d3 = 11,
+	.gpios_d4 = 12,
+	.gpios_d5 = 13,
+	.gpios_d6 = 14,
+	.gpios_d7 = 15,
+	.datas_offset = 8,
+};
+
+struct platform_device ssd1305fb_device = {
+	.name	= "ssd1305fb",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &ssd1305_pdata,
+	},
+};
+#endif //#ifdef CONFIG_FB_SSD1305
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_MTD_NAND_LS1B
@@ -1358,6 +1388,11 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
 	&ls1bkbd_device,
 #endif
+
+#ifdef CONFIG_FB_SSD1305
+	&ssd1305fb_device,
+#endif
+
 };
 
 #define AHCI_PCI_BAR  5

@@ -479,6 +479,39 @@ config FB_ARC
 	  this driver, say Y or M; otherwise say N. You must specify the
 	  GPIO IO address to be used for setting control and data.
 
+config FB_SSD1305
+	tristate "SSD1305 Monochrome OLED display module support"
+	depends on FB
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_SYS_FOPS
+	help
+	  This enables support for the ssd1305 Monochrome OLED display modules.
+	  This driver was tested with a 128x64 panel. If you anticipate using
+	  this driver, say Y or M; otherwise say N.
+
+config SSD1305_RATE
+       int "Refresh rate (hertz)"
+	depends on FB_SSD1305
+	default "20"
+	---help---
+	  Refresh rate of the LCD.
+
+	  As the LCD is not memory mapped, the driver has to make the work by
+	  software. This means you should be careful setting this value higher.
+	  If your CPUs are really slow or you feel the system is slowed down,
+	  decrease the value.
+
+	  Be careful modifying this value to a very high value:
+	  You can freeze the computer, or the LCD maybe can't draw as fast as you
+	  are requesting.
+
+	  If you don't know what I'm talking about, ignore it.
+
+	  If you compile this as a module, you can still override this
+	  value using the module parameters.
+
 config FB_ATARI
 	bool "Atari native chipset support"
 	depends on (FB = y) && ATARI
