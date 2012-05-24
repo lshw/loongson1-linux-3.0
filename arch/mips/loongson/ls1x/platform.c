@@ -32,6 +32,7 @@
 #include <linux/gpio_keys.h>
 #include <linux/input.h>
 #include <linux/input/matrix_keypad.h>
+#include <linux/input/74x165_gpio_keys_polled.h>
 #include <linux/rotary_encoder.h>
 #include <linux/ssd1305.h>
 
@@ -1306,6 +1307,77 @@ struct platform_device ssd1305fb_device = {
 };
 #endif //#ifdef CONFIG_FB_SSD1305
 
+#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
+static struct gpio_keys_button gen74x165_gpio_keys_table[] = {
+	{
+		.code		= KEY_0,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_1,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_2,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_3,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_4,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_5,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_6,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_7,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_8,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_9,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_A,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_B,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_C,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_D,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_E,
+		.active_low	= 1,
+	}, {
+		.code		= KEY_F,
+		.active_low	= 1,
+	},
+};
+
+static struct gen_74x165_platform_data gen74x165_gpio_keys_info = {
+	.q7 = 41,
+	.cp = 39,
+	.pl = 38,
+	.debounce_interval = 1,
+	.buttons	= gen74x165_gpio_keys_table,
+	.nbuttons	= ARRAY_SIZE(gen74x165_gpio_keys_table),
+	.poll_interval	= 50, /* default to 50ms */
+};
+
+static struct platform_device gen74x165_gpio_keys_device = {
+	.name		= "gen74x165_gpio-keys-polled",
+	.dev		= {
+		.platform_data	= &gen74x165_gpio_keys_info,
+	},
+};
+#endif //#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_MTD_NAND_LS1B
@@ -1393,6 +1465,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ssd1305fb_device,
 #endif
 
+#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
+	&gen74x165_gpio_keys_device,
+#endif
 };
 
 #define AHCI_PCI_BAR  5

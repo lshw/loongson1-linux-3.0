@@ -193,13 +193,7 @@ config LS1B_BUZZER
 	default	n
 	help
 	  buzzer driver.
-          
-config LS1B_74LV165_BUTTON
-	bool "ls1b bsp 74lv165 button"
-	default	n
-	help
-	  key button driver.
-          
+
 config LS1B_PWM_DRIVER
 	bool "ls1b pwm driver"
 	default	n
