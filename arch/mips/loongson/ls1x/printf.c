@@ -1,7 +1,7 @@
 #include <stdarg.h>
 #include <linux/kernel.h>
 
-extern void prom_putchar(char);
+extern int putDebugChar(unsigned char byte);
 
 void prom_printf(char *fmt, ...)
 {
@@ -16,9 +16,9 @@ void prom_printf(char *fmt, ...)
 
 	while (*bptr != 0) {
 		if (*bptr == '\n')
-			prom_putchar('\r');
+			putDebugChar('\r');
 
-		prom_putchar(*bptr++);
+		putDebugChar(*bptr++);
 	}
 	va_end(args);
 }

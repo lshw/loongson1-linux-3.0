@@ -6,25 +6,12 @@
  *
  */
 
-#include <generated/autoconf.h>
-#include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/types.h>
-#include <linux/mm.h>
 #include <linux/ioport.h>
-#include <linux/interrupt.h>
-#include <linux/pci.h>
+#include <linux/module.h>
 
-#include <asm/mc146818-time.h>
-#include <asm/time.h>
 #include <asm/bootinfo.h>
-#include <asm/io.h>
-#include <asm/irq.h>
-#include <asm/pci.h>
-
-#include <linux/bootmem.h>
-#include <linux/tty.h>
-#include <linux/mc146818rtc.h>
+#include <asm/wbflush.h>
+#include <prom.h>
 
 #ifdef CONFIG_VT
 #include <linux/console.h>
@@ -41,13 +28,9 @@ extern void prom_printf(char *fmt, ...);
 #define PTR_PAD(p) (p)
 #endif
 
-unsigned long ls1b_cpu_clock;
-unsigned long bus_clock;
-unsigned int  memsize;
-unsigned int  highmemsize = 0;
-
 void (*__wbflush)(void);
-EXPORT_SYMBOL(__wbflush);	//lxy
+EXPORT_SYMBOL(__wbflush);
+
 static void wbflush_sb2f(void)
 {
       *(volatile unsigned long *)CKSEG1;

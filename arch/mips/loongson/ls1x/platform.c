@@ -35,6 +35,7 @@
 #include <linux/input/74x165_gpio_keys_polled.h>
 #include <linux/rotary_encoder.h>
 #include <linux/ssd1305.h>
+#include <linux/clk.h>
 
 #include <media/gc0308_platform.h>
 
@@ -45,10 +46,6 @@
 #include <asm/mach-loongson/ls1x/fb.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
-
-extern unsigned long bus_clock;
-extern unsigned long ls1b_cpu_clock;
-extern unsigned int  memsize, highmemsize;
 
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
@@ -1474,8 +1471,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 int ls1b_platform_init(void)
 {
-	int i;
-	unsigned int apb_clk;
+	struct clk *clk;
+	struct plat_serial8250_port *p;
 
 #ifdef LOONGSON_AHCI
 	ls1b_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1b_ahci_resources[0].start,0x200);
@@ -1505,35 +1502,12 @@ int ls1b_platform_init(void)
 #endif
 
 	/* uart clock */
-	apb_clk = bus_clock/2;
-	for(i=0; i<CONFIG_SERIAL_8250_NR_UARTS; i++) {
-		uart8250_data[i].uartclk = apb_clk;
-	}
+	clk = clk_get(NULL, "ddr");
+	if (IS_ERR(clk))
+		panic("unable to get dc clock, err=%ld", PTR_ERR(clk));
 
-#if 0
-//	clk = *(volatile unsigned int *)(0xbfd010c0);
-//	*(volatile unsigned int *)(0xbfd010c0) = clk | x01;
-
-	*(volatile unsigned int *)(0xbfe5c000 + 0xc) = 0x80;
-	*(volatile unsigned int *)(0xbfe5c000 + 0x0) = 0x0; 
-	*(volatile unsigned int *)(0xbfe5c000 + 0x4) = 0x1;
-	*(volatile unsigned int *)(0xbfe5c000 + 0x8) = 0x3;
-	*(volatile unsigned int *)(0xbfe5c000 + 0xc) = 0x1;
-	
-#if 0
-	*(volatile unsigned int *)(0xbfe5c010 + 0xc) = 0x80;
-	*(volatile unsigned int *)(0xbfe5c010 + 0x0) = 0; 
-	*(volatile unsigned int *)(0xbfe5c010 + 0x4) = 19;
-	*(volatile unsigned int *)(0xbfe5c010 + 0x8) = 19 + 320 * 8 *6;
-	*(volatile unsigned int *)(0xbfe5c010 + 0xc) = 0x1;
-
-	*(volatile unsigned int *)(0xbfe5c020 + 0xc) = 0x80;
-	*(volatile unsigned int *)(0xbfe5c020 + 0x0) = 0; 
-	*(volatile unsigned int *)(0xbfe5c020 + 0x4) = (1 + 8) * 240 * (19 + 320 * 8 *6) -1;
-	*(volatile unsigned int *)(0xbfe5c020 + 0x8) = (1 + 8 + 1) * 240 * (19 + 320 * 8 *6) -1;
-	*(volatile unsigned int *)(0xbfe5c020 + 0xc) = 0x1;
-#endif
-#endif
+	for (p = uart8250_data; p->flags != 0; ++p)
+		p->uartclk = clk_get_rate(clk) / 2;
 
 #ifdef CONFIG_LS1B_I2C
 	i2c_register_board_info(0, ls1b_i2c_devs, ARRAY_SIZE(ls1b_i2c_devs));
