@@ -6,14 +6,13 @@
  *
  */
 #include <linux/io.h>
-#include <linux/kernel.h>
 #include <linux/pm.h>
 
 #include <asm/reboot.h>
 
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 
-static void ls232_restart(char *command)
+static void ls1x_restart(char *command)
 {
 	void __iomem *wdt_base = ioremap(LS1B_BOARD_WAT_BASE, 0x0f);
 	
@@ -30,7 +29,7 @@ static void ls232_restart(char *command)
 	}
 }
 
-static void ls232_halt(void)
+static void ls1x_halt(void)
 {
 	pr_notice("\n\n** You can safely turn off the power now **\n\n");
 	while (1) {
@@ -39,16 +38,19 @@ static void ls232_halt(void)
 	}
 }
 
-/*
-static void ls232_power_off(void)
+static void ls1x_power_off(void)
 {
-	ls232_halt();
+	ls1x_halt();
 }
-*/
 
-void mips_reboot_setup(void)
+static int __init ls1x_reboot_setup(void)
 {
-	_machine_restart = ls232_restart;
-	_machine_halt = ls232_halt;
-//	pm_power_off = ls232_power_off;
+	_machine_restart = ls1x_restart;
+	_machine_halt = ls1x_halt;
+	pm_power_off = ls1x_power_off;
+	
+	return 0;
 }
+
+arch_initcall(ls1x_reboot_setup);
+
