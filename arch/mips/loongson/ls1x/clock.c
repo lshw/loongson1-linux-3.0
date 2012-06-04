@@ -49,9 +49,8 @@ static void pll_clk_init(struct clk *clk)
 	u32 pll;
 
 	pll = __raw_readl(LS1X_CLK_PLL_FREQ);
-	clk->rate = (12 + (pll & 0x3f)) * 33 / 2
-			+ ((pll >> 8) & 0x3ff) * 33 / 1024 / 2;
-	clk->rate *= 1000000;
+	clk->rate = (12 + (pll & 0x3f)) * APB_CLK / 2
+			+ ((pll >> 8) & 0x3ff) * APB_CLK / 1024 / 2;
 }
 
 static void cpu_clk_init(struct clk *clk)

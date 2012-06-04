@@ -1,31 +1,8 @@
 /*
- *
- * BRIEF MODULE DESCRIPTION
- *	FCR SOC system controller defines.
- *
- * Copyright 2000 MontaVista Software Inc.
- * Author: ICT.
- *         	plj@ict.ac.cn
- *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
  *  Free Software Foundation;  either version 2 of the  License, or (at your
  *  option) any later version.
- *
- *  THIS  SOFTWARE  IS PROVIDED   ``AS  IS'' AND   ANY  EXPRESS OR IMPLIED
- *  WARRANTIES,   INCLUDING, BUT NOT  LIMITED  TO, THE IMPLIED WARRANTIES OF
- *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
- *  NO  EVENT  SHALL   THE AUTHOR  BE    LIABLE FOR ANY   DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED   TO, PROCUREMENT OF  SUBSTITUTE GOODS  OR SERVICES; LOSS OF
- *  USE, DATA,  OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- *  ANY THEORY OF LIABILITY, WHETHER IN  CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  You should have received a copy of the  GNU General Public License along
- *  with this program; if not, write  to the Free Software Foundation, Inc.,
- *  675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
 #ifndef __LS1B_BOARD__H__
@@ -51,9 +28,9 @@
 #ifdef	CONFIG_LS1A_MACH
 #define AHB_CLK			12000000
 #else
-#define AHB_CLK			33333333
+#define AHB_CLK			33000000
 #endif
-//#define AHB_CLK			50000000
+
 /* Interrupt register */
 #define REG_INT_EDGE		0x04
 #define REG_INT_STEER		0x08
@@ -63,6 +40,7 @@
 #define REG_INT_EN		0x18
 #define REG_INT_ISR		0x1c
 #define LS1B_BOARD_INTC_BASE	LS1B_BOARD_AHB_MISC_BASE + REG_INT_EDGE
+
 /* GPIO register */
 #define REG_GPIO_OE_AHB		0x20
 #define REG_GPIO_R_AHB		0x24
@@ -88,7 +66,6 @@
 #define	REG_SPCSR			0x05
 #define	REG_SPTR			0x06
 
-#if 1
 #define LS1B_BOARD_SPI0_BASE		0x1fe80000
 #define LS1B_BOARD_SPI1_BASE		0x1fec0000
 #define REG_SPCR				0x00	//控制寄存器
@@ -109,7 +86,6 @@
 #define SPI1_CS0				0
 #define SPI1_CS1				1
 #define SPI1_CS2				2
-#endif
 
 /* pwm regs */
 #define LS1B_PWM0_BASE	0x1fe5c000
@@ -138,30 +114,32 @@
 
 #define LS1B_UART_SPLIT				0xbfe78038
 
-/*watchdog*/
+/* watchdog */
 #define LS1B_BOARD_WAT_BASE			0x1fe5c060
 #define WDT_EN						0x00
 #define WDT_TIMER					0x04
 #define WDT_SET						0x08
 
-/*RTC*/
+/* RTC */
 #define LS1X_RTC_BASE				0x1fe64000
 
-/*I2C*/
+/* I2C */
 #define LS1B_BOARD_I2C_BASE			0x1fe58000
 
 /* APB BUS control regs */
-#define LS1X_CLK_BASE			0x1fe78030
-#define LS1B_BOARD_APB_MISC_BASE	 0x1f004100
+#define LS1X_CLK_BASE				0x1fe78030
+#define LS1B_BOARD_APB_MISC_BASE	0x1f004100
 #define REG_GPIO_OE_APB 	0x00
 #define REG_GPIO_R_APB		0x10
 #define REG_GPIO_W_APB		0x20
 #define REG_APB_MISC_CTL	0x40
-#define APB_CLK			AHB_CLK
+#define APB_CLK				AHB_CLK
 #define LS1B_GPIO_MUX_CTRL1 0xbfd00424
-//AC97
+
+/* AC97 */
 #define LS1B_AC97_REGS_BASE 0x1fe74000
-//PCI
+
+/* PCI */
 #define LS1B_BOARD_PCI_REGS_BASE		 0x1f002000
 
 #include <regs-clk.h>
@@ -179,6 +157,5 @@ struct ls1b_usbh_data {
 #define LS1A_PCIMAP (*(volatile int *)0xbfd01114)
 #define LS1A_PCIMAP_CFG  (*(volatile int *)0xbfd01120)
 
-
-#endif
+#endif	/* __LS1B_BOARD__H__ */
 
