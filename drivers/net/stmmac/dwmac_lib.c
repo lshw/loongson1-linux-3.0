@@ -23,6 +23,22 @@
 #include <linux/io.h>
 #include "common.h"
 #include "dwmac_dma.h"
+#include <linux/mtd/mtd.h>
+#include <linux/types.h>
+
+struct m25p {
+        struct spi_device       *spi;
+        struct mutex            lock;
+        struct mtd_info         mtd;
+        unsigned                partitioned:1;
+        u16                     page_size;
+        u16                     addr_width;
+        u8                      erase_opcode;
+        u8                      *command;
+};
+
+
+extern struct m25p *flash_tmp;
 
 #undef DWMAC_DMA_DEBUG
 #ifdef DWMAC_DMA_DEBUG
@@ -231,11 +247,39 @@ void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 			 unsigned int high, unsigned int low)
 {
 	unsigned long data;
-
+	size_t retlen;
+	int ret;
+	u8 buf[512];
+	u8 *tmp;
+	
 	data = (addr[5] << 8) | addr[4];
 	writel(data, ioaddr + high);
 	data = (addr[3] << 24) | (addr[2] << 16) | (addr[1] << 8) | addr[0];
 	writel(data, ioaddr + low);
+
+
+	flash_tmp->mtd.read(&flash_tmp->mtd, 0x70000, 512, &retlen, buf);
+	tmp = buf + 512 - 6;	
+	*(tmp+0) = addr[0];
+	*(tmp+1) = addr[1];
+ 	*(tmp+2) = addr[2];
+ 	*(tmp+3) = addr[3];
+ 	*(tmp+4) = addr[4];
+ 	*(tmp+5) = addr[5];
+	
+	struct erase_info instr;
+	instr.addr = 0x70000;
+	instr.len = 0x10000;
+	instr.callback = NULL;
+	instr.mtd = &flash_tmp->mtd;
+	ret = flash_tmp->mtd.erase(&flash_tmp->mtd, &instr);
+	if(ret < 0)
+		printk("m25p80_erase is failed.\n");
+
+	ret = flash_tmp->mtd.write(&flash_tmp->mtd, 0x70000, 512, &retlen, buf);
+	if(ret < 0)
+		printk("m25p80_write_by_mac is failed.\n");
+
 }
 
 //modify by lvling
@@ -257,10 +301,16 @@ void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 	addr[4] = hi_addr & 0xff;
 	addr[5] = (hi_addr >> 8) & 0xff;
 	*/
+	extern char *hwaddr;
 
-	static int index = 0;
+	if(hwaddr == NULL){
+		printk("hwaddr is NULL.\n");
+		static int index = 0;
 	
-	get_random_bytes(addr, sizeof(addr));
+		get_random_bytes(addr, sizeof(addr));
 
-	addr[5] += index;
+		addr[5] += index;
+	}else{	
+		sscanf(hwaddr, "%x:%x:%x:%x:%x:%x", &addr[0],&addr[1],&addr[2],&addr[3],&addr[4],&addr[5]);
+	}
 }

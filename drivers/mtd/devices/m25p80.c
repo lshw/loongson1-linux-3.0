@@ -100,6 +100,7 @@ static inline struct m25p *mtd_to_m25p(struct mtd_info *mtd)
 	return container_of(mtd, struct m25p, mtd);
 }
 
+struct m25p *flash_tmp;
 /****************************************************************************/
 
 /*
@@ -337,6 +338,7 @@ static int m25p80_erase(struct mtd_info *mtd, struct erase_info *instr)
 	return 0;
 }
 
+
 /*
  * Read an address range from the flash chip.  The address range
  * may be any size provided it is within the physical boundaries.
@@ -347,8 +349,7 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 	struct m25p *flash = mtd_to_m25p(mtd);
 	struct spi_transfer t[2];
 	struct spi_message m;
-
-	DEBUG(MTD_DEBUG_LEVEL2, "%s: %s %s 0x%08x, len %zd\n",
+	printk("%s: %s %s 0x%08x, len %zd\n",
 			dev_name(&flash->spi->dev), __func__, "from",
 			(u32)from, len);
 
@@ -358,7 +359,6 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 
 	if (from + len > flash->mtd.size)
 		return -EINVAL;
-
 	spi_message_init(&m);
 	memset(t, 0, (sizeof t));
 
@@ -373,7 +373,6 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 	t[1].rx_buf = buf;
 	t[1].len = len;
 	spi_message_add_tail(&t[1], &m);
-
 	/* Byte count starts at zero. */
 	*retlen = 0;
 
@@ -396,13 +395,13 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 	m25p_addr2cmd(flash, from, flash->command);
 
 	spi_sync(flash->spi, &m);
-
 	*retlen = m.actual_length - m25p_cmdsz(flash) - FAST_READ_DUMMY_BYTE;
 
 	mutex_unlock(&flash->lock);
 
 	return 0;
 }
+
 
 /*
  * Write an address range to the flash chip.  Data must be written in
@@ -500,6 +499,7 @@ static int m25p80_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	return 0;
 }
+
 
 static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 		size_t *retlen, const u_char *buf)
@@ -1001,6 +1001,8 @@ static int __devinit m25p_probe(struct spi_device *spi)
 		}
 		flash->partitioned = 1;
 	}
+
+	flash_tmp = flash;
 
 	return mtd_device_register(&flash->mtd, parts, nr_parts) == 1 ?
 		-ENODEV : 0;

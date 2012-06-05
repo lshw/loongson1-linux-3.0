@@ -112,6 +112,10 @@ static int pause = PAUSE_TIME;
 module_param(pause, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(pause, "Flow Control Pause Time");
 
+char *hwaddr = NULL;
+module_param(hwaddr, charp, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(hwaddr, "gmac hardware address.");
+
 #define TC_DEFAULT 64
 static int tc = TC_DEFAULT;
 module_param(tc, int, S_IRUGO | S_IWUSR);
@@ -769,6 +773,7 @@ static int stmmac_open(struct net_device *dev)
 	 * to bring the device up. The user must specify an
 	 * address using the following linux command:
 	 *      ifconfig eth0 hw ether xx:xx:xx:xx:xx:xx  */
+	pr_warning("dev->dev_addr is %s\n",dev->dev_addr);
 	if (!is_valid_ether_addr(dev->dev_addr)) {
 		random_ether_addr(dev->dev_addr);
 		pr_warning("%s: generated random MAC address %pM\n", dev->name,
@@ -1481,6 +1486,7 @@ static int stmmac_probe(struct net_device *dev)
 	priv->hw->mac->get_umac_addr((void __iomem *) dev->base_addr,
 				     dev->dev_addr, 0);
 
+	pr_warning("dev->dev_addr is %s\n",dev->dev_addr);
 	if (!is_valid_ether_addr(dev->dev_addr))
 		pr_warning("\tno valid MAC address;"
 			"please, use ifconfig or nwhwconfig!\n");
@@ -1946,6 +1952,8 @@ static int __init stmmac_cmdline_opt(char *str)
 				       (unsigned long *)&flow_ctrl);
 		else if (!strncmp(opt, "pause:", 6))
 			strict_strtoul(opt + 6, 0, (unsigned long *)&pause);
+		else if (!strncmp(opt, "hw_addr:", 8))
+			strict_strtoul(opt + 8, 0, (unsigned long *)&hwaddr);
 #ifdef CONFIG_STMMAC_TIMER
 		else if (!strncmp(opt, "tmrate:", 7))
 			strict_strtoul(opt + 7, 0, (unsigned long *)&tmrate);
@@ -1963,4 +1971,3 @@ module_exit(stmmac_cleanup_module);
 MODULE_DESCRIPTION("STMMAC 10/100/1000 Ethernet driver");
 MODULE_AUTHOR("Giuseppe Cavallaro <peppe.cavallaro@st.com>");
 MODULE_LICENSE("GPL");
-
