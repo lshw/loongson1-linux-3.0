@@ -274,11 +274,11 @@ void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 	instr.mtd = &flash_tmp->mtd;
 	ret = flash_tmp->mtd.erase(&flash_tmp->mtd, &instr);
 	if(ret < 0)
-		printk("m25p80_erase is failed.\n");
+		DWMAC_LIB_DBG("m25p80_erase is failed.\n");
 
 	ret = flash_tmp->mtd.write(&flash_tmp->mtd, 0x70000, 512, &retlen, buf);
 	if(ret < 0)
-		printk("m25p80_write_by_mac is failed.\n");
+		DWMAC_LIB_DBG("m25p80_write_by_mac is failed.\n");
 
 }
 
@@ -304,7 +304,7 @@ void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 	extern char *hwaddr;
 
 	if(hwaddr == NULL){
-		printk("hwaddr is NULL.\n");
+		DWMAC_LIB_DBG("hwaddr is NULL.\n");
 		static int index = 0;
 	
 		get_random_bytes(addr, sizeof(addr));
