@@ -192,6 +192,7 @@ void __init check_wait(void)
 	case CPU_CAVIUM_OCTEON_PLUS:
 	case CPU_CAVIUM_OCTEON2:
 	case CPU_JZRISC:
+	case CPU_LS232:
 		cpu_wait = r4k_wait;
 		break;
 
@@ -216,11 +217,6 @@ void __init check_wait(void)
 	case CPU_TX49XX:
 		cpu_wait = r4k_wait_irqoff;
 		break;
-		
-	case CPU_LS232:		//lxy
-                cpu_wait = r4k_wait;
-                printk(" available.\n");
-                break;
 	case CPU_ALCHEMY:
 		cpu_wait = au1k_wait;
 		break;
@@ -624,23 +620,21 @@ static inline void cpu_probe_legacy(struct cpuinfo_mips *c, unsigned int cpu)
 		c->tlbsize = 64;
 		break;
 
-	case PRID_IMP_GODSON1:		//lxy
-		if((c->processor_id & 0x00ff) == PRID_REV_LS232)
-		{
+	case PRID_IMP_GODSON1:
+		if((c->processor_id & 0x00ff) == PRID_REV_LS232) {
 			decode_configs(c);
 			c->cputype = CPU_LS232;
 			__cpu_name[cpu] = "ICT Loongson-1b";
 			c->options &= ~MIPS_CPU_FPU;
-		}
-		else
-		{
+		} else {
 			c->cputype = CPU_LOONGSON1;
 			c->isa_level = MIPS_CPU_ISA_II;
 			c->options = R4K_OPTS | 
 				/* MIPS_CPU_FPU | */ MIPS_CPU_LLSC;
 			c->tlbsize = 32;
 		}
-                break;
+		break;
+
 	case PRID_IMP_LOONGSON2:
 		c->cputype = CPU_LOONGSON2;
 		__cpu_name[cpu] = "ICT Loongson-2";

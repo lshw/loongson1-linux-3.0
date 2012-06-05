@@ -3,31 +3,30 @@ if MACH_LOONGSON
 choice
 	prompt "Machine Type"
 
-config LS1B_MACH		#lxy
+config LS1B_MACH
 	bool "GZ Loongson 1B family machines"
-#	select ARCH_SPARSEMEM_ENABLE
-#	select BOARD_SCACHE
 	select BOOT_ELF32
-#	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
 	select CEVT_R4K
 	select CSRC_R4K
 	select CPU_HAS_WB
-#	select CS5536
-#	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
 	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select SYS_HAS_CPU_LS232
+	select SYS_HAS_EARLY_PRINTK
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_HIGHMEM
+	select SYS_SUPPORTS_LITTLE_ENDIAN
+#	select ISA
 #	select ZONE_DMA
 #	select GENERIC_ISA_DMA
 #	select GENERIC_ISA_DMA_SUPPORT_BROKEN
 #	select HW_HAS_PCI
 #	select I8259
-	select IRQ_CPU
-#	select ISA
-	select SYS_HAS_CPU_LS232
-	select SYS_HAS_EARLY_PRINTK
-	select SYS_SUPPORTS_32BIT_KERNEL
-#	select SYS_SUPPORTS_64BIT_KERNEL
-	select SYS_SUPPORTS_HIGHMEM
-	select SYS_SUPPORTS_LITTLE_ENDIAN
+#	select CS5536
+#	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
+#	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
+#	select ARCH_SPARSEMEM_ENABLE
+#	select BOARD_SCACHE
 #	select LOONGSON_MC146818
 	help
 	  GZ Loongson 1B family machines utilize the ls232 revision of
@@ -165,9 +164,5 @@ config LOONGSON_BIGPCI
 	bool 'use large pci memory'
 	default n
 	depends on LS1A_MACH
-
-config LOONGSON_FIX_RANDOM_INSTRUCTION_FETCH_SIDE_EFFECT_TO_DEVICE
-	bool 'fix random instruction fetch\'s side effect to device for loongson cpu(special compiler)'
-	default n
 
 endif # MACH_LOONGSON

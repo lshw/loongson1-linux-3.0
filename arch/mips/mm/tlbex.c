@@ -426,13 +426,12 @@ static void __cpuinit build_tlb_write_entry(u32 **p, struct uasm_label **l,
 	case CPU_BMIPS5000:
 	case CPU_LOONGSON2:
 	case CPU_R5500:
-//	case CPU_LS232:		//lxy
 		if (m4kc_tlbp_war())
 			uasm_i_nop(p);
 	case CPU_ALCHEMY:
 		tlbw(p);
 		break;
-	case CPU_LS232:		//lxy
+	case CPU_LS232:
 		uasm_i_ehb(p);
 		tlbw(p);
 		break;

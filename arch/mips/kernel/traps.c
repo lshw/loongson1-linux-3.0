@@ -1241,6 +1241,7 @@ static inline void parity_protection_init(void)
 		break;
 
 	case CPU_5KC:
+	case CPU_LS232:
 		write_c0_ecc(0x80000000);
 		back_to_back_c0_hazard();
 		/* Set the PE bit (bit 31) in the c0_errctl register. */
@@ -1283,7 +1284,7 @@ asmlinkage void cache_parity_error(void)
 	       reg_val & (1<<22) ? "E0 " : "");
 	printk("IDX: 0x%08x\n", reg_val & ((1<<22)-1));
 
-#if defined(CONFIG_CPU_MIPS32) || defined(CONFIG_CPU_MIPS64)
+#if defined(CONFIG_CPU_MIPS32) || defined(CONFIG_CPU_MIPS64) || defined(CONFIG_CPU_LS232)
 	if (reg_val & (1<<22))
 		printk("DErrAddr0: 0x%0*lx\n", field, read_c0_derraddr0());
 
