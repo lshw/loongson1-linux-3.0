@@ -87,7 +87,9 @@ void __init prom_init(void)
 	cpu_clock_freq = env_or_default("cpuclock", DEFAULT_CPUCLOCK);
 	memsize = env_or_default("memsize", DEFAULT_MEMSIZE);
 	highmemsize = env_or_default("highmemsize", 0x0);
+#ifdef CONFIG_STMMAC_ETH
 	hwaddr = prom_getenv("ethaddr");
+#endif
 	
 	tmp = strstr(arcs_cmdline, "video=ls1bfb:vga");
 	if (tmp) {
