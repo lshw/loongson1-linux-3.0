@@ -773,7 +773,6 @@ static int stmmac_open(struct net_device *dev)
 	 * to bring the device up. The user must specify an
 	 * address using the following linux command:
 	 *      ifconfig eth0 hw ether xx:xx:xx:xx:xx:xx  */
-	pr_warning("dev->dev_addr is %s\n",dev->dev_addr);
 	if (!is_valid_ether_addr(dev->dev_addr)) {
 		random_ether_addr(dev->dev_addr);
 		pr_warning("%s: generated random MAC address %pM\n", dev->name,
@@ -1486,7 +1485,6 @@ static int stmmac_probe(struct net_device *dev)
 	priv->hw->mac->get_umac_addr((void __iomem *) dev->base_addr,
 				     dev->dev_addr, 0);
 
-	pr_warning("dev->dev_addr is %s\n",dev->dev_addr);
 	if (!is_valid_ether_addr(dev->dev_addr))
 		pr_warning("\tno valid MAC address;"
 			"please, use ifconfig or nwhwconfig!\n");

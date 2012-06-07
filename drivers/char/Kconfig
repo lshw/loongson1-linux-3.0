@@ -212,6 +212,12 @@ config LS1B_IR
 	help
 	  A simple Infrared driver for loongson 1B board.
 
+config LS1B_STEPMOTOR
+	bool	"ls1b stepping motor driver"
+	default	n
+	help
+	  ls1b stepping motor driver for 24BYJ48A.
+
 config IBM_BSR
 	tristate "IBM POWER Barrier Synchronization Register support"
 	depends on PPC_PSERIES
