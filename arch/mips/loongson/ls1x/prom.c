@@ -17,7 +17,9 @@
 #define DEFAULT_BUSCLOCK		133000000
 #define DEFAULT_CPUCLOCK		266000000
 
+#ifdef CONFIG_STMMAC_ETH
 extern char *hwaddr;
+#endif
 
 unsigned long cpu_clock_freq;
 EXPORT_SYMBOL(cpu_clock_freq);
