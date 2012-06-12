@@ -47,7 +47,11 @@ typedef unsigned int uint32;
 #ifdef CONFIG_64BIT
 #define         BASE                    (0xffffffffbfe44000)
 #else
-#define         BASE                    (0xbfe48000)//0xbfe6c000//(0xbfe40000)
+#ifdef	CONFIG_LS1A_MACH
+	#define         BASE                    (0xbfe40000)//0xbfe6c000//(0xbfe40000)
+#else
+	#define         BASE                    (0xbfe48000)//0xbfe6c000//(0xbfe40000)
+#endif
 #endif
 
 /* === END OF CONFIG === */
@@ -79,6 +83,9 @@ typedef unsigned int uint32;
 
 static void debugInit(uint32 baud, uint8 data, uint8 parity, uint8 stop)
 {
+#ifdef CONFIG_LS1A_MACH
+	return;
+#endif
 	/* disable interrupts */
 	UART16550_WRITE(OFS_INTR_ENABLE, 0);
 

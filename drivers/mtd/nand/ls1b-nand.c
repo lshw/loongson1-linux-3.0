@@ -18,18 +18,22 @@
 #define ORDER_REG_ADDR      (KSEG1ADDR(0x1fd01160))
 #define MAX_BUFF_SIZE	4096
 #define PAGE_SHIFT      12
-#if 0
-#define NO_SPARE_ADDRH(x)   (((x) >> (32 - (PAGE_SHIFT - 1 ))) & 0x7f)   
-#define NO_SPARE_ADDRL(x)   (((x) << (PAGE_SHIFT - 1)) & (mtd->size - 1))
-#define SPARE_ADDRH(x)      (((x) >> (32 - (PAGE_SHIFT ))) & 0xff)   
-#define SPARE_ADDRL(x)      (((x) << (PAGE_SHIFT )) & (mtd->size - 1))
+#ifdef	CONFIG_LS1A_MACH 
+	#define NO_SPARE_ADDRH(x)   ((x))   
+	#define NO_SPARE_ADDRL(x)   ((x) << (PAGE_SHIFT))
+	#define SPARE_ADDRH(x)      ((x))   
+	#define SPARE_ADDRL(x)      ((x) << (PAGE_SHIFT))
 #else
-#define NO_SPARE_ADDRH(x)   ((x) >> (32 - (PAGE_SHIFT - 1 )))   
-#define NO_SPARE_ADDRL(x)   ((x) << (PAGE_SHIFT - 1))
-#define SPARE_ADDRH(x)      ((x) >> (32 - (PAGE_SHIFT )))   
-#define SPARE_ADDRL(x)      ((x) << (PAGE_SHIFT ))
+	#define NO_SPARE_ADDRH(x)   ((x) >> (32 - (PAGE_SHIFT - 1 )))   
+	#define NO_SPARE_ADDRL(x)   ((x) << (PAGE_SHIFT - 1))
+	#define SPARE_ADDRH(x)      ((x) >> (32 - (PAGE_SHIFT )))   
+	#define SPARE_ADDRL(x)      ((x) << (PAGE_SHIFT ))
 #endif
 #define ALIGN_DMA(x)       (((x)+ 3)/4)
+
+#define	GPIO_CONF1	(ioremap(0x1fd010c4, 4))
+#define	GPIO_CONF2	(ioremap(0x1fd010c8, 4))
+#define	GPIO_MUX	(ioremap(0x1fd00420, 4))
 
 //#define USE_POLL
 #undef	USE_POLL
@@ -1090,7 +1094,7 @@ static void ls1b_nand_init_info(struct ls1b_nand_info *info)
 {
 
 
-    *((volatile unsigned int *)0xbfe78018) = 0x30000;
+//    *((volatile unsigned int *)0xbfe78018) = 0x30000;
     info->timing_flag = 1;/*0:read; 1:write;*/
     info->num=0;
     info->size=0;
@@ -1139,6 +1143,20 @@ const char *part_probes[] = { "cmdlinepart", NULL };
 	int num_partitions = 0;
 //#endif
 
+#ifdef	CONFIG_LS1A_MACH
+	int val;
+	val = __raw_readl(GPIO_MUX);
+	val |= 0x14000000;
+	__raw_writel(val, GPIO_MUX);
+
+	val = __raw_readl(GPIO_CONF1);
+	val &= ~(0xf<<12);	//nand_D0~D3
+	__raw_writel(val, GPIO_CONF1);
+
+	val = __raw_readl(GPIO_CONF2);
+	val &= ~(0xfff<<12);	//nand_D4~D7 & nand_control pin
+	__raw_writel(val, GPIO_CONF2);
+#endif
 
 	pdata = pdev->dev.platform_data;
 

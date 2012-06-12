@@ -22,7 +22,10 @@ extern char *hwaddr;
 #endif
 
 unsigned long cpu_clock_freq;
+unsigned long ls1x_bus_clock;
 EXPORT_SYMBOL(cpu_clock_freq);
+EXPORT_SYMBOL(ls1x_bus_clock);
+
 unsigned long memsize, highmemsize;
 int prom_argc;
 char **prom_argv, **prom_envp;
@@ -73,7 +76,6 @@ void __init prom_init_cmdline(void)
 #define PLL_FREQ_REG(x) *(volatile unsigned int *)(0xbfe78030+x)
 void __init prom_init(void)
 {
-	unsigned long bus_clock;
 	char *tmp, *end;
 
 	prom_argc = fw_arg0;
@@ -85,10 +87,18 @@ void __init prom_init(void)
 
 	prom_init_cmdline();
 
-	bus_clock = env_or_default("busclock", DEFAULT_BUSCLOCK);
+	ls1x_bus_clock = env_or_default("busclock", DEFAULT_BUSCLOCK);
 	cpu_clock_freq = env_or_default("cpuclock", DEFAULT_CPUCLOCK);
 	memsize = env_or_default("memsize", DEFAULT_MEMSIZE);
 	highmemsize = env_or_default("highmemsize", 0x0);
+
+#ifdef	CONFIG_LS1A_MACH
+	if (ls1x_bus_clock == 0)
+		ls1x_bus_clock = 100  * 1000000;
+	if (cpu_clock_freq == 0)
+		cpu_clock_freq = 200 * 1000000;
+#endif
+
 #ifdef CONFIG_STMMAC_ETH
 	hwaddr = prom_getenv("ethaddr");
 #endif
@@ -123,7 +133,7 @@ void __init prom_init(void)
 	}
 	
 	pr_info("busclock=%ld, cpuclock=%ld, memsize=%ld, highmemsize=%ld\n",
-		bus_clock, cpu_clock_freq, memsize, highmemsize);
+		ls1x_bus_clock, cpu_clock_freq, memsize, highmemsize);
 }
 
 void __init prom_free_prom_memory(void)

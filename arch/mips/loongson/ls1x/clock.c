@@ -20,6 +20,11 @@
 static LIST_HEAD(clocks);
 static DEFINE_MUTEX(clocks_mutex);
 
+#ifdef	CONFIG_LS1A_MACH
+extern unsigned long cpu_clock_freq;
+extern unsigned long ls1x_bus_clock;
+#endif
+
 struct clk *clk_get(struct device *dev, const char *name)
 {
 	struct clk *c;
@@ -59,7 +64,11 @@ static void cpu_clk_init(struct clk *clk)
 
 	pll = clk_get_rate(clk->parent);
 	ctrl = __raw_readl(LS1X_CLK_PLL_DIV) & DIV_CPU;
+#ifdef	CONFIG_LS1A_MACH
+	clk->rate = cpu_clock_freq;
+#else
 	clk->rate = pll / (ctrl >> DIV_CPU_SHIFT);
+#endif
 }
 
 static void ddr_clk_init(struct clk *clk)
@@ -68,7 +77,11 @@ static void ddr_clk_init(struct clk *clk)
 
 	pll = clk_get_rate(clk->parent);
 	ctrl = __raw_readl(LS1X_CLK_PLL_DIV) & DIV_DDR;
+#ifdef	CONFIG_LS1A_MACH
+	clk->rate = ls1x_bus_clock;
+#else
 	clk->rate = pll / (ctrl >> DIV_DDR_SHIFT);
+#endif
 }
 
 static void dc_clk_init(struct clk *clk)
