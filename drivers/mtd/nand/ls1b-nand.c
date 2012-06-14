@@ -206,6 +206,32 @@ static void nand_gpio_init(void)
 {
 //    *((unsigned int *)GPIO_MUX_CTRL) = NAND_GPIO_MUX;
 //    *((unsigned int *)GPIO_MUX_CTRL) = NAND_GPIO_MUX;
+#ifdef	CONFIG_LS1A_MACH
+{
+	int val;
+#if 1 //NAND复用LPC
+	val = __raw_readl(GPIO_MUX);
+	val |= 0x2a000000;
+	__raw_writel(val, GPIO_MUX);
+
+	val = __raw_readl(GPIO_CONF2);
+	val &= ~(0xffff<<6);			//nand_D0~D7 & nand_control pin
+	__raw_writel(val, GPIO_CONF2);
+#else //NAND复用SPI1
+	val = __raw_readl(GPIO_MUX);
+	val |= 0x14000000;
+	__raw_writel(val, GPIO_MUX);
+
+	val = __raw_readl(GPIO_CONF1);
+	val &= ~(0xf<<12);				//nand_D0~D3
+	__raw_writel(val, GPIO_CONF1);
+
+	val = __raw_readl(GPIO_CONF2);
+	val &= ~(0xfff<<12);			//nand_D4~D7 & nand_control pin
+	__raw_writel(val, GPIO_CONF2);
+#endif
+}
+#endif
 }
 
 static void gpio_senddata8(unsigned char val)
@@ -1130,33 +1156,20 @@ static void ls1b_nand_init_info(struct ls1b_nand_info *info)
     info->order_reg_addr = ORDER_REG_ADDR;
 }
 static int ls1b_nand_probe(struct platform_device *pdev)
-{	
-        struct ls1b_nand_platform_data *pdata;
+{
+	struct ls1b_nand_platform_data *pdata;
 	struct ls1b_nand_info *info;
 	struct nand_chip *this;
 	struct mtd_info *mtd;
 	struct resource *r;
 	int ret = 0, irq;
 //#ifdef CONFIG_MTD_PARTITIONS
-const char *part_probes[] = { "cmdlinepart", NULL };
+	const char *part_probes[] = { "cmdlinepart", NULL };
 	struct mtd_partition *partitions = NULL;
 	int num_partitions = 0;
 //#endif
 
-#ifdef	CONFIG_LS1A_MACH
-	int val;
-	val = __raw_readl(GPIO_MUX);
-	val |= 0x14000000;
-	__raw_writel(val, GPIO_MUX);
-
-	val = __raw_readl(GPIO_CONF1);
-	val &= ~(0xf<<12);	//nand_D0~D3
-	__raw_writel(val, GPIO_CONF1);
-
-	val = __raw_readl(GPIO_CONF2);
-	val &= ~(0xfff<<12);	//nand_D4~D7 & nand_control pin
-	__raw_writel(val, GPIO_CONF2);
-#endif
+	nand_gpio_init();
 
 	pdata = pdev->dev.platform_data;
 
@@ -1272,7 +1285,7 @@ fail_free_mtd:
 
 static int ls1b_nand_remove(struct platform_device *pdev)
 {
-    	struct mtd_info *mtd = platform_get_drvdata(pdev);
+	struct mtd_info *mtd = platform_get_drvdata(pdev);
 	struct ls1b_nand_info *info = mtd->priv;
 
 	platform_set_drvdata(pdev, NULL);
@@ -1287,8 +1300,7 @@ static int ls1b_nand_remove(struct platform_device *pdev)
     struct mtd_partition *parts;
     unsigned int nr_parts;
 };*/
-        kfree(mtd);
-
+	kfree(mtd);
 	return 0;
 }
 static int ls1b_nand_suspend(struct platform_device *pdev)
