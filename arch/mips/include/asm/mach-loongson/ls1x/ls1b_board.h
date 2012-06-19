@@ -26,7 +26,7 @@
 #define LS1B_BOARD_AHB_MISC_BASE	 0x1f003200
 #define AHB_MISC_CTRL		0x00
 #ifdef	CONFIG_LS1A_MACH
-#define AHB_CLK			12000000
+#define AHB_CLK			25000000
 #else
 #define AHB_CLK			33000000
 #endif

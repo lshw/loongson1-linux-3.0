@@ -58,7 +58,7 @@ struct ls1bfb_mach_info {
 extern void __init ls1bfb_set_platdata(struct ls1bfb_mach_info *);
 
 static struct vga_struc{
-	int pclk;
+	unsigned int pclk;
 	int hr,hss,hse,hfl;
 	int vr,vss,vse,vfl;
 	int pan_config;

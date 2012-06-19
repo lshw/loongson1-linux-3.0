@@ -160,16 +160,22 @@ config FB_SYS_IMAGEBLIT
 	  Include the sys_imageblit function for generic software image
 	  blitting. This is used by drivers that don't provide their own
 	  (accelerated) version and the framebuffer is in system RAM.
-	  
-#loongson-gz
-config FB_LS1B		
-	tristate "loongson 1b framebuffer support"
-	depends on FB && (USE_SB2F||LS1B_MACH || LS1A_MACH)
+
+config FB_LS1A
+	tristate "loongson 1a framebuffer support"
+	depends on FB && LS1A_MACH
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
-	default y
-	
+	default n
+
+config FB_LS1B
+	tristate "loongson 1b framebuffer support"
+	depends on FB && LS1B_MACH
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	default n
 
 menuconfig FB_FOREIGN_ENDIAN
 	bool "Framebuffer foreign endianness support"

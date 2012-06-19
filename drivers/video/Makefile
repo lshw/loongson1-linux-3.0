@@ -29,7 +29,8 @@ obj-$(CONFIG_FB_DEFERRED_IO)   += fb_defio.o
 obj-$(CONFIG_FB_WMT_GE_ROPS)   += wmt_ge_rops.o
 
 # Hardware specific drivers go first
-obj-$(CONFIG_FB_LS1B)		  += ls1b-fb.o	#loongson-gz
+obj-$(CONFIG_FB_LS1A)		  += ls1a-fb.o
+obj-$(CONFIG_FB_LS1B)		  += ls1b-fb.o
 obj-$(CONFIG_FB_AMIGA)            += amifb.o c2p_planar.o
 obj-$(CONFIG_FB_ARC)              += arcfb.o
 obj-$(CONFIG_FB_SSD1305)          += ssd1305fb.o
