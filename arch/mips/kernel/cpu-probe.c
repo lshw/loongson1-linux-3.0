@@ -620,18 +620,15 @@ static inline void cpu_probe_legacy(struct cpuinfo_mips *c, unsigned int cpu)
 		c->tlbsize = 64;
 		break;
 
-	case PRID_IMP_GODSON1:
-		if((c->processor_id & 0x00ff) == PRID_REV_LS232) {
-			decode_configs(c);
+	case PRID_IMP_LOONGSON1:
+		decode_configs(c);
+
+		switch (c->processor_id & PRID_REV_MASK) {
+		case PRID_REV_LS232:
 			c->cputype = CPU_LS232;
-			__cpu_name[cpu] = "ICT Loongson-1b";
-			c->options &= ~MIPS_CPU_FPU;
-		} else {
-			c->cputype = CPU_LOONGSON1;
-			c->isa_level = MIPS_CPU_ISA_II;
-			c->options = R4K_OPTS | 
-				/* MIPS_CPU_FPU | */ MIPS_CPU_LLSC;
-			c->tlbsize = 32;
+			__cpu_name[cpu] = "Loongson LS1X";
+			set_elf_platform(cpu, "loongson1x");
+			break;
 		}
 		break;
 

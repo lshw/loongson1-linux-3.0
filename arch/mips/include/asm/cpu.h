@@ -72,8 +72,6 @@
 #define PRID_IMP_R5432		0x5400
 #define PRID_IMP_R5500		0x5500
 #define PRID_IMP_LOONGSON2	0x6300
-#define PRID_IMP_GODSON1	0x4200		//lxy: for ls232
-#define	PRID_REV_LS232		0x0020
 
 #define PRID_IMP_UNKNOWN	0xff00
 
@@ -193,6 +191,7 @@
 #define PRID_REV_34K_V1_0_2	0x0022
 #define PRID_REV_LOONGSON2E	0x0002
 #define PRID_REV_LOONGSON2F	0x0003
+#define PRID_REV_LS232		0x0020
 
 /*
  * Older processors used to encode processor version and revision in two
@@ -260,7 +259,7 @@ enum cpu_type_enum {
 	/*
 	 * MIPS64 class processors
 	 */
-	CPU_5KC, CPU_20KC, CPU_25KF, CPU_SB1, CPU_SB1A, CPU_LOONGSON2,CPU_LOONGSON1,CPU_LS232,
+	CPU_5KC, CPU_20KC, CPU_25KF, CPU_SB1, CPU_SB1A, CPU_LOONGSON2, CPU_LOONGSON1, CPU_LS232,
 	CPU_CAVIUM_OCTEON, CPU_CAVIUM_OCTEON_PLUS, CPU_CAVIUM_OCTEON2,
 	CPU_XLR,
 

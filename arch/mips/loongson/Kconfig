@@ -3,44 +3,15 @@ if MACH_LOONGSON
 choice
 	prompt "Machine Type"
 
-config LS1B_MACH
-	bool "GZ Loongson 1B family machines"
-	select BOOT_ELF32
-	select CEVT_R4K
-	select CSRC_R4K
-	select CPU_HAS_WB
-	select DMA_NONCOHERENT
-	select IRQ_CPU
-	select SYS_HAS_CPU_LS232
-	select SYS_HAS_EARLY_PRINTK
-	select SYS_SUPPORTS_32BIT_KERNEL
-	select SYS_SUPPORTS_HIGHMEM
-	select SYS_SUPPORTS_LITTLE_ENDIAN
-#	select ISA
-#	select ZONE_DMA
-#	select GENERIC_ISA_DMA
-#	select GENERIC_ISA_DMA_SUPPORT_BROKEN
-#	select HW_HAS_PCI
-#	select I8259
-#	select CS5536
-#	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
-#	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
-#	select ARCH_SPARSEMEM_ENABLE
-#	select BOARD_SCACHE
-#	select LOONGSON_MC146818
-	help
-	  GZ Loongson 1B family machines utilize the ls232 revision of
-	  Loongson processor.
-
-
-config LS1A_MACH		#lxy
-	bool "GZ Loongson 1A family machines"
+config LS1A_MACH
+	bool "Loongson 1A board"
 #	select ARCH_SPARSEMEM_ENABLE
 #	select BOARD_SCACHE
 	select BOOT_ELF32
 #	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
 	select CEVT_R4K
 	select CSRC_R4K
+	select SYS_HAS_CPU_LOONGSON1A
 	select CPU_HAS_WB
 #	select CS5536
 #	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
@@ -63,6 +34,23 @@ config LS1A_MACH		#lxy
 	  GZ Loongson 1A family machines utilize the ls232 revision of
 	  Loongson processor.
 
+config LS1B_MACH
+	bool "Loongson 1B board"
+	select BOOT_ELF32
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_HAS_CPU_LOONGSON1B
+	select CPU_HAS_WB
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select SYS_HAS_CPU_LS232
+	select SYS_HAS_EARLY_PRINTK
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_HIGHMEM
+	select SYS_SUPPORTS_LITTLE_ENDIAN
+	help
+	  GZ Loongson 1B family machines utilize the ls232 revision of
+	  Loongson processor.
 
 config LEMOTE_FULOONG2E
 	bool "Lemote Fuloong(2e) mini-PC"

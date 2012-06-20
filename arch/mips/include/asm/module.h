@@ -121,7 +121,7 @@ search_module_dbetables(unsigned long addr)
 #elif defined CONFIG_CPU_XLR
 #define MODULE_PROC_FAMILY "XLR "
 #elif defined CONFIG_CPU_LS232
-#define	MODULE_PROC_FAMILY "LOONGSON_1B"
+#define	MODULE_PROC_FAMILY "LOONGSON1 "
 #else
 #error MODULE_PROC_FAMILY undefined for your processor configuration
 #endif
