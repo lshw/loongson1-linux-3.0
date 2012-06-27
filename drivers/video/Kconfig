@@ -486,14 +486,14 @@ config FB_ARC
 	  GPIO IO address to be used for setting control and data.
 
 config FB_SSD1305
-	tristate "SSD1305 Monochrome OLED display module support"
+	tristate "SSD1305/SSD1306 Monochrome OLED display module support"
 	depends on FB
 	select FB_SYS_FILLRECT
 	select FB_SYS_COPYAREA
 	select FB_SYS_IMAGEBLIT
 	select FB_SYS_FOPS
 	help
-	  This enables support for the ssd1305 Monochrome OLED display modules.
+	  This enables support for the ssd1305/ssd1306 Monochrome OLED display modules.
 	  This driver was tested with a 128x64 panel. If you anticipate using
 	  this driver, say Y or M; otherwise say N.
 
@@ -517,6 +517,27 @@ config SSD1305_RATE
 
 	  If you compile this as a module, you can still override this
 	  value using the module parameters.
+
+choice
+	prompt  "SSD1305/SSD1306 bus interface mode"
+	depends on (FB_SSD1305)
+	default SSD1305_8080
+
+config SSD1305_8080
+	bool "8080 bus interface mode"
+
+config SSD1305_6800
+	bool "6800 bus interface mode"
+
+config SSD1305_SPI3
+	bool "3-wire SPI bus interface mode"
+
+config SSD1305_SPI4
+	bool "4-wire SPI bus interface mode"
+
+config SSD1305_I2C
+	bool "I2C bus interface mode"
+endchoice
 
 config FB_ATARI
 	bool "Atari native chipset support"

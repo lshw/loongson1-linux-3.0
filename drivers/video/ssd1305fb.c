@@ -77,6 +77,7 @@ static struct fb_var_screeninfo ssd1305fb_var __devinitdata = {
 
 static void ssd1305_writeb_ctl(unsigned char value)
 {
+#ifdef CONFIG_SSD1305_8080
 	u32 ret;
 	
 	gpio_set_value(pdata->gpios_cs, 0);
@@ -91,10 +92,59 @@ static void ssd1305_writeb_ctl(unsigned char value)
 	gpio_set_value(pdata->gpios_cs, 1);
 	gpio_set_value(pdata->gpios_dc, 1);
 	gpio_set_value(pdata->gpios_wr, 1);
+#elif CONFIG_SSD1305_6800
+	u32 ret;
+	
+	gpio_set_value(pdata->gpios_cs, 0);
+	gpio_set_value(pdata->gpios_dc, 0);
+	gpio_set_value(pdata->gpios_wr, 0);	//RW
+	gpio_set_value(pdata->gpios_rd, 1);	//E
+
+	ret = readl(reg_addr);
+	ret &= ~(0xFF << pdata->datas_offset);
+	writel(ret|(value<<pdata->datas_offset), reg_addr);
+
+	gpio_set_value(pdata->gpios_rd, 0);	//E
+	gpio_set_value(pdata->gpios_cs, 1);
+	gpio_set_value(pdata->gpios_dc, 1);
+	gpio_set_value(pdata->gpios_wr, 1);	//RW
+#elif CONFIG_SSD1305_SPI3
+	unsigned char i;
+	unsigned char data = value;
+
+	gpio_set_value(pdata->gpios_cs, 0);
+	gpio_set_value(pdata->gpios_d0, 0);//SCLK=0
+	gpio_set_value(pdata->gpios_d1, 0);
+	gpio_set_value(pdata->gpios_d0, 1);//SCLK=1
+	for (i=0; i<8; i++) {
+		gpio_set_value(pdata->gpios_d0, 0);//SCLK=0
+		gpio_set_value(pdata->gpios_d1, (data&0x80)>>7);
+		data = data << 1;
+		gpio_set_value(pdata->gpios_d0, 1);//SCLK=1
+	}
+	gpio_set_value(pdata->gpios_cs, 1);
+#elif CONFIG_SSD1305_SPI4
+	unsigned char i;
+	unsigned char data = value;
+
+	gpio_set_value(pdata->gpios_cs, 0);
+	gpio_set_value(pdata->gpios_dc, 0);
+	for (i=0; i<8; i++) {
+		gpio_set_value(pdata->gpios_d0, 0);//SCLK=0
+		gpio_set_value(pdata->gpios_d1, (data&0x80)>>7);
+		data = data << 1;
+		gpio_set_value(pdata->gpios_d0, 1);//SCLK=1
+	}
+	gpio_set_value(pdata->gpios_dc, 1);
+	gpio_set_value(pdata->gpios_cs, 1);
+#elif CONFIG_SSD1305_I2C
+
+#endif
 }
 
 static void ssd1305_writebyte(unsigned char byte)
 {
+#ifdef CONFIG_SSD1305_8080
 	u32 ret;
 	
 	gpio_set_value(pdata->gpios_cs, 0);
@@ -108,6 +158,55 @@ static void ssd1305_writebyte(unsigned char byte)
 
 	gpio_set_value(pdata->gpios_cs, 1);
 	gpio_set_value(pdata->gpios_wr, 1);
+#elif CONFIG_SSD1305_6800
+	u32 ret;
+	
+	gpio_set_value(pdata->gpios_cs, 0);
+	gpio_set_value(pdata->gpios_dc, 1);
+	gpio_set_value(pdata->gpios_wr, 0);	//RW
+	gpio_set_value(pdata->gpios_rd, 1);	//E
+
+	ret = readl(reg_addr);
+	ret &= ~(0xFF << pdata->datas_offset);
+	writel(ret|(byte<<pdata->datas_offset), reg_addr);
+
+	gpio_set_value(pdata->gpios_rd, 0);	//E
+	gpio_set_value(pdata->gpios_cs, 1);
+	gpio_set_value(pdata->gpios_wr, 1);	//RW
+#elif CONFIG_SSD1305_SPI3
+	unsigned char i;
+	unsigned char data = byte;
+
+	gpio_set_value(pdata->gpios_cs, 0);
+
+	gpio_set_value(pdata->gpios_d0, 0);//SCLK=0
+	gpio_set_value(pdata->gpios_d1, 1);
+	gpio_set_value(pdata->gpios_d0, 1);//SCLK=1
+
+	for (i=0; i<8; i++) {
+		gpio_set_value(pdata->gpios_d0, 0);//SCLK=0
+		gpio_set_value(pdata->gpios_d1, (data&0x80)>>7);
+		data = data << 1;
+		gpio_set_value(pdata->gpios_d0, 1);//SCLK=1
+	}
+	gpio_set_value(pdata->gpios_cs, 1);
+#elif CONFIG_SSD1305_SPI4
+	unsigned char i;
+	unsigned char data = byte;
+
+	gpio_set_value(pdata->gpios_cs, 0);
+	gpio_set_value(pdata->gpios_dc, 1);
+	for (i=0; i<8; i++) {
+		gpio_set_value(pdata->gpios_d0, 0);//SCLK=0
+		gpio_set_value(pdata->gpios_d1, (data&0x80)>>7);
+		data = data << 1;
+		gpio_set_value(pdata->gpios_d0, 1);//SCLK=1
+	}
+	gpio_set_value(pdata->gpios_dc, 1);
+	gpio_set_value(pdata->gpios_cs, 1);
+#elif CONFIG_SSD1305_I2C
+
+#endif
 }
 
 
@@ -331,6 +430,7 @@ static int ssd1305_gpio_init(void)
 	int err = 0;
 
 	err = gpio_request(pdata->gpios_res, "ssd1305_gpio");
+#if defined(CONFIG_SSD1305_8080) || defined(CONFIG_SSD1305_6800)
 	err += gpio_request(pdata->gpios_cs, "ssd1305_gpio");
 	err += gpio_request(pdata->gpios_dc, "ssd1305_gpio");
 	err += gpio_request(pdata->gpios_rd, "ssd1305_gpio");
@@ -344,12 +444,31 @@ static int ssd1305_gpio_init(void)
 	err += gpio_request(pdata->gpios_d5, "ssd1305_gpio");
 	err += gpio_request(pdata->gpios_d6, "ssd1305_gpio");
 	err += gpio_request(pdata->gpios_d7, "ssd1305_gpio");
+#elif CONFIG_SSD1305_SPI3
+	err += gpio_request(pdata->gpios_cs, "ssd1305_gpio");
+	
+	err += gpio_request(pdata->gpios_d0, "ssd1305_gpio");
+	err += gpio_request(pdata->gpios_d1, "ssd1305_gpio");
+#elif CONFIG_SSD1305_SPI4
+	err += gpio_request(pdata->gpios_cs, "ssd1305_gpio");
+	err += gpio_request(pdata->gpios_dc, "ssd1305_gpio");
+	
+	err += gpio_request(pdata->gpios_d0, "ssd1305_gpio");
+	err += gpio_request(pdata->gpios_d1, "ssd1305_gpio");
+#elif CONFIG_SSD1305_I2C
+	err += gpio_request(pdata->gpios_dc, "ssd1305_gpio");
+	
+	err += gpio_request(pdata->gpios_d0, "ssd1305_gpio");
+	err += gpio_request(pdata->gpios_d1, "ssd1305_gpio");
+	err += gpio_request(pdata->gpios_d2, "ssd1305_gpio");
+#endif
 	if (err) {
 		printk(KERN_ERR SSD1305_NAME "failed to request GPIO for ssd1305\n");
 		return -EINVAL;
 	}
 
 	gpio_direction_output(pdata->gpios_res, 1);
+#if defined(CONFIG_SSD1305_8080) || defined(CONFIG_SSD1305_6800)
 	gpio_direction_output(pdata->gpios_cs, 1);
 	gpio_direction_output(pdata->gpios_dc, 1);
 	gpio_direction_output(pdata->gpios_rd, 1);
@@ -362,7 +481,21 @@ static int ssd1305_gpio_init(void)
 	gpio_direction_output(pdata->gpios_d5, 1);
 	gpio_direction_output(pdata->gpios_d6, 1);
 	gpio_direction_output(pdata->gpios_d7, 1);
-	
+#elif CONFIG_SSD1305_SPI3
+	gpio_direction_output(pdata->gpios_cs, 1);
+	gpio_direction_output(pdata->gpios_d0, 1);
+	gpio_direction_output(pdata->gpios_d1, 1);
+#elif CONFIG_SSD1305_SPI4
+	gpio_direction_output(pdata->gpios_cs, 1);
+	gpio_direction_output(pdata->gpios_dc, 1);
+	gpio_direction_output(pdata->gpios_d0, 1);
+	gpio_direction_output(pdata->gpios_d1, 1);
+#elif CONFIG_SSD1305_I2C
+	gpio_direction_output(pdata->gpios_dc, 1);
+	gpio_direction_output(pdata->gpios_d0, 1);
+	gpio_direction_output(pdata->gpios_d1, 1);
+	gpio_direction_output(pdata->gpios_d2, 1);
+#endif	
 	return 0;
 }
 
