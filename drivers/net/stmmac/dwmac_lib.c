@@ -39,6 +39,7 @@ struct m25p {
 
 
 extern struct m25p *flash_tmp;
+extern unsigned char *hwaddr;
 
 #undef DWMAC_DMA_DEBUG
 #ifdef DWMAC_DMA_DEBUG
@@ -246,6 +247,7 @@ void dwmac_dma_flush_tx_fifo(void __iomem *ioaddr)
 void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 			 unsigned int high, unsigned int low)
 {
+	struct erase_info instr;
 	unsigned long data;
 	size_t retlen;
 	int ret;
@@ -266,8 +268,7 @@ void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
  	*(tmp+3) = addr[3];
  	*(tmp+4) = addr[4];
  	*(tmp+5) = addr[5];
-	
-	struct erase_info instr;
+
 	instr.addr = 0x70000;
 	instr.len = 0x10000;
 	instr.callback = NULL;
@@ -301,16 +302,10 @@ void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 	addr[4] = hi_addr & 0xff;
 	addr[5] = (hi_addr >> 8) & 0xff;
 	*/
-	extern char *hwaddr;
-
-	if(hwaddr == NULL){
-		DWMAC_LIB_DBG("hwaddr is NULL.\n");
-		static int index = 0;
-	
-		get_random_bytes(addr, sizeof(addr));
-
-		addr[5] += index;
-	}else{	
-		sscanf(hwaddr, "%x:%x:%x:%x:%x:%x", &addr[0],&addr[1],&addr[2],&addr[3],&addr[4],&addr[5]);
-	}
+	addr[0] = hwaddr[0];
+	addr[1] = hwaddr[1];
+	addr[2] = hwaddr[2];
+	addr[3] = hwaddr[3];
+	addr[4] = hwaddr[4];
+	addr[5] = hwaddr[5];
 }

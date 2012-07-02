@@ -112,7 +112,8 @@ static int pause = PAUSE_TIME;
 module_param(pause, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(pause, "Flow Control Pause Time");
 
-char *hwaddr = NULL;
+static unsigned char hwaddr_buf[6];
+char *hwaddr = hwaddr_buf;
 module_param(hwaddr, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(hwaddr, "gmac hardware address.");
 

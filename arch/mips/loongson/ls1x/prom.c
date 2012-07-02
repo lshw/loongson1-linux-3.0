@@ -18,7 +18,7 @@
 #define DEFAULT_CPUCLOCK		266000000
 
 #ifdef CONFIG_STMMAC_ETH
-extern char *hwaddr;
+extern unsigned char *hwaddr;
 #endif
 
 unsigned long cpu_clock_freq;
@@ -100,7 +100,11 @@ void __init prom_init(void)
 #endif
 
 #ifdef CONFIG_STMMAC_ETH
-	hwaddr = prom_getenv("ethaddr");
+	tmp = prom_getenv("ethaddr");
+	if (tmp) {
+		sscanf(tmp, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx", 
+			&hwaddr[0], &hwaddr[1], &hwaddr[2], &hwaddr[3], &hwaddr[4], &hwaddr[5]);
+	}
 #endif
 	
 	tmp = strstr(arcs_cmdline, "video=ls1bfb:vga");
