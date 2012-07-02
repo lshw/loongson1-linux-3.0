@@ -78,26 +78,6 @@ static struct mtd_partition ls1b_nand_partitions[]={
 		.offset = MTDPART_OFS_APPEND,
 		.size   = MTDPART_SIZ_FULL,
 	},
-#if 0
-	[0] = {
-        .name   ="kernel",
-        .offset =0,
-        .size   =0xe00000,
-//        .mask_flags =   MTD_WRITEABLE,
-    },
-    [1] = {
-        .name   ="os",
-        .offset = 0xe00000,
-        .size   = 0x6700000,
-    
-    },
-    [2] = {
-        .name   ="data",
-        .offset = 0x7500000,
-        .size   = 0xb00000,
-    
-    },
-#endif
 #else
     [0] = {
         .name   ="kernel",
@@ -538,58 +518,6 @@ struct platform_device ls1b_dc_device = {
 };
 #endif //#ifdef CONFIG_FB_LS1B
 
-/*
- * gmac
- */
-/*
-static struct resource ls1b_gmac1_resources[] = { 
- [0] = {
-   .start          = LS1B_BOARD_GMAC1_BASE,
-   .end            = (LS1B_BOARD_GMAC1_BASE + 0x6b),
-   .flags          = IORESOURCE_MEM,
- },
- [1] = {
-   .start          = LS1B_BOARD_GMAC1_IRQ,
-   .end            = LS1B_BOARD_GMAC1_IRQ,
-   .flags          = IORESOURCE_IRQ,
- },
-};
-
-static struct platform_device ls1b_gmac1_device = {
- .name           = "ls1b-gmac",
- .id             = 1,
- .dev = {
-   .dma_mask=&dma_mask,
- },
- .num_resources  = ARRAY_SIZE(ls1b_gmac1_resources),
- .resource       = ls1b_gmac1_resources,
-};
-
-
-static struct resource ls1b_gmac2_resources[] = { 
- [0] = {
-   .start          = LS1B_BOARD_GMAC2_BASE,
-   .end            = (LS1B_BOARD_GMAC2_BASE + 0x6b),
-   .flags          = IORESOURCE_MEM,
- },
- [1] = {
-   .start          = LS1B_BOARD_GMAC2_IRQ,
-   .end            = LS1B_BOARD_GMAC2_IRQ,
-   .flags          = IORESOURCE_IRQ,
- },
-};
-
-static struct platform_device ls1b_gmac2_device = {
- .name           = "ls1b-gmac",
- .id             = 2,
- .dev = {
-   .dma_mask=&dma_mask,
- },
- .num_resources  = ARRAY_SIZE(ls1b_gmac2_resources),
- .resource       = ls1b_gmac2_resources,
-};
-*/
-
 //gmac0
 static struct resource ls1b_mac0_resources[] = {
         [0] = {
@@ -723,6 +651,24 @@ static struct platform_device ls1b_audio_device = {
 
 #ifdef CONFIG_MTD_M25P80
 static struct mtd_partition partitions[] = {
+/*
+	//W25Q128 16MB SPI Flash
+	[0] = {
+		.name		= "pmon",
+		.offset		= 0,
+		.size		= 512 * 1024,	//512KB
+	}, 
+	[1] = {
+		.name		= "kernel",	
+		.offset		= 512 * 1024,
+		.size		= (512+7*1024)*1024,	//7.5MB
+	},
+	[2] = {
+		.name		= "fs",
+		.offset		= 8*1024*1024,
+		.size		= 8*1024*1024, //MTDPART_SIZ_FULL
+	},
+*/
 #if 1	//for bobodog program
 	[0] = {
 		.name		= "pmon",
@@ -745,24 +691,7 @@ static struct mtd_partition partitions[] = {
 		.offset		= 0x790000,
 		.size		= 0x800000 - 0x790000,
 	},
-#if 0	//for finger program
-	[0] = {
-		.name		= "pmon",
-		.offset		= 0,
-		.size		= 512 * 1024,	//512KB
-	//	.mask_flags	= MTD_WRITEABLE,
-	}, 
-	[1] = {
-		.name		= "kernel",	
-		.offset		= 512 * 1024,
-		.size		= 0x4a0000,
-	},
-	[2] = {
-		.name		= "data",
-		.offset		= 0x520000,
-		.size		= 0x800000 - 0x520000,
-	},
-#endif
+
 #else
 	[0] = {
 		.name		= "pmon",
