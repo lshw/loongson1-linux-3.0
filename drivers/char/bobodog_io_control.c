@@ -8,6 +8,7 @@
 #include <linux/platform_device.h>
 #include <linux/miscdevice.h> 
 #include <linux/gpio_keys.h>
+#include <linux/input.h>
 #include <asm/gpio.h>
 
 #define DEVNAME "bobodog_gpio"
@@ -17,7 +18,7 @@ static int major;
 
 static struct gpio_keys_platform_data *pkb = NULL; 
 
-#define DEBUG_BOBODOG
+//#define DEBUG_BOBODOG
 #ifdef DEBUG_BOBODOG
 static int bobodog_write(struct file *filp, const char __user *buffer,
 				size_t count, loff_t *ppos)
@@ -55,6 +56,12 @@ static int bobodog_write(struct file *filp, const char __user *buffer,
 	if(ledth >= pkb->nbuttons)
 		return -ENOMEM;
 
+	if (pkb->buttons[ledth].type != EV_LED)
+	{
+		printk ("%s, error KEY type !\n", __FUNCTION__);
+		return -EAGAIN;
+	}
+
 	port = pkb->buttons[ledth].gpio;
 
 	gpio_set_value_cansleep(port, value);
@@ -62,6 +69,33 @@ static int bobodog_write(struct file *filp, const char __user *buffer,
 	return count;	
 }
 #endif
+
+static int bobodog_read(struct file *filp, const char __user *buffer, size_t count, loff_t *ppos)
+{
+	char port;
+	int val;
+	get_user (port, buffer); 
+
+	if (port >= pkb->nbuttons)
+	{
+		printk ("%s, pin's number overflow !\n", __FUNCTION__);
+		return -ENOMEM;
+	}
+
+	if (pkb->buttons[port].type != EV_KEY)
+	{
+		printk ("%s, error KEY type !\n", __FUNCTION__);
+		return -EAGAIN;
+	}
+
+	port = pkb->buttons[port].gpio;
+
+	val = gpio_get_value_cansleep(port);
+	if (put_user(val ? 1 : 0, &buffer[1]))
+		return -EFAULT;
+
+	return 1;
+}
 
 static int __devinit bobodog_gpio_probe(struct platform_device *pdev)
 {
@@ -71,7 +105,10 @@ static int __devinit bobodog_gpio_probe(struct platform_device *pdev)
 	pkb = pdata;
 	for(i = 0;i < pkb->nbuttons;i++) {
 		gpio_request(pkb->buttons[i].gpio,"bobodog_gpio");
-		gpio_direction_output(pkb->buttons[i].gpio, 0);
+		if (pkb->buttons[i].type == EV_LED)
+			gpio_direction_output(pkb->buttons[i].gpio, 0);
+		else if (pkb->buttons[i].type == EV_KEY)
+			gpio_direction_input(pkb->buttons[i].gpio);
 	}
 
 	return 0;
@@ -80,6 +117,7 @@ static int __devinit bobodog_gpio_probe(struct platform_device *pdev)
 static const struct file_operations bobodog_fops = {
 	.owner		= THIS_MODULE,
 	.write		= bobodog_write,
+	.read		= bobodog_read,
 };
 
 static struct miscdevice bobodog_misc_device = {

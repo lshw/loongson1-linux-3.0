@@ -974,6 +974,7 @@ static struct platform_device ls1b_gpio_key_device = {
 static struct gpio_keys_button ls1b_gpio_buzzer[] = {
 	[0] = {
 		.gpio	= 40,	//57
+		.type	= EV_LED,
 	},	
 /*
 	[1] = {
@@ -1019,21 +1020,25 @@ static struct platform_device ls1b_ir_device = {
 //xhm
 #ifdef CONFIG_LS1B_BBDIO
 static struct gpio_keys_button ls1b_bobodogio_button[] = {
-	[0]  = { .gpio = 4, },	
-	[1]  = { .gpio = 5, },
-	[2]  = { .gpio = 6, },
-	[3]  = { .gpio = 7, },
-	[4]  = { .gpio = 8, },
-	[5]  = { .gpio = 9, },
-	[6]  = { .gpio = 10, },
-	[7]  = { .gpio = 11, },
-	[8]  = { .gpio = 12, },
-	[9]  = { .gpio = 13, },
-	[10] = { .gpio = 14, },
-	[11] = { .gpio = 15, },
-	[12] = { .gpio = 16, },
-	[13] = { .gpio = 17, },
-	[14] = { .gpio = 18, },
+#if 0
+	[0]  = { .gpio = 4, .type = EV_LED},	
+	[1]  = { .gpio = 5, .type = EV_LED},
+	[2]  = { .gpio = 6, .type = EV_LED},
+	[3]  = { .gpio = 7, .type = EV_LED},
+	[4]  = { .gpio = 8, .type = EV_LED},
+	[5]  = { .gpio = 9, .type = EV_LED},
+	[6]  = { .gpio = 10, .type = EV_LED},
+	[7]  = { .gpio = 11, .type = EV_LED},
+	[8]  = { .gpio = 12, .type = EV_LED},
+	[9]  = { .gpio = 13, .type = EV_LED},
+	[10] = { .gpio = 14, .type = EV_LED},
+	[11] = { .gpio = 15, .type = EV_LED},
+	[12] = { .gpio = 16, .type = EV_LED},
+	[13] = { .gpio = 17, .type = EV_LED},
+	[14] = { .gpio = 18, .type = EV_LED},
+#endif
+	[0] = { .gpio = 48, .type = EV_KEY},
+	[1] = { .gpio = 49, .type = EV_LED},
 };
 
 static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
