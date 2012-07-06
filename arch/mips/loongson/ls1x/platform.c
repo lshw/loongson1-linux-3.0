@@ -499,7 +499,8 @@ static struct platform_device ls1b_i2c_device = {
 /*
  * dc
  */
-#ifdef CONFIG_FB_LS1B
+//#ifdef CONFIG_FB_LS1B
+#if defined(CONFIG_FB_LS1B) || defined(CONFIG_FB_LS1A)
 static struct resource ls1b_lcd_resource[] = {
 	[0] = {
 		.start = LS1B_LCD_BASE,
@@ -1328,7 +1329,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_ehci_device,
 #endif
 
-#ifdef CONFIG_FB_LS1B
+//#ifdef CONFIG_FB_LS1B
+#if defined(CONFIG_FB_LS1B) || defined(CONFIG_FB_LS1A)
 	&ls1b_dc_device,
 #endif
 
