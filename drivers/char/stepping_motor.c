@@ -51,6 +51,7 @@
 #define REGREAD(x)      (*(volatile u32 *)KSEG1_ADDR(x))
 
 
+#define here dp("\n\t%s - %s - %dline.\n", __FILE__, __func__, __LINE__);
 //#define motor(phase)	REGWRITE(GPIO_OUT0, ((REGREAD(GPIO_OUT0) & (~0x00000f00))) | (phase))
 
 static void motor0_do_phase(u32 phase);
@@ -72,6 +73,7 @@ static void motor1_do_phase(u32 phase);
 #define POS_OFF	8
 */
 
+/*
 #define A	(1 << 11)	
 #define B	(1 << 10)
 #define C	(1 << 9)
@@ -87,6 +89,21 @@ static void motor1_do_phase(u32 phase);
 
 #define CCW1	(1 << 6)
 #define CW1		(1 << 5)
+*/
+
+#define A	(1 << 11)	
+#define B	(1 << 10)
+#define C	(1 << 9)
+#define D	(1 << 8)
+#define CCW	(1 << 18)
+#define CW	(1 << 19)
+
+#define A1	(1 << 12)	
+#define B1	(1 << 13)
+#define C1	(1 << 14)
+#define D1	(1 << 15)
+#define CCW1	(1 << 16)
+#define CW1		(1 << 17)
 
 #define MOTOR_INPUT_IOS		((CW|CCW)|(CW1|CCW1))
 #define MOTOR_OUTPUT_IOS	((A|B|C|D) | (A1|B1|C1|D1))
@@ -124,7 +141,6 @@ motor_info_t motors_info[] = {
 
 static int major;
 
-static motor_ctrl_t motor_ctrl;
 
 static void motor0_do_phase(u32 phase)
 {
@@ -169,91 +185,137 @@ void motor_init(void)
  * 1: at cw the end
  * 2: at ccw the end
  * */
-static int go_end(void)
-{
-	motor_ctrl.pos = pos_not_end;	
-	if (motor_ctrl.dir == dir_cw) {
+static enum motor_pos_t go_end(motor_ctrl_t *ctrl, int no) {
+	
+	enum motor_pos_t pos;
+
+	pos = pos_not_end;	
+	if (ctrl->dir[no] == dir_cw) {
 		/* if( (REGREAD(GPIO_IN0) & CW) == 0 ) { */
-		if( (REGREAD(GPIO_IN0) & motors_info[motor_ctrl.no].pos_cw) == 0 ) {
-			motor_ctrl.pos = pos_cw_end;	
-			dp("\n\tmotor_ctrl.pos at %d.\n", motor_ctrl.pos);
+		if( (REGREAD(GPIO_IN0) & motors_info[no].pos_cw) == 0 ) {
+			pos = pos_cw_end;	
+			//dp("\n\tctrl->pos[%d] at %d.\n", no, pos);
 		} 
 	} else {
 		/*if( (REGREAD(GPIO_IN0) & CCW) == 0 ) {*/
-		if( (REGREAD(GPIO_IN0) & motors_info[motor_ctrl.no].pos_ccw) == 0 ) {
-			motor_ctrl.pos = pos_ccw_end;	
-			dp("\n\tmotor_ctrl.pos at %d.\n", motor_ctrl.pos);
+		if( (REGREAD(GPIO_IN0) & motors_info[no].pos_ccw) == 0 ) {
+			pos = pos_ccw_end;	
+			//dp("\n\tctrl->pos[%d] at %d.\n", no, pos);
 		} 
 	}
 
-	return motor_ctrl.pos;
+	return pos;
 }
 
-int stepmotor_do(void)
+int stepmotor_do(motor_ctrl_t *ctrl)
 {
 	unsigned char i,j;
 	int no;
-	u32	*phase;
+	u32	*phase[MAX_MOTOR_NO];
+	enum motor_pos_t pos[MAX_MOTOR_NO];
 
-	no = motor_ctrl.no;
-	if (motor_ctrl.dir == dir_cw) {
-		phase = motors_info[no].ph_cw;
-	} else {
-		phase = motors_info[no].ph_ccw;
+	if (ctrl->flags & MOTOR_NO0) {
+		here
+		if (ctrl->dir[0] == dir_cw) {
+			phase[0] = motors_info[0].ph_cw;
+		here
+		} else {
+		here
+			phase[0] = motors_info[0].ph_ccw;
+		}
+	}
+	if (ctrl->flags & MOTOR_NO1) {
+		if (ctrl->dir[1] == dir_cw) {
+		here
+			phase[1] = motors_info[1].ph_cw;
+		} else {
+		here
+			phase[1] = motors_info[1].ph_ccw;
+		}
 	}
 
 	/* 电机齿轮旋转一周，不是外面所看到的一周，是里面的传动轮转了一周*/
-	for(j=0;j<motor_ctrl.times;j++){
-		if (go_end() != pos_not_end) {
-			dp("\n\tRun %d ring.", j);
-			return -1;
-		}
-
-		/* 旋转45度 */
+	for(j=0;j<ctrl->times;j++){
+		/* 每次旋转45度 */
 		for(i=0;i<8;i++) {
-			motors_info[no].do_phase(phase[i]);
-			mdelay(motor_ctrl.tick);   /* 调节转速 */
+			if (ctrl->flags & MOTOR_NO0) {
+				ctrl->pos[0] = go_end(ctrl, 0);
+				if (ctrl->pos[0] == pos_not_end) {
+					motors_info[0].do_phase(phase[0][i]);
+				}
+			}
+			if (ctrl->flags & MOTOR_NO1) {
+				ctrl->pos[1] = go_end(ctrl, 1);
+				if (ctrl->pos[1] == pos_not_end) {
+					motors_info[1].do_phase(phase[1][i]);
+				}
+			}
+
+			switch (ctrl->flags) {
+				case MOTOR_NO0:
+					if (ctrl->pos[0] != pos_not_end) {
+						here
+						goto exit_do_phase;
+					}
+					break;
+				case MOTOR_NO1:
+					if (ctrl->pos[1] != pos_not_end) {
+						here
+						goto exit_do_phase;
+					}
+					break;
+				case MOTOR_MAX_FLAGS:
+					if (ctrl->pos[0] != pos_not_end && ctrl->pos[1] != pos_not_end) {
+						here
+						goto exit_do_phase;
+					}
+					break;
+				default:
+					break;
+			}
+			mdelay(ctrl->tick);   /* 调节转速 */
 		}
 	}
 
-	motors_info[no].do_phase(PHASE_NULL);
+exit_do_phase:
+	motors_info[0].do_phase(PHASE_NULL);
+	motors_info[1].do_phase(PHASE_NULL);
 	return 0;
 }
 
-static void dump_ctrl(void)
+static void dump_ctrl(motor_ctrl_t *ctrl)
 {
 	dp("\n");
-	dp("dir = %d\n", motor_ctrl.dir);
-	dp("pos = %d\n", motor_ctrl.pos);
-	dp("times = %d\n", motor_ctrl.times);
-	dp("tick = %d\n", motor_ctrl.tick);
-	dp("no = %d\n", motor_ctrl.no);
+	dp("times = %d\n", ctrl->times);
+	dp("tick = %d\n", ctrl->tick);
+	dp("flags = %d\n", ctrl->flags);
+	dp("dir0 = %d, dir1 = %d\n", ctrl->dir[0], ctrl->dir[1]);
 	dp("\n");
 }
 
 static int stepmotor_write(struct file *filp, const char __user *buffer,
 		size_t count, loff_t *ppos)
 {
+	motor_ctrl_t ctrl;
+	
 	if (count < sizeof(motor_ctrl_t)) {
 		dp("!Argument count is invalid. Buffer size should be equal sizeof(motor_ctrl_t)\n");
 		return -EINVAL;
 	}
 
-	copy_from_user(&motor_ctrl, buffer, sizeof(motor_ctrl_t));
-	dump_ctrl();
-	if (motor_ctrl.no > MAX_MOTOR_NO -1) {
+	copy_from_user(&ctrl, buffer, sizeof(motor_ctrl_t));
+	if (ctrl.flags > MOTOR_MAX_FLAGS) {
 		dp("!Argument count is invalid. Max motor number is %d\n", MAX_MOTOR_NO-1);
 		return -EINVAL;
 	}
 	
-	if (motor_ctrl.tick < MIN_TICK) {
-		motor_ctrl.tick = MIN_TICK;
+	if (ctrl.tick < MIN_TICK) {
+		ctrl.tick = MIN_TICK;
 	}
-	stepmotor_do();
-	copy_to_user(buffer, &motor_ctrl, sizeof(motor_ctrl_t));
+	dump_ctrl(&ctrl);
+	stepmotor_do(&ctrl);
+	copy_to_user(buffer, &ctrl, sizeof(motor_ctrl_t));
 	
-	motors_info[motor_ctrl.no].do_phase(PHASE_NULL);
-
 	return 0;
 }
 
@@ -294,3 +356,4 @@ module_param(major, int, 0);
 MODULE_AUTHOR("nizhiquan, nizhiquan-gz@loongson.cn");
 MODULE_DESCRIPTION("stepping motor driver for 24BYJ48A");
 MODULE_LICENSE("GPL");
+
