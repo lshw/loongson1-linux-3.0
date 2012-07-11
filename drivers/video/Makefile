@@ -34,6 +34,7 @@ obj-$(CONFIG_FB_LS1B)		  += ls1b-fb.o
 obj-$(CONFIG_FB_AMIGA)            += amifb.o c2p_planar.o
 obj-$(CONFIG_FB_ARC)              += arcfb.o
 obj-$(CONFIG_FB_SSD1305)          += ssd1305fb.o
+obj-$(CONFIG_FB_ST7920)           += st7920fb.o
 obj-$(CONFIG_FB_CLPS711X)         += clps711xfb.o
 obj-$(CONFIG_FB_CYBER2000)        += cyber2000fb.o
 obj-$(CONFIG_FB_PM2)              += pm2fb.o

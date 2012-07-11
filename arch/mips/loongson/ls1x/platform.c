@@ -35,6 +35,7 @@
 #include <linux/input/74x165_gpio_keys_polled.h>
 #include <linux/rotary_encoder.h>
 #include <linux/ssd1305.h>
+#include <linux/st7920.h>
 #include <linux/clk.h>
 
 #include <media/gc0308_platform.h>
@@ -1239,6 +1240,26 @@ struct platform_device ssd1305fb_device = {
 };
 #endif //#ifdef CONFIG_FB_SSD1305
 
+#ifdef CONFIG_FB_ST7920
+static struct st7920_platform_data st7920_pdata = {
+	.gpio_outpu = REG_GPIO_OUT0,
+	.gpios_res = 8,
+	.gpios_cs = 11,
+	.gpios_sid = 9,
+	.gpios_sck = 10,
+
+	.datas_offset = 8,
+};
+
+struct platform_device st7920fb_device = {
+	.name	= "st7920fb",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &st7920_pdata,
+	},
+};
+#endif //#ifdef CONFIG_FB_ST7920
+
 #ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
 static struct gpio_keys_button gen74x165_gpio_keys_table[] = {
 	{
@@ -1396,6 +1417,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_FB_SSD1305
 	&ssd1305fb_device,
+#endif
+
+#ifdef CONFIG_FB_ST7920
+	&st7920fb_device,
 #endif
 
 #ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
