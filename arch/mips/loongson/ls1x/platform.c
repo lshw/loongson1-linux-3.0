@@ -1147,6 +1147,7 @@ static void __init rotary_encoder_gpio_init(void)
 
 /* matrix keypad */
 #if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
+/*
 static const uint32_t ls1bkbd_keymap[] = {
 	KEY(0, 0, KEY_A),
 	KEY(0, 1, KEY_B),
@@ -1158,16 +1159,43 @@ static const uint32_t ls1bkbd_keymap[] = {
 	KEY(1, 2, KEY_G),
 	KEY(1, 3, KEY_H),
 };
+*/
+static const uint32_t ls1bkbd_keymap[] = {
+	KEY(0, 0, KEY_1),
+	KEY(0, 1, KEY_2),
+	KEY(0, 2, KEY_3),
+	KEY(0, 3, KEY_4),
+
+	KEY(1, 0, KEY_5),
+	KEY(1, 1, KEY_6),
+	KEY(1, 2, KEY_7),
+	KEY(1, 3, KEY_8),
+	
+	KEY(2, 0, KEY_9),
+	KEY(2, 1, KEY_0),
+	KEY(2, 2, KEY_A),
+	KEY(2, 3, KEY_B),
+	
+	KEY(3, 0, KEY_C),
+	KEY(3, 1, KEY_D),
+	KEY(3, 2, KEY_E),
+	KEY(3, 3, KEY_F),
+};
 
 static struct matrix_keymap_data ls1bkbd_keymap_data = {
 	.keymap			= ls1bkbd_keymap,
 	.keymap_size	= ARRAY_SIZE(ls1bkbd_keymap),
 };
-
+/*
 static const int ls1bkbd_row_gpios[] =
 	{ 30, 28 };
 static const int ls1bkbd_col_gpios[] =
 	{ 29, 58, 50, 52 };
+*/
+static const int ls1bkbd_row_gpios[] =
+	{ 16, 17, 18, 19 };	//gpio 16 17 18 19
+static const int ls1bkbd_col_gpios[] =
+	{ 20, 21, 22, 23 };	//gpio 20 21 22 23
 
 static struct matrix_keypad_platform_data ls1bkbd_pdata = {
 	.keymap_data		= &ls1bkbd_keymap_data,
@@ -1193,7 +1221,7 @@ static struct platform_device ls1bkbd_device = {
 static void __init board_mkp_init(void)
 {
 	/* 使能矩阵键盘的行中断,低电平触发方式. */
-	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (30 & 0x1f));
+/*	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (30 & 0x1f));
 	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (30 & 0x1f));
 	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (30 & 0x1f));
 	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (30 & 0x1f));
@@ -1203,7 +1231,32 @@ static void __init board_mkp_init(void)
 	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (28 & 0x1f));
 	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (28 & 0x1f));
 	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (28 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (28 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (28 & 0x1f));*/
+
+	/* 使能矩阵键盘的行中断,低电平触发方式. */
+	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (16 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (16 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (16 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (16 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (16 & 0x1f));
+
+	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (17 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (17 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (17 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (17 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (17 & 0x1f));
+
+	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (18 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (18 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (18 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (18 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (18 & 0x1f));
+
+	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (19 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (19 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (19 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (19 & 0x1f));
+	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (19 & 0x1f));
 }
 #else
 static inline void board_mkp_init(void)
