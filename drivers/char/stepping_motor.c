@@ -273,7 +273,7 @@ int stepmotor_do(motor_ctrl_t *ctrl)
 				default:
 					break;
 			}
-			mdelay(ctrl->tick);   /* 调节转速 */
+			msleep(ctrl->tick);   /* 调节转速 */
 		}
 	}
 

@@ -21,7 +21,7 @@
 /* 驱动电机的数量 */
 #define MAX_MOTOR_NO	2
 /* 电机最快转速 */
-#define MIN_TICK		4
+#define MIN_TICK	1
 
 #define MOTOR_NO0	(1 << 0)
 #define MOTOR_NO1	(1 << 1)
