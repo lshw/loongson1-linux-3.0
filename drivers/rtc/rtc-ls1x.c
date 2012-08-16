@@ -45,6 +45,8 @@
 #define SYS_CNTRL_TM0			(1 << 1)
 #define SYS_CNTRL_TS			(1 << 0)
 
+#define SYS_RTC_CTRL	(LS1X_RTC_REGS(0x20))
+
 /* Programmable Counter 0 Registers */
 #define SYS_TOYTRIM		(LS1X_RTC_REGS(0))
 #define SYS_TOYWRITE0		(LS1X_RTC_REGS(4))
@@ -149,6 +151,7 @@ static int __devinit ls1x_rtc_probe(struct platform_device *pdev)
 	unsigned long v;
 	int ret;
 
+	writel(0x2d00, SYS_RTC_CTRL);
 	v = readl(SYS_COUNTER_CNTRL);
 	if (!(v & RTC_CNTR_OK)) {
 		dev_err(&pdev->dev, "rtc counters not working\n");
