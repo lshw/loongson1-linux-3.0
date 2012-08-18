@@ -129,7 +129,7 @@ static void debugInit(int line, unsigned int baud, unsigned char data, unsigned 
 		/* set divisor */
 		pll	= *(volatile unsigned int *)(0xbfe78030);
 		ctrl = *(volatile unsigned int *)(0xbfe78034);
-		clk = (12+(pll&0x3f))*33333333/2 + ((pll>>8)&0x3ff)*33333333/2/1024;
+		clk = (12+(pll&0x3f))*AHB_CLK/2 + ((pll>>8)&0x3ff)*AHB_CLK/2/1024;
 		ddr_clk = (ctrl&(1<<19))?clk/((ctrl>>14)&0x1f):clk/2;
 		uart_clk = ddr_clk/2;
 		
@@ -413,7 +413,7 @@ static void ls1bfb_activate_var(struct ls1bfb_info *fbi,
 		pll = PLL_FREQ_REG(0);
 		ctrl = PLL_FREQ_REG(4);
 		PLL_FREQ_REG(4) = (ctrl & (~0x80000000)) | 0x40003000;
-		clk = (12 + (pll & 0x3f)) * 33333333 / 2;
+		clk = (12 + (pll & 0x3f)) * AHB_CLK / 2;
 //		div = clk / pclk / 4;
 		for (tmp = 1; tmp < 17; tmp++){
 		frame_rate_tmp = clk / (vgamode[i].hfl * vgamode[i].vfl) / 4 / tmp;
@@ -724,7 +724,7 @@ static int ls1bfb_init_registers(struct ls1bfb_info *fbi)
 		pll = PLL_FREQ_REG(0);
 		ctrl = PLL_FREQ_REG(4);
 		PLL_FREQ_REG(4) = (ctrl & (~0x80000000)) | 0x40003000;
-		clk = (12 + (pll & 0x3f)) * 33333333 / 2;
+		clk = (12 + (pll & 0x3f)) * AHB_CLK / 2;
 //		div = clk / fbi->mach_info->pclk / 4; //参考longson1B的数据手册 LCD分频需要再除以4
 	
 		for (tmp = 1; tmp < 17; tmp++){
