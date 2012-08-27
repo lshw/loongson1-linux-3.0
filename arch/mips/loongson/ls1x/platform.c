@@ -47,6 +47,7 @@
 #include <asm/mach-loongson/ls1x/fb.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
+#include <linux/ahci_platform.h>
 
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
@@ -66,7 +67,7 @@ static struct mtd_partition ls1b_nand_partitions[]={
 		.name   ="kernel",
 		.offset =MTDPART_OFS_APPEND,
 		.size   =0xe00000,
-	        .mask_flags =   MTD_WRITEABLE,
+//	        .mask_flags =   MTD_WRITEABLE,
 	},
 	[1] = {
 		.name   ="os",
@@ -238,31 +239,68 @@ static struct platform_device uart8250_device = {
 	}
 };
 
+#if defined(CONFIG_LS1A_MACH)
+#define        LOONGSON_AHCI
+#endif
+
 #ifdef LOONGSON_AHCI
-static struct resource ls1b_ahci_resources[] = {
+static struct resource ls1a_ahci_resources[] = {
 	[0] = {
 		.start          = 0x1fe30000,
 		.end            = 0x1fe30000+0x1ff,
 		.flags          = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start          = 36,
-		.end            = 36,
+//		.start          = 36,
+//		.end            = 36,
+               .start          = LS1A_BOARD_SATA_IRQ,
+               .end            = LS1A_BOARD_SATA_IRQ,
+
 		.flags          = IORESOURCE_IRQ,
 	},
 };
 
-static void __iomem *ls1b_ahci_map_table[6];
+static void __iomem *ls1a_ahci_map_table[6];
 
-static struct platform_device ls1b_ahci_device = {
+#if 0
+static struct platform_device ls1a_ahci_device = {
 	.name           = "ls1b-ahci",
 	.id             = -1,
 	.dev = {
-		.platform_data = ls1b_ahci_map_table,
+		.platform_data = ls1a_ahci_map_table,
 	},
-	.num_resources  = ARRAY_SIZE(ls1b_ahci_resources),
-	.resource       = ls1b_ahci_resources,
+	.num_resources  = ARRAY_SIZE(ls1a_ahci_resources),
+	.resource       = ls1a_ahci_resources,
 };
+#else
+static int ls1a_ahci_init(struct device *dev, void __iomem *mmio)
+{
+	/*ls1a adjust sata phy clock added by menghaibo*/
+        *(volatile int *)0xbfd00424 |= 0x80000000;
+        *(volatile int *)0xbfd00418  = 0x38682650;
+        *(volatile int *)0xbfe30000 &= 0x0;
+
+	return 0;
+}
+
+
+static struct ahci_platform_data ls1a_ahci_pdata = {
+	.init = ls1a_ahci_init,
+};
+
+static u64 ls1a_ahci_dmamask = DMA_BIT_MASK(32);
+static struct platform_device ls1a_ahci_device = {
+	.name           = "ahci",
+	.id             = -1,
+	.dev = {
+		.platform_data 		= &ls1a_ahci_pdata,
+		.dma_mask		= &ls1a_ahci_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
+	.num_resources  = ARRAY_SIZE(ls1a_ahci_resources),
+	.resource       = ls1a_ahci_resources,
+};
+#endif
 #endif //#ifdef LOONGSON_AHCI
 
 /*
@@ -673,23 +711,23 @@ static struct mtd_partition partitions[] = {
 */
 #if 1	//for bobodog program
 	[0] = {
-		.name		= "pmon",
+		.name		= "pmon_spi",
 		.offset		= 0,
 		.size		= 512 * 1024,	//512KB
 	//	.mask_flags	= MTD_WRITEABLE,
 	}, 
 	[1] = {
-		.name		= "kernel",	
+		.name		= "kernel_spi",	
 		.offset		= 512 * 1024,
 		.size		= 0x210000,
 	},
 	[2] = {
-		.name		= "fs",
+		.name		= "fs_spi",
 		.offset		= 0x290000,
 		.size		= 0x500000,
 	},
 	[3] = {
-		.name		= "data",
+		.name		= "data_spi",
 		.offset		= 0x790000,
 		.size		= 0x800000 - 0x790000,
 	},
@@ -1393,7 +1431,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&uart8250_device,
 
 #ifdef LOONGSON_AHCI
-	&ls1b_ahci_device,
+	&ls1a_ahci_device,
 #endif
 
 #ifdef CONFIG_USB_OHCI_HCD_LS1B
@@ -1489,7 +1527,7 @@ int ls1b_platform_init(void)
 	struct plat_serial8250_port *p;
 
 #ifdef LOONGSON_AHCI
-	ls1b_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1b_ahci_resources[0].start,0x200);
+//	ls1a_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1a_ahci_resources[0].start,0x200);
 #endif
 	
 #ifdef CONFIG_LS1A_MACH

@@ -28,6 +28,7 @@
 #ifdef	CONFIG_LS1A_MACH
 #define AHB_CLK			25000000
 #else
+//#define AHB_CLK			25000000
 #define AHB_CLK			33000000
 #endif
 
