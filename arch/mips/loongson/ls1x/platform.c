@@ -22,6 +22,7 @@
 #include <linux/spi/flash.h>
 #include <linux/spi/ads7846.h>
 #include <linux/spi/mmc_spi.h>
+#include <linux/spi/spi_gpio.h>
 #include <linux/mmc/host.h>
 #include <linux/phy.h>
 #include <linux/stmmac.h>
@@ -978,6 +979,59 @@ static struct platform_device ls1b_spi1_device = {
 };
 #endif	//#ifdef CONFIG_LS1B_SPI1
 
+#ifdef CONFIG_SPI_GPIO
+struct spi_gpio_platform_data spigpio_platform_data = {
+	.sck = 24,	/*gpio24*/
+	.mosi = 26,	/*gpio26*/
+	.miso = 25,	/*gpio25*/
+	.num_chipselect = 3,
+};
+
+static struct platform_device spigpio_device = {
+	.name = "spi_gpio",
+	.id   = 2,	/* 用于区分spi0和spi1 */
+	.dev = {
+		.platform_data = &spigpio_platform_data,
+	},
+};
+
+static struct spi_board_info spi_gpio_devices[] = {
+#ifdef CONFIG_MTD_M25P80
+	{	/* DataFlash chip */
+		.modalias	= "w25q64",		//"m25p80",
+		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
+		.controller_data = 27,	/*gpio27*/
+		.chip_select	= 0,
+		.max_speed_hz	= 80000000,
+		.platform_data	= &flash,
+	},
+#endif
+#ifdef CONFIG_TOUCHSCREEN_ADS7846
+	{
+		.modalias = "ads7846",
+		.platform_data = &ads_info,
+		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
+		.controller_data = 28,	/*gpio28*/
+		.chip_select 	= 1,
+		.max_speed_hz 	= 2500000,
+		.mode 			= SPI_MODE_1,
+		.irq			= LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+	},
+#endif
+#ifdef CONFIG_LCD_JBT6K74
+	{
+		.modalias	= "jbt6k74",
+		.platform_data	= &jbt6k74_pdata,
+		.bus_num	= 2,		/* 对应spigpio_device的.id=2 */
+		.controller_data = 43,	/*gpio43*/
+		.chip_select = 2,
+		/* irq */
+		.max_speed_hz	= 100 * 1000,
+	},
+#endif
+};
+#endif //#ifdef CONFIG_SPI_GPIO
+
 /************************************************/	//GPIO && buzzer && button
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 static struct gpio_keys_button ls1b_gpio_button[] = {
@@ -1491,6 +1545,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_spi1_device,
 #endif
 
+#ifdef CONFIG_SPI_GPIO
+	&spigpio_device,
+#endif
+
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
 #endif
@@ -1609,6 +1667,10 @@ int ls1b_platform_init(void)
 	/* disable gpio38-41 */
 	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
 	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
+#endif
+
+#ifdef CONFIG_SPI_GPIO
+	spi_register_board_info(spi_gpio_devices, ARRAY_SIZE(spi_gpio_devices));
 #endif
 
 //modify by lvling
