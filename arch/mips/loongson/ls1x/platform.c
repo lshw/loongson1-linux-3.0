@@ -37,6 +37,7 @@
 #include <linux/ssd1305.h>
 #include <linux/st7920.h>
 #include <linux/clk.h>
+#include <linux/jbt6k74.h>
 
 #include <media/gc0308_platform.h>
 
@@ -839,6 +840,18 @@ static struct ads7846_platform_data ads_info = {
 	.filter_cleanup 	= NULL,
 };
 #endif /* TOUCHSCREEN_ADS7846 */
+
+#ifdef CONFIG_LCD_JBT6K74
+/* JBT6k74 display controller */
+static void gta02_jbt6k74_probe_completed(struct device *dev)
+{
+//	pcf50633_bl_set_brightness_limit(gta02_pcf, 0x3f);
+}
+
+const struct jbt6k74_platform_data jbt6k74_pdata = {
+//	.gpio_reset = 41,
+};
+#endif
 
 #ifdef CONFIG_LS1B_SPI0
 static struct spi_board_info ls1b_spi0_devices[] = {
