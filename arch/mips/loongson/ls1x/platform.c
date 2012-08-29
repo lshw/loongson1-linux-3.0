@@ -795,12 +795,12 @@ static void ls1b_mmc_spi_exit(struct device *dev, void *data)
 
 static struct mmc_spi_platform_data mmc_spi = {
 	/* 中断方式方式探测card的插拔 */
-	.init = ls1b_mmc_spi_init,
-	.exit = ls1b_mmc_spi_exit,
+//	.init = ls1b_mmc_spi_init,
+//	.exit = ls1b_mmc_spi_exit,
 	.detect_delay = 1200,	/* msecs */
 	/* 轮询方式方式探测card的插拔 */
 	.get_cd = mmc_spi_get_cd,
-//	.caps = MMC_CAP_NEEDS_POLL,
+	.caps = MMC_CAP_NEEDS_POLL,
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
