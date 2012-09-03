@@ -54,7 +54,7 @@
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
 
-#ifdef CONFIG_MTD_NAND_LS1B
+#ifdef CONFIG_MTD_NAND_LS1X
 struct ls1b_nand_platform_data{
     int enable_arbiter;
     struct mtd_partition *parts;
@@ -136,7 +136,7 @@ struct platform_device ls1b_nand_device = {
     .num_resources  =ARRAY_SIZE(ls1b_nand_resources),
     .resource       =ls1b_nand_resources,
 };
-#endif //CONFIG_MTD_NAND_LS1B
+#endif //CONFIG_MTD_NAND_LS1X
 
 static struct plat_serial8250_port uart8250_data[] = {
 {
@@ -1491,7 +1491,7 @@ static struct platform_device gen74x165_gpio_keys_device = {
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
-#ifdef CONFIG_MTD_NAND_LS1B
+#ifdef CONFIG_MTD_NAND_LS1X
 	&ls1b_nand_device,
 #endif
 

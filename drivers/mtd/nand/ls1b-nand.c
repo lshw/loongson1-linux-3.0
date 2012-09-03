@@ -209,7 +209,7 @@ static void nand_gpio_init(void)
 #ifdef	CONFIG_LS1A_MACH
 {
 	int val;
-#if 1 //NAND复用LPC
+#ifdef CONFIG_NAND_USE_LPC_PWM01 //NAND复用LPC PWM01
 	val = __raw_readl(GPIO_MUX);
 	val |= 0x2a000000;
 	__raw_writel(val, GPIO_MUX);
@@ -217,7 +217,7 @@ static void nand_gpio_init(void)
 	val = __raw_readl(GPIO_CONF2);
 	val &= ~(0xffff<<6);			//nand_D0~D7 & nand_control pin
 	__raw_writel(val, GPIO_CONF2);
-#else //NAND复用SPI1
+#elif CONFIG_NAND_USE_SPI1_PWM23 //NAND复用SPI1 PWM23
 	val = __raw_readl(GPIO_MUX);
 	val |= 0x14000000;
 	__raw_writel(val, GPIO_MUX);
