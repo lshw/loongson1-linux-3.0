@@ -576,7 +576,9 @@ static struct resource ls1b_mac0_resources[] = {
 
 static struct plat_stmmacenet_data ls1b_mac0_data = {
         .bus_id         = 0,
-//      .pbl            = 32,
+#ifdef	CONFIG_LS1A_CORE_BOARD
+      .pbl            = 32,
+#endif
         .has_gmac       = 1,
 	.enh_desc	= 0,
         /*.tx_coe               = 1,*/
@@ -594,8 +596,13 @@ struct platform_device ls1b_gmac0_mac = {
 
 static struct plat_stmmacphy_data  phy0_private_data = {
 #ifdef CONFIG_LS1A_MACH
+#ifdef	CONFIG_LS1A_CORE_BOARD
+	.bus_id = 0,
+	.phy_addr = 0,
+#else
 	.bus_id = 0,
 	.phy_addr = 1,
+#endif
 #else
 	.bus_id = 0,
 #ifdef CONFIG_RTL8305SC

@@ -533,7 +533,7 @@ config MTD_NAND_LS1X
 choice
 	prompt "Multiplexing selection for LS1A"
 	depends on (MTD_NAND_LS1X) && (LS1A_MACH)
-	default NAND_USE_SPI1
+	default NAND_USE_SPI1_PWM23
 
 config NAND_USE_LPC_PWM01
 	bool "nand d0-d5 use LCP and pwm01"

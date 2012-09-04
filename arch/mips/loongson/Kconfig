@@ -107,6 +107,20 @@ config LEMOTE_MACH2F
 	  LingLoong allinone PC and so forth.
 endchoice
 
+choice
+	prompt "LS1A board configure"
+	default LS1A_CORE_BOARD
+
+config	LS1A_CORE_BOARD
+	bool "ls1a_core_board"
+	depends on LS1A_MACH
+
+config	LS1A_CLOUD_TERMIAL
+	bool "ls1a_cloud_termial"
+	depends on LS1A_MACH
+
+endchoice
+
 config CS5536
 	bool
 
