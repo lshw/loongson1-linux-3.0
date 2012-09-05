@@ -93,7 +93,7 @@ int caclulatefreq(long XIN, long PCLK)
 	flag = 0;
 	while (flag == 0) {
 		flag = 1;
-		if ((PCLK*NO) < 200000) {
+		if ((PCLK*NO) < 5000) {
 			NO *= 2;
 			OD++;
 			flag = 0;
