@@ -387,11 +387,11 @@ static struct platform_device ls1b_ehci_device = {
 /*
 * watchdog
 */
-#ifdef CONFIG_LS1B_WDT
+#ifdef CONFIG_LS1X_WDT
 static struct resource ls1b_wat_resource[] = {
 	[0]={
-		.start      = LS1B_BOARD_WAT_BASE,
-		.end        = (LS1B_BOARD_WAT_BASE + 0x8),
+		.start      = LS1X_WAT_BASE,
+		.end        = (LS1X_WAT_BASE + 0x8),
 		.flags      = IORESOURCE_MEM,
 	},
 };
@@ -402,7 +402,7 @@ static struct platform_device ls1b_wat_device = {
 	.num_resources  = ARRAY_SIZE(ls1b_wat_resource),
 	.resource   = ls1b_wat_resource,
 };
-#endif //#ifdef CONFIG_LS1B_WDT
+#endif //#ifdef CONFIG_LS1X_WDT
 
 /*
 *RTC
@@ -1529,7 +1529,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_gmac1_phy,
 #endif
 
-#ifdef CONFIG_LS1B_WDT
+#ifdef CONFIG_LS1X_WDT
 	&ls1b_wat_device,
 #endif
 

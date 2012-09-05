@@ -14,7 +14,7 @@
 
 static void ls1x_restart(char *command)
 {
-	void __iomem *wdt_base = ioremap(LS1B_BOARD_WAT_BASE, 0x0f);
+	void __iomem *wdt_base = ioremap(LS1X_WAT_BASE, 0x0f);
 	
 	writel(1, wdt_base + WDT_EN);
 	writel(1, wdt_base + WDT_TIMER);

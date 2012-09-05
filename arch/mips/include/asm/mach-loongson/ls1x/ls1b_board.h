@@ -116,7 +116,11 @@
 #define LS1B_UART_SPLIT				0xbfe78038
 
 /* watchdog */
-#define LS1B_BOARD_WAT_BASE			0x1fe5c060
+#ifdef	CONFIG_LS1A_MACH
+#define LS1X_WAT_BASE				0x1fe7c060
+#elif	CONFIG_LS1B_MACH
+#define LS1X_WAT_BASE				0x1fe5c060
+#endif
 #define WDT_EN						0x00
 #define WDT_TIMER					0x04
 #define WDT_SET						0x08
