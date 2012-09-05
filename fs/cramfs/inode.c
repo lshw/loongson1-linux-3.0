@@ -145,12 +145,7 @@ static int next_buffer;
  * Returns a pointer to a buffer containing at least LEN bytes of
  * filesystem starting at byte offset OFFSET into the filesystem.
  */
-
-
-
-
-#if 1		//lxy
-
+#ifdef CONFIG_MTD_NAND_LS1X		//lxy
 static unsigned int cramfs_nand_transfer_offset(struct super_block *sb, unsigned int offset)
 {
     struct cramfs_sb_info *sbi = sb->s_fs_info;
@@ -211,8 +206,7 @@ static void cramfs_fill_nand(struct super_block *sb)
     }
 
 }
-#endif
-
+#endif	//#ifdef CONFIG_MTD_NAND_LS1X
 
 static void *cramfs_read(struct super_block *sb, unsigned int offset, unsigned int len)
 {
@@ -225,7 +219,9 @@ static void *cramfs_read(struct super_block *sb, unsigned int offset, unsigned i
 	if (!len)
 		return NULL;
 
+#ifdef CONFIG_MTD_NAND_LS1X
 	offset = cramfs_nand_transfer_offset(sb, offset);	//lxy
+#endif
 	
 	blocknr = offset >> PAGE_CACHE_SHIFT;
 	offset &= PAGE_CACHE_SIZE - 1;
@@ -292,8 +288,6 @@ static void *cramfs_read(struct super_block *sb, unsigned int offset, unsigned i
 	return read_buffers[buffer] + offset;
 }
 
-
-
 static void cramfs_put_super(struct super_block *sb)
 {
 	kfree(sb->s_fs_info);
@@ -321,10 +315,9 @@ static int cramfs_fill_super(struct super_block *sb, void *data, int silent)
 		return -ENOMEM;
 	sb->s_fs_info = sbi;
 
-
-			cramfs_fill_nand(sb);		//lxy
-
-	
+#ifdef CONFIG_MTD_NAND_LS1X
+	cramfs_fill_nand(sb);		//lxy
+#endif
 
 	/* Invalidate the read buffers on mount: think disk change.. */
 	mutex_lock(&read_mutex);
@@ -333,7 +326,6 @@ static int cramfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	/* Read the first block and get the superblock from it */
 	memcpy(&super, cramfs_read(sb, 0, sizeof(super)), sizeof(super));
-//	printk ("lxy: super->type = %s !\n", super.signature);
 	
 	mutex_unlock(&read_mutex);
 
