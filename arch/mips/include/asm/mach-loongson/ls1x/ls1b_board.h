@@ -11,6 +11,9 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 
+#define LOONGSON_REG(x)	\
+	(*(volatile u32 *)((char *)CKSEG1ADDR(x)))
+
 /*
  * Configuration address and data registers
  */
@@ -33,8 +36,8 @@
 #endif
 
 /* Interrupt register */
-#define REG_INT_EDGE		0x04
-#define REG_INT_STEER		0x08
+#define REG_INT_EDGE	0x04
+#define REG_INT_STEER	0x08
 #define REG_INT_POL		0x0c
 #define REG_INT_SET		0x10
 #define REG_INT_CLR		0x14
@@ -56,9 +59,28 @@
 #define REG_GPIO_OUT0		0x1fd010f0		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u51fa\u5bc4\u5b58\u5668 0
 #define REG_GPIO_OUT1		0x1fd010f4		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u51fa\u5bc4\u5b58\u5668 1
 
+#define LOONGSON_GPIOCFG0	LOONGSON_REG(REG_GPIO_CFG0)
+#define LOONGSON_GPIOCFG1	LOONGSON_REG(REG_GPIO_CFG1)
+#define LOONGSON_GPIOIE0 	LOONGSON_REG(REG_GPIO_OE0)
+#define LOONGSON_GPIOIE1	LOONGSON_REG(REG_GPIO_OE1)
+#define LOONGSON_GPIOIN0	LOONGSON_REG(REG_GPIO_IN0)
+#define LOONGSON_GPIOIN1	LOONGSON_REG(REG_GPIO_IN1)
+#define LOONGSON_GPIOOUT0	LOONGSON_REG(REG_GPIO_OUT0)
+#define LOONGSON_GPIOOUT1	LOONGSON_REG(REG_GPIO_OUT1)
+
+#ifdef CONFIG_LS1A_MACH
+#define REG_GPIO_CFG2		0x1fd010c8
+#define REG_GPIO_OE2		0x1fd010d8
+#define REG_GPIO_IN2		0x1fd010e8
+#define REG_GPIO_OUT2		0x1fd010f8
+#define LOONGSON_GPIOCFG2	LOONGSON_REG(REG_GPIO_CFG2)
+#define LOONGSON_GPIOIE2 	LOONGSON_REG(REG_GPIO_OE2)
+#define LOONGSON_GPIOIN2	LOONGSON_REG(REG_GPIO_IN2)
+#define LOONGSON_GPIOOUT2	LOONGSON_REG(REG_GPIO_OUT2)
+#endif
 
 /* SPI regs */
-#define LS1B_BOARD_SPI_BASE		 0x1f000000 
+#define LS1B_BOARD_SPI_BASE	0x1f000000 
 #define REG_SPCR			0x00
 #define REG_SPSR			0x01
 #define REG_SPDR			0x02
@@ -67,17 +89,17 @@
 #define	REG_SPCSR			0x05
 #define	REG_SPTR			0x06
 
-#define LS1B_BOARD_SPI0_BASE		0x1fe80000
-#define LS1B_BOARD_SPI1_BASE		0x1fec0000
+#define LS1B_BOARD_SPI0_BASE	0x1fe80000
+#define LS1B_BOARD_SPI1_BASE	0x1fec0000
 #define REG_SPCR				0x00	//控制寄存器
 #define REG_SPSR				0x01	//状态寄存器
 #define REG_SPDR				0x02	//数据寄存器（TxFIFO）
-#define REG_TXFIFO    		0x02	//数据传输寄存器 输出
-#define REG_RXFIFO    		0x02	//数据传输寄存器 输入
+#define REG_TXFIFO    			0x02	//数据传输寄存器 输出
+#define REG_RXFIFO    			0x02	//数据传输寄存器 输入
 #define REG_SPER				0x03	//外部寄存器
-#define REG_PARAM     		0x04	//SPI Flash参数控制寄存器
-#define REG_SOFTCS    		0x05	//SPI Flash片选控制寄存器
-#define REG_PARAM2    		0x06	//SPI Flash时序控制寄存器
+#define REG_PARAM     			0x04	//SPI Flash参数控制寄存器
+#define REG_SOFTCS    			0x05	//SPI Flash片选控制寄存器
+#define REG_PARAM2    			0x06	//SPI Flash时序控制寄存器
 
 #define SPI0_CS0				0
 #define SPI0_CS1				1

@@ -42,8 +42,7 @@
 
 #include <media/gc0308_platform.h>
 
-#include <ls1b_board.h>
-#include <ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
 #include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 #include <asm/mach-loongson/ls1x/spi.h>
 #include <asm/mach-loongson/ls1x/fb.h>
@@ -495,14 +494,14 @@ static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
 #ifdef CONFIG_TOUCHSCREEN_TSC2007
 	{
 		I2C_BOARD_INFO("tsc2007", 0x48),
-		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
+		.irq = LS1X_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
 		.platform_data	= &tsc2007_info,
 	},
 #endif
 #ifdef CONFIG_TOUCHSCREEN_FT5X0X
 	{
 		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
-		.irq = LS1B_BOARD_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
+		.irq = LS1X_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
 		.platform_data	= &ft5x0x_info,
 	},
 #endif
@@ -785,7 +784,7 @@ static int mmc_spi_get_cd(struct device *dev)
 }
 
 #if 1
-#define MMC_SPI_CARD_DETECT_INT  (LS1B_BOARD_GPIO_FIRST_IRQ + DETECT_GPIO)
+#define MMC_SPI_CARD_DETECT_INT  (LS1X_GPIO_FIRST_IRQ + DETECT_GPIO)
 /* 中断方式方式探测card的插拔 */
 static int ls1b_mmc_spi_init(struct device *dev,
 	irqreturn_t (*detect_int)(int, void *), void *data)
@@ -829,7 +828,7 @@ int ads7846_detect_penirq(void)
 	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
 	(ls1b_board_hw0_icregs + 3) -> int_en		|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
 	
-	return (LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
+	return (LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
 }
 	
 static struct ads7846_platform_data ads_info = {
@@ -888,7 +887,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.chip_select 	= SPI0_CS1,
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
-		.irq				= LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+		.irq				= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
@@ -1022,7 +1021,7 @@ static struct spi_board_info spi_gpio_devices[] = {
 		.chip_select 	= 1,
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
-		.irq			= LS1B_BOARD_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
 #ifdef CONFIG_LCD_JBT6K74
@@ -1117,8 +1116,8 @@ static struct platform_device ls1b_gpio_buzzer_device = {
 #define GPIO_IR 61
 static struct resource ls1b_ir_resource[] = {
 	[0] = {
-		.start	= (LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IR),
-		.end	= (LS1B_BOARD_GPIO_FIRST_IRQ + GPIO_IR),
+		.start	= (LS1X_GPIO_FIRST_IRQ + GPIO_IR),
+		.end	= (LS1X_GPIO_FIRST_IRQ + GPIO_IR),
 		.flags	= IORESOURCE_IRQ,
 	},
 };

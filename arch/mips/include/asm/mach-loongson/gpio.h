@@ -22,6 +22,7 @@ extern int gpio_cansleep(unsigned gpio);
 extern int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio);
 extern int ls1b_gpio_direction_output(struct gpio_chip *chip,
 		unsigned gpio, int level);
+extern void ls1b_gpio_free(struct gpio_chip *chip, unsigned gpio);
 
 /* The chip can do interrupt
  * but it has not been tested and doc not clear
@@ -29,13 +30,13 @@ extern int ls1b_gpio_direction_output(struct gpio_chip *chip,
 static inline int gpio_to_irq(int gpio)
 {
 //	return -EINVAL;
-	return LS1B_BOARD_GPIO_FIRST_IRQ + gpio;
+	return LS1X_GPIO_FIRST_IRQ + gpio;
 }
 
 static inline int irq_to_gpio(int irq)
 {
 //	return -EINVAL;
-	return irq - LS1B_BOARD_GPIO_FIRST_IRQ;
+	return irq - LS1X_GPIO_FIRST_IRQ;
 }
 
 #endif				/* __STLS2F_GPIO_H */

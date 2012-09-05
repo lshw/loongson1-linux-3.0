@@ -15,25 +15,16 @@
 #include <linux/module.h>
 #include <linux/spinlock.h>
 #include <linux/err.h>
-#include <asm/types.h>
-//#include <loongson.h>
 #include <linux/gpio.h>
 
+#include <asm/types.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
+
+#ifdef CONFIG_LS1A_MACH
+#define STLS1B_N_GPIO		88
+#elif CONFIG_LS1B_MACH
 #define STLS1B_N_GPIO		64
-#define STLS1B_GPIO_IN_OFFSET	16
-
-#define LOONGSON_REG(x)	\
-	(*(volatile u32 *)((char *)CKSEG1ADDR(x)))
-
-#define LOONGSON_GPIOCFG0	LOONGSON_REG(0xbfd010c0)
-#define LOONGSON_GPIOCFG1	LOONGSON_REG(0xbfd010c4)
-#define LOONGSON_GPIOIE0 	LOONGSON_REG(0xbfd010d0)
-#define LOONGSON_GPIOIE1	LOONGSON_REG(0xbfd010d4)
-#define LOONGSON_GPIOIN0	LOONGSON_REG(0xbfd010e0)
-#define LOONGSON_GPIOIN1	LOONGSON_REG(0xbfd010e4)
-#define LOONGSON_GPIOOUT0	LOONGSON_REG(0xbfd010f0)
-#define LOONGSON_GPIOOUT1	LOONGSON_REG(0xbfd010f4)
-
+#endif
 
 static DEFINE_SPINLOCK(gpio_lock);
 
@@ -45,16 +36,26 @@ int gpio_get_value(unsigned gpio)
 	if (gpio >= STLS1B_N_GPIO)
 		return __gpio_get_value(gpio);
 
-	if(gpio >= 32){
-		mask = 1 << (gpio - 32);
+#ifdef CONFIG_LS1A_MACH
+	if (gpio >= 64) {
+		mask = 1 << (gpio - 64);
 		spin_lock(&gpio_lock);
-		val = LOONGSON_GPIOIN1;
+		val = LOONGSON_GPIOIN2;
 		spin_unlock(&gpio_lock);
-	}else{
-		mask = 1 << gpio;
-		spin_lock(&gpio_lock);
-		val = LOONGSON_GPIOIN0;
-		spin_unlock(&gpio_lock);
+	} else
+#endif
+	{
+		if (gpio >= 32) {
+			mask = 1 << (gpio - 32);
+			spin_lock(&gpio_lock);
+			val = LOONGSON_GPIOIN1;
+			spin_unlock(&gpio_lock);
+		} else {
+			mask = 1 << gpio;
+			spin_lock(&gpio_lock);
+			val = LOONGSON_GPIOIN0;
+			spin_unlock(&gpio_lock);
+		}
 	}
 
 	return ((val & mask) != 0);
@@ -71,26 +72,41 @@ void gpio_set_value(unsigned gpio, int state)
 		return ;
 	}
 
-	if(gpio >= 32){
-		mask = 1 << (gpio - 32);
+#ifdef CONFIG_LS1A_MACH
+	if (gpio >= 64) {
+		mask = 1 << (gpio - 64);
 		spin_lock(&gpio_lock);
-		val = LOONGSON_GPIOOUT1;
+		val = LOONGSON_GPIOOUT2;
 		if (state)
 			val |= mask;
 		else
 			val &= (~mask);
-		LOONGSON_GPIOOUT1 = val;
+		LOONGSON_GPIOOUT2 = val;
 		spin_unlock(&gpio_lock);
-	}else{
-		mask = 1 << gpio;
-		spin_lock(&gpio_lock);
-		val = LOONGSON_GPIOOUT0;
-		if(state)	
-			val |= mask;
-		else
-			val &= ~mask;
-		LOONGSON_GPIOOUT0 = val;
-		spin_unlock(&gpio_lock);
+	} else
+#endif
+	{
+		if (gpio >= 32) {
+			mask = 1 << (gpio - 32);
+			spin_lock(&gpio_lock);
+			val = LOONGSON_GPIOOUT1;
+			if (state)
+				val |= mask;
+			else
+				val &= (~mask);
+			LOONGSON_GPIOOUT1 = val;
+			spin_unlock(&gpio_lock);
+		} else {
+			mask = 1 << gpio;
+			spin_lock(&gpio_lock);
+			val = LOONGSON_GPIOOUT0;
+			if(state)	
+				val |= mask;
+			else
+				val &= ~mask;
+			LOONGSON_GPIOOUT0 = val;
+			spin_unlock(&gpio_lock);
+		}
 	}
 }
 EXPORT_SYMBOL(gpio_set_value);
@@ -112,28 +128,42 @@ int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 	if (gpio >= STLS1B_N_GPIO)
 		return -EINVAL;
 
-	if(gpio >= 32){
+#ifdef CONFIG_LS1A_MACH
+	if (gpio >= 64) {
 		spin_lock(&gpio_lock);
-		mask = 1 << (gpio - 32);
-		temp = LOONGSON_GPIOCFG1;
+		mask = 1 << (gpio - 64);
+		temp = LOONGSON_GPIOCFG2;
 		temp |= mask;
-		LOONGSON_GPIOCFG1 = temp;
-		temp = LOONGSON_GPIOIE1;
+		LOONGSON_GPIOCFG2 = temp;
+		temp = LOONGSON_GPIOIE2;
 		temp |= mask;
-		LOONGSON_GPIOIE1 = temp;
+		LOONGSON_GPIOIE2 = temp;
 		spin_unlock(&gpio_lock);
-	}else{
-		spin_lock(&gpio_lock);
-		mask = 1 << gpio;
-		temp = LOONGSON_GPIOCFG0;
-		temp |= mask;
-		LOONGSON_GPIOCFG0 = temp;
-		temp = LOONGSON_GPIOIE0;
-		temp |= mask;
-		LOONGSON_GPIOIE0 = temp;
-		spin_unlock(&gpio_lock);
+	} else
+#endif
+	{
+		if (gpio >= 32) {
+			spin_lock(&gpio_lock);
+			mask = 1 << (gpio - 32);
+			temp = LOONGSON_GPIOCFG1;
+			temp |= mask;
+			LOONGSON_GPIOCFG1 = temp;
+			temp = LOONGSON_GPIOIE1;
+			temp |= mask;
+			LOONGSON_GPIOIE1 = temp;
+			spin_unlock(&gpio_lock);
+		} else {
+			spin_lock(&gpio_lock);
+			mask = 1 << gpio;
+			temp = LOONGSON_GPIOCFG0;
+			temp |= mask;
+			LOONGSON_GPIOCFG0 = temp;
+			temp = LOONGSON_GPIOIE0;
+			temp |= mask;
+			LOONGSON_GPIOIE0 = temp;
+			spin_unlock(&gpio_lock);
+		}
 	}
-
 	return 0;
 }
 EXPORT_SYMBOL(ls1b_gpio_direction_input);
@@ -148,32 +178,75 @@ int ls1b_gpio_direction_output(struct gpio_chip *chip,
 		return -EINVAL;
 
 	gpio_set_value(gpio, level);
-	
-	if(gpio >= 32){
-		spin_lock(&gpio_lock);
-		mask = 1 << (gpio - 32);
-		temp = LOONGSON_GPIOCFG1;
-		temp |= mask;
-		LOONGSON_GPIOCFG1 = temp;
-		temp = LOONGSON_GPIOIE1;
-		temp &= (~mask);
-		LOONGSON_GPIOIE1 = temp;
-		spin_unlock(&gpio_lock);
-	}else{	
-		spin_lock(&gpio_lock);
-		mask = 1 << gpio;
-		temp = LOONGSON_GPIOCFG0;
-		temp |= mask;
-		LOONGSON_GPIOCFG0 = temp;
-		temp = LOONGSON_GPIOIE0;
-		temp &= (~mask);
-		LOONGSON_GPIOIE0 = temp;
-		spin_unlock(&gpio_lock);
-	}
 
+#ifdef CONFIG_LS1A_MACH
+	if (gpio >= 64) {
+		spin_lock(&gpio_lock);
+		mask = 1 << (gpio - 64);
+		temp = LOONGSON_GPIOCFG2;
+		temp |= mask;
+		LOONGSON_GPIOCFG2 = temp;
+		temp = LOONGSON_GPIOIE2;
+		temp &= (~mask);
+		LOONGSON_GPIOIE2 = temp;
+		spin_unlock(&gpio_lock);
+	} else
+#endif
+	{
+		if (gpio >= 32) {
+			spin_lock(&gpio_lock);
+			mask = 1 << (gpio - 32);
+			temp = LOONGSON_GPIOCFG1;
+			temp |= mask;
+			LOONGSON_GPIOCFG1 = temp;
+			temp = LOONGSON_GPIOIE1;
+			temp &= (~mask);
+			LOONGSON_GPIOIE1 = temp;
+			spin_unlock(&gpio_lock);
+		} else {
+			spin_lock(&gpio_lock);
+			mask = 1 << gpio;
+			temp = LOONGSON_GPIOCFG0;
+			temp |= mask;
+			LOONGSON_GPIOCFG0 = temp;
+			temp = LOONGSON_GPIOIE0;
+			temp &= (~mask);
+			LOONGSON_GPIOIE0 = temp;
+			spin_unlock(&gpio_lock);
+		}
+	}
 	return 0;
 }
 EXPORT_SYMBOL(ls1b_gpio_direction_output);
+
+void ls1b_gpio_free(struct gpio_chip *chip, unsigned gpio)
+{
+	u32 temp;
+	u32 mask;
+
+#ifdef CONFIG_LS1A_MACH
+	if(gpio >= 64){
+		mask = 1 << (gpio - 64);
+		temp = LOONGSON_GPIOCFG2;
+		temp &= ~mask;
+		LOONGSON_GPIOCFG2 = temp;
+	} else
+#endif
+	{
+		if (gpio >= 32) {
+			mask = 1 << (gpio - 32);
+			temp = LOONGSON_GPIOCFG1;
+			temp &= ~mask;
+			LOONGSON_GPIOCFG1 = temp;
+		} else {
+			mask = 1 << gpio;
+			temp = LOONGSON_GPIOCFG0;
+			temp &= ~mask;
+			LOONGSON_GPIOCFG0 = temp;
+		}
+	}
+}
+EXPORT_SYMBOL(ls1b_gpio_free);
 
 static int ls1b_gpio_get_value(struct gpio_chip *chip, unsigned gpio)
 {
@@ -192,6 +265,7 @@ static struct gpio_chip ls1b_chip = {
 	.get                    = ls1b_gpio_get_value,
 	.direction_output       = ls1b_gpio_direction_output,
 	.set                    = ls1b_gpio_set_value,
+	.free					= ls1b_gpio_free,
 	.base                   = 0,
 	.ngpio                  = STLS1B_N_GPIO,
 };

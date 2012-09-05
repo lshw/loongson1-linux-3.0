@@ -177,5 +177,8 @@ void __init arch_init_irq(void)
 	setup_irq(MIPS_CPU_IRQ_BASE + 3, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 4, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 5, &cascade_irqaction);
+#ifdef CONFIG_LS1A_MACH
+	setup_irq(MIPS_CPU_IRQ_BASE + 6, &cascade_irqaction);
+#endif
 }
 
