@@ -245,6 +245,11 @@ static struct platform_device uart8250_device = {
 #endif
 
 #ifdef LOONGSON_AHCI
+#define	AHCI_CLOCK_25MHZ	0x34682650
+#define	AHCI_CLOCK_50MHZ	0x30682650
+#define	AHCI_CLOCK_100MHZ	0x38682650
+#define	AHCI_CLOCK_125MHZ	0x38502650
+
 static struct resource ls1a_ahci_resources[] = {
 	[0] = {
 		.start          = 0x1fe30000,
@@ -278,7 +283,8 @@ static int ls1a_ahci_init(struct device *dev, void __iomem *mmio)
 {
 	/*ls1a adjust sata phy clock added by menghaibo*/
         *(volatile int *)0xbfd00424 |= 0x80000000;
-        *(volatile int *)0xbfd00418  = 0x38682650;
+//        *(volatile int *)0xbfd00418  = 0x38682650;
+        *(volatile int *)0xbfd00418  = AHCI_CLOCK_125MHZ;
         *(volatile int *)0xbfe30000 &= 0x0;
 
 	return 0;
