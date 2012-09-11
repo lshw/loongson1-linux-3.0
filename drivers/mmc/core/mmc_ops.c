@@ -113,7 +113,7 @@ int mmc_go_idle(struct mmc_host *host)
 	cmd.arg = 0;
 	cmd.flags = MMC_RSP_SPI_R1 | MMC_RSP_NONE | MMC_CMD_BC;
 
-	err = mmc_wait_for_cmd(host, &cmd, 0);
+	err = mmc_wait_for_cmd(host, &cmd, 10);
 
 	mmc_delay(1);
 
