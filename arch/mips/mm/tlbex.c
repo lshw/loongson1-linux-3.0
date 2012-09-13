@@ -431,10 +431,10 @@ static void __cpuinit build_tlb_write_entry(u32 **p, struct uasm_label **l,
 	case CPU_ALCHEMY:
 		tlbw(p);
 		break;
-	case CPU_LS232:
-		uasm_i_ehb(p);
-		tlbw(p);
-		break;
+//	case CPU_LS232:
+//		uasm_i_ehb(p);
+//		tlbw(p);
+//		break;
 	case CPU_NEVADA:
 		uasm_i_nop(p); /* QED specifies 2 nops hazard */
 		/*

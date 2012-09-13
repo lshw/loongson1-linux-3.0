@@ -22,8 +22,8 @@
  * dma-coherent systems.
  */
 //thf
-//#ifdef CONFIG_DMA_NONCOHERENT
-#if (!defined(CONFIG_DMA_COHERENT) || !defined(CONFIG_DMA_IP27)) && !defined(CONFIG_CPU_LS232)
+#ifdef CONFIG_DMA_NONCOHERENT
+//#if (!defined(CONFIG_DMA_COHERENT) || !defined(CONFIG_DMA_IP27)) && !defined(CONFIG_CPU_LS232)
 #undef CONFIG_CPU_HAS_PREFETCH
 #endif
 #ifdef CONFIG_MIPS_MALTA
