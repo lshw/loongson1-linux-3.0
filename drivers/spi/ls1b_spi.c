@@ -228,14 +228,16 @@ static int ls1b_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 #ifdef USE_POLL
 	for(hw->count=0; hw->count < hw->len; hw->count++) {
 		writeb(hw_txbyte(hw, hw->count), hw->regs + REG_SPDR);
-		while (readb(hw->regs + REG_SPSR) & 0x01);
+		while (readb(hw->regs + REG_SPSR) & 0x01) {
+			cpu_relax();
+		}
 		if (hw->rx)
 			hw->rx[hw->count] = readb(hw->regs + REG_SPDR);
 		else
 			readb(hw->regs + REG_SPDR);
 	}
 #else
-	init_completion(&hw->done);
+//	init_completion(&hw->done);
 	/* send the first byte */
 	writeb(hw_txbyte(hw, 0), hw->regs + REG_SPDR);
 	wait_for_completion(&hw->done);

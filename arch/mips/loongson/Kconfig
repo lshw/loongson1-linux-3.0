@@ -109,16 +109,14 @@ endchoice
 
 choice
 	prompt "LS1A board configure"
+	depends on LS1A_MACH
 	default LS1A_CORE_BOARD
 
 config	LS1A_CORE_BOARD
 	bool "ls1a_core_board"
-	depends on LS1A_MACH
 
 config	LS1A_CLOUD_TERMIAL
 	bool "ls1a_cloud_termial"
-	depends on LS1A_MACH
-
 endchoice
 
 config CS5536
