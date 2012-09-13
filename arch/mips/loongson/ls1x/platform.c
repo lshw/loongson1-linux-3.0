@@ -45,7 +45,6 @@
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 #include <asm/mach-loongson/ls1x/ls1b_board_int.h>
 #include <asm/mach-loongson/ls1x/spi.h>
-#include <asm/mach-loongson/ls1x/fb.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
 #include <linux/ahci_platform.h>
@@ -566,6 +565,7 @@ struct platform_device ls1b_dc_device = {
 #endif //#ifdef CONFIG_FB_LS1B
 
 //gmac0
+#ifdef CONFIG_LS1B_GMAC0_OPEN
 static struct resource ls1b_mac0_resources[] = {
         [0] = {
                 .start  = LS1B_BOARD_GMAC1_BASE,
@@ -637,8 +637,10 @@ struct platform_device ls1b_gmac0_phy = {
 		.platform_data = &phy0_private_data,
 	},
 };
+#endif //#ifdef CONFIG_LS1B_GMAC0_OPEN
 
 //gmac1
+#ifdef CONFIG_LS1B_GMAC1_OPEN
 static struct resource ls1b_mac1_resources[] = {
         [0] = {
                 .start  = LS1B_BOARD_GMAC2_BASE,
@@ -695,6 +697,7 @@ struct platform_device ls1b_gmac1_phy = {
 		.platform_data = &phy1_private_data,
 	},
 };
+#endif //#ifdef CONFIG_LS1B_GMAC1_OPEN
 
 #ifdef CONFIG_SND_LS1B
 static struct platform_device ls1b_audio_device = {
@@ -789,7 +792,7 @@ static int mmc_spi_get_cd(struct device *dev)
 	return !gpio_get_value(DETECT_GPIO);
 }
 
-#if 1
+#if 0
 #define MMC_SPI_CARD_DETECT_INT  (LS1X_GPIO_FIRST_IRQ + DETECT_GPIO)
 /* 中断方式方式探测card的插拔 */
 static int ls1b_mmc_spi_init(struct device *dev,
@@ -818,7 +821,7 @@ static struct mmc_spi_platform_data mmc_spi = {
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
 #define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
-int ads7846_pendown_state(unsigned int pin)
+int ads7846_pendown_state(void)
 {
 	return !gpio_get_value(ADS7846_GPIO_IRQ);
 }
@@ -1686,14 +1689,14 @@ int ls1b_platform_init(void)
 #endif
 
 //modify by lvling
-#if CONFIG_LS1B_GMAC0_OPEN && CONFIG_LS1B_GMAC1_OPEN//open gmac0 and gmac1  
+#if defined(CONFIG_LS1B_GMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN)//open gmac0 and gmac1  
 	printk("open gmac0 and gmac1.\n");
 	/* 寄存器0xbfd00424有GMAC的使能开关 */
 	(*(volatile unsigned int *)0xbfd00424) &= ~((1<<13) | (1<<12));	/* 使能GMAC0 GMAC1 */
 	(*(volatile unsigned int *)0xbfd00420) |= (1 << 4 | 1 << 3);
 	(*(volatile unsigned int *)0xbfd00424) |= (0xf);
 
-#elif (CONFIG_LS1B_GMAC0_OPEN) && (~CONFIG_LS1B_GMAC1_OPEN)//open gmac0,close gmac1
+#elif defined(CONFIG_LS1B_GMAC0_OPEN) && !defined(CONFIG_LS1B_GMAC1_OPEN)//open gmac0,close gmac1
 	printk("open gmac0 close gmac1.\n");
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 12);	//使能GMAC0
 	(*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
@@ -1702,7 +1705,7 @@ int ls1b_platform_init(void)
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
 	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4); //open uart0/1
 
-#elif (~CONFIG_LS1BGMAC0_OPEN) && (CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
+#elif !defined(CONFIG_LS1BGMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
 	printk("close gmac0 open gmac1.\n");
 	(*(volatile unsigned int *)0xbfd00424) |= (1 << 12);	//禁止GMAC0
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
