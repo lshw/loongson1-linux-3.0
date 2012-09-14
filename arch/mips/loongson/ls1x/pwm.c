@@ -27,10 +27,17 @@
 #define REG_PWM_LRC		0x08
 #define REG_PWM_CTRL	0x0c
 
+#ifdef CONFIG_LS1A_MACH
+#define LS_GPIO_PWM0	84
+#define LS_GPIO_PWM1	85
+#define LS_GPIO_PWM2	86
+#define LS_GPIO_PWM3	87
+#else
 #define LS_GPIO_PWM0	0
 #define LS_GPIO_PWM1	1
 #define LS_GPIO_PWM2	2
 #define LS_GPIO_PWM3	3
+#endif
 
 void __iomem *ls1x_pwm_base;
 static struct clk *ls1x_pwm_clk;
@@ -75,11 +82,21 @@ struct pwm_device *pwm_request(int id, const char *label)
 	gpio_free(pwm->gpio);
 
 	/* 设备复用模式为pwm */
+#ifdef CONFIG_LS1A_MACH
 	if (id == 0 || id == 1) {
+		*(volatile int *)0xbfd00420 &= ~0x20000100;
+	} else {
+		*(volatile int *)0xbfd00420 &= ~0x10000200;
+	}
+#else
+	if (id == 0 || id == 1) {
+		*(volatile int *)0xbfd00420 &= ~0x08041040;
 		*(volatile int *)0xbfd00424 &= ~0x01000001;
 	} else {
+		*(volatile int *)0xbfd00420 &= ~0x10082080;
 		*(volatile int *)0xbfd00424 &= ~0x00000002;
 	}
+#endif
 
 	return pwm;
 }

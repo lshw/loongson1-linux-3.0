@@ -1504,6 +1504,37 @@ static struct platform_device gen74x165_gpio_keys_device = {
 };
 #endif //#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
 
+#ifdef CONFIG_LEDS_PWM
+static struct led_pwm ls1x_pwm_leds[] = {
+	{
+		.name		= "ls1x_pwm_led1",
+		.pwm_id		= 2,
+		.max_brightness	= 255,
+		.pwm_period_ns	= 7812500,
+	},
+/*	{
+		.name		= "ls1x_pwm_led2",
+		.pwm_id		= 3,
+		.max_brightness	= 255,
+		.pwm_period_ns	= 70812500,
+	},*/
+};
+
+static struct led_pwm_platform_data ls1x_pwm_data = {
+	.num_leds	= ARRAY_SIZE(ls1x_pwm_leds),
+	.leds		= ls1x_pwm_leds,
+};
+
+static struct platform_device ls1x_leds_pwm = {
+	.name	= "leds_pwm",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &ls1x_pwm_data,
+	},
+};
+#endif //#ifdef CONFIG_LEDS_PWM
+
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_MTD_NAND_LS1X
@@ -1602,6 +1633,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
 	&gen74x165_gpio_keys_device,
+#endif
+
+#ifdef CONFIG_LEDS_PWM
+	&ls1x_leds_pwm,
 #endif
 };
 
