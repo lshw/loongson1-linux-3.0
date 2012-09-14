@@ -39,6 +39,8 @@
 #include <linux/st7920.h>
 #include <linux/clk.h>
 #include <linux/jbt6k74.h>
+#include <linux/leds.h>
+#include <linux/leds_pwm.h>
 
 #include <media/gc0308_platform.h>
 
@@ -1512,12 +1514,12 @@ static struct led_pwm ls1x_pwm_leds[] = {
 		.max_brightness	= 255,
 		.pwm_period_ns	= 7812500,
 	},
-/*	{
+	{
 		.name		= "ls1x_pwm_led2",
 		.pwm_id		= 3,
 		.max_brightness	= 255,
-		.pwm_period_ns	= 70812500,
-	},*/
+		.pwm_period_ns	= 7812500,
+	},
 };
 
 static struct led_pwm_platform_data ls1x_pwm_data = {
