@@ -34,6 +34,11 @@ config LOONGSON2_CPUFREQ
 
 	  If in doubt, say N.
 
+config LOONGSON1_CPUFREQ
+	tristate "Loongson 1A/1B CPUFreq Driver"
+	select CPU_FREQ_TABLE
+	depends on MIPS_CPUFREQ
+
 endif	# CPU_FREQ
 
 endmenu

@@ -36,8 +36,8 @@ config LS1A_MACH
 config LS1B_MACH
 	bool "Loongson 1B board"
 	select BOOT_ELF32
-	select CEVT_R4K
-	select CSRC_R4K
+	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
+	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
 	select SYS_HAS_CPU_LOONGSON1B
 	select CPU_HAS_WB
 	select DMA_NONCOHERENT
@@ -171,5 +171,34 @@ config HAVE_PWM
 	  This option enable loongson 1a/1b cpu's pwm controller.
 	  Be careful, some module's Pin multiplexing with the pwm,
 	  as NAND GMAC and SPI.
+
+config LS1X_TIMER
+	tristate "loongson 1A/1B PWM Timer"
+	default n
+	select MIPS_EXTERNAL_TIMER
+	depends on LS1A_MACH || LS1B_MACH
+	help
+	  If you want to enable the Loongson1 CPUFreq Driver, Please enable
+	  this option at first, otherwise, You will get wrong system time.
+
+	  If unsure, say Yes.
+
+choice
+	prompt  "system timer select"
+	depends on LS1X_TIMER
+	default TIMER_USE_PWM0
+
+config TIMER_USE_PWM0
+	bool "used pwm0 timer controller"
+
+config TIMER_USE_PWM1
+	bool "used pwm1 timer controller"
+
+config TIMER_USE_PWM2
+	bool "used pwm2 timer controller"
+
+config TIMER_USE_PWM3
+	bool "used pwm3 timer controller"
+endchoice
 
 endif # MACH_LOONGSON
