@@ -33,14 +33,27 @@
 #include <linux/pci.h>
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 #include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <asm/gpio.h>
 
 
 int __init pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
 {
 	printk("pcibios_map_irq devfn : %d , slot : %d , pin : %d\n",PCI_SLOT(dev->devfn),slot,pin);
-//	 dev->irq=(pin-1)+LS1A_BOARD_PCI_INTA_IRQ;	//lxy
+//	 dev->irq=(pin-1)+LS1A_BOARD_PCI_INTA_IRQ;
 //	return dev->irq;
-	return ((pin-1)+LS1A_BOARD_PCI_INTA_IRQ);
+//	return ((pin-1)+LS1A_BOARD_PCI_INTA_IRQ);
+//	return LS1A_BOARD_PCI_INTA_IRQ;
+	
+	if (slot == 10)			//lxy: slot = IDSEL - 11;
+	{
+		ls1b_gpio_direction_input(NULL, LS1A_BOARD_PCI_INTA_IRQ-64);
+		return LS1A_BOARD_PCI_INTA_IRQ;
+	}
+	else
+	{
+		ls1b_gpio_direction_input(NULL, LS1A_BOARD_PCI_INTB_IRQ-64);
+		return LS1A_BOARD_PCI_INTB_IRQ;
+	}
 }
 
 /* Do platform specific device initialization at pci_enable_device() time */

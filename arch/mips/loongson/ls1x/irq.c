@@ -157,10 +157,10 @@ void __init arch_init_irq(void)
 	for (i=0; i<5; i++) {
 		/* active level setting */
 		/* uart, keyboard, and mouse are active high */
-		if(i == 1)
-			(ls1b_board_hw0_icregs+1)->int_pol = ~( (INT_PCI_INTA)|(INT_PCI_INTB)|(INT_PCI_INTC)|(INT_PCI_INTD));//pci active low
+		if(i == 2)
+			(ls1b_board_hw0_icregs+i)->int_pol = ~( (INT_PCI_INTA)|(INT_PCI_INTB)|(INT_PCI_INTC)|(INT_PCI_INTD));	//pci active low
 		else
-			(ls1b_board_hw0_icregs+i)->int_pol = -1;//pci active low
+			(ls1b_board_hw0_icregs+i)->int_pol = -1;	//high level triggered.
 
 		/* make all interrupts level triggered */ 
 		if(i ==  0)
