@@ -176,11 +176,12 @@ struct ls1b_usbh_data {
     u8      vbus_pin[]; /* port power-control pin */
 }; 
 
-#define LS1B_USB_OHCI_BASE 0x1fe08000
-#define LS1B_USB_EHCI_BASE 0x1fe00000
-#define LS1B_LCD_BASE 0x1c301240
+#define LS1B_USB_OHCI_BASE 	0x1fe08000
+#define LS1B_USB_EHCI_BASE 	0x1fe00000
+#define LS1B_LCD_BASE 		0x1c301240
 
-#define LS1A_PCICFG_BASE 0x1c100000
+#define LS1A_PCICFG_BASE 	0x1c100000
+#define	LS1A_PCI_HEADER_CFG	0x1c180000
 #define LS1A_PCIMAP (*(volatile int *)0xbfd01114)
 #define LS1A_PCIMAP_CFG  (*(volatile int *)0xbfd01120)
 

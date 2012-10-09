@@ -44,7 +44,7 @@ int __init pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
 //	return ((pin-1)+LS1A_BOARD_PCI_INTA_IRQ);
 //	return LS1A_BOARD_PCI_INTA_IRQ;
 	
-	if (slot == 10)			//lxy: slot = IDSEL - 11;
+	if (slot == 5)			//lxy: slot = IDSEL - 11;
 	{
 		ls1b_gpio_direction_input(NULL, LS1A_BOARD_PCI_INTA_IRQ-64);
 		return LS1A_BOARD_PCI_INTA_IRQ;
@@ -73,6 +73,8 @@ static void __init loongsonls1a_fixup_pcimap(struct pci_dev *pdev)
 
 	/* 1,00 0110 ,0001 01,00 0000 */
 	LS1A_PCIMAP = 0x46140;
+	LOONGSON_REG(LS1A_PCI_HEADER_CFG + 0x20) = 0x40000000;
+	LOONGSON_REG(LS1A_PCI_HEADER_CFG + 0x24) = 0x0;
 }
 
 DECLARE_PCI_FIXUP_HEADER(PCI_ANY_ID, PCI_ANY_ID, loongsonls1a_fixup_pcimap);
