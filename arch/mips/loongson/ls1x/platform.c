@@ -822,7 +822,11 @@ static struct mmc_spi_platform_data mmc_spi = {
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
+#ifdef CONFIG_LS1A_CORE_BOARD
+#define ADS7846_GPIO_IRQ 66 /* 触摸屏使用的外部中断 */
+#else
 #define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
+#endif
 int ads7846_pendown_state(void)
 {
 	return !gpio_get_value(ADS7846_GPIO_IRQ);
@@ -832,12 +836,16 @@ int ads7846_detect_penirq(void)
 {
 	//配置GPIO0
 	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);		/* 输入使能 */
+
+#ifdef CONFIG_LS1A_CORE_BOARD
+	*(volatile unsigned int *)(0xbfd00420) |= (1<<15);
+#endif
 		
-	(ls1b_board_hw0_icregs + 3) -> int_edge &= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en		|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_edge &= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_pol &= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_clr	|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_set	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
+	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_en	|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
 	
 	return (LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
 }
