@@ -571,7 +571,7 @@ struct platform_device ls1b_dc_device = {
 static struct resource ls1b_mac0_resources[] = {
         [0] = {
                 .start  = LS1B_BOARD_GMAC1_BASE,
-                .end    = LS1B_BOARD_GMAC1_BASE + SZ_64K - 1,
+                .end    = LS1B_BOARD_GMAC1_BASE + SZ_8K - 1,
                 .flags  = IORESOURCE_MEM,
         },
         [1] = {
@@ -646,7 +646,7 @@ struct platform_device ls1b_gmac0_phy = {
 static struct resource ls1b_mac1_resources[] = {
         [0] = {
                 .start  = LS1B_BOARD_GMAC2_BASE,
-                .end    = LS1B_BOARD_GMAC2_BASE + SZ_64K - 1,
+                .end    = LS1B_BOARD_GMAC2_BASE + SZ_8K - 1,
                 .flags  = IORESOURCE_MEM,
         },
         [1] = {
@@ -1732,13 +1732,13 @@ int ls1b_platform_init(void)
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 12);	//使能GMAC0
 	(*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
 
-	(*(volatile unsigned int *)0xbfd00424) |= (1 << 13);	//禁止GMAC1
+//	(*(volatile unsigned int *)0xbfd00424) |= (1 << 13);	//禁止GMAC1
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
 	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4); //open uart0/1
 
 #elif !defined(CONFIG_LS1BGMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
 	printk("close gmac0 open gmac1.\n");
-	(*(volatile unsigned int *)0xbfd00424) |= (1 << 12);	//禁止GMAC0
+//	(*(volatile unsigned int *)0xbfd00424) |= (1 << 12);	//禁止GMAC0
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
 
 	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 13);	//使能GMAC1
@@ -1746,7 +1746,7 @@ int ls1b_platform_init(void)
 	(*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
   
 #else
-	(*(volatile unsigned int *)0xbfd00424) |= ((1<<13) | (1<<12));	/* 禁止GMAC0 GMAC1 */
+//	(*(volatile unsigned int *)0xbfd00424) |= ((1<<13) | (1<<12));	/* 禁止GMAC0 GMAC1 */
 	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);	//open uart0/1
 #endif
 
