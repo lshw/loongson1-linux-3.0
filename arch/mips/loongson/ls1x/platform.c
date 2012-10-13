@@ -41,6 +41,7 @@
 #include <linux/jbt6k74.h>
 #include <linux/leds.h>
 #include <linux/leds_pwm.h>
+#include <linux/can/platform/sja1000.h>
 
 #include <media/gc0308_platform.h>
 
@@ -1544,6 +1545,67 @@ static struct platform_device ls1x_leds_pwm = {
 };
 #endif //#ifdef CONFIG_LEDS_PWM
 
+#ifdef CONFIG_CAN_SJA1000_PLATFORM
+#ifdef CONFIG_LS1X_CAN0
+static struct resource ls1x_sja1000_resources_0[] = {
+	{
+		.start   = LS1X_CAN0_BASE,
+		.end     = LS1X_CAN0_BASE + 0x100 - 1,
+		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
+	}, {
+		.start   = LS1X_BOARD_CAN0_IRQ,
+		.end     = LS1X_BOARD_CAN0_IRQ,
+		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+	},
+};
+
+static struct sja1000_platform_data ls1x_sja1000_platform_data_0 = {
+//	.osc_freq	= 16000000,
+	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
+	.cdr		= CDR_CBP,
+};
+
+static struct platform_device ls1x_sja1000_0 = {
+	.name = "sja1000_platform",
+	.id = 0,
+	.dev = {
+		.platform_data = &ls1x_sja1000_platform_data_0,
+	},
+	.resource = ls1x_sja1000_resources_0,
+	.num_resources = ARRAY_SIZE(ls1x_sja1000_resources_0),
+};
+#endif	//#ifdef CONFIG_LS1X_CAN0
+#ifdef CONFIG_LS1X_CAN1
+static struct resource ls1x_sja1000_resources_1[] = {
+	{
+		.start   = LS1X_CAN1_BASE,
+		.end     = LS1X_CAN1_BASE + 0x100 - 1,
+		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
+	}, {
+		.start   = LS1X_BOARD_CAN1_IRQ,
+		.end     = LS1X_BOARD_CAN1_IRQ,
+		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+	},
+};
+
+static struct sja1000_platform_data ls1x_sja1000_platform_data_1 = {
+//	.osc_freq	= 16000000,
+	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
+	.cdr		= CDR_CBP,
+};
+
+static struct platform_device ls1x_sja1000_1 = {
+	.name = "sja1000_platform",
+	.id = 1,
+	.dev = {
+		.platform_data = &ls1x_sja1000_platform_data_1,
+	},
+	.resource = ls1x_sja1000_resources_1,
+	.num_resources = ARRAY_SIZE(ls1x_sja1000_resources_1),
+};
+#endif //#ifdef CONFIG_LS1X_CAN1
+#endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
+
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
@@ -1648,6 +1710,16 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_LEDS_PWM
 	&ls1x_leds_pwm,
 #endif
+
+#ifdef CONFIG_CAN_SJA1000_PLATFORM
+#ifdef CONFIG_LS1X_CAN0
+	&ls1x_sja1000_0,
+#endif
+#ifdef CONFIG_LS1X_CAN1
+	&ls1x_sja1000_1,
+#endif
+#endif
+
 };
 
 #define AHCI_PCI_BAR  5
@@ -1685,6 +1757,50 @@ int ls1b_platform_init(void)
 
 	for (p = uart8250_data; p->flags != 0; ++p)
 		p->uartclk = clk_get_rate(clk) / 2;
+
+#ifdef CONFIG_CAN_SJA1000_PLATFORM
+	{
+	#ifdef CONFIG_LS1X_CAN0
+	struct sja1000_platform_data *sja1000_pdata = &ls1x_sja1000_platform_data_0;
+	sja1000_pdata->osc_freq = clk_get_rate(clk);
+	#endif
+	#ifdef CONFIG_LS1X_CAN1
+	sja1000_pdata = &ls1x_sja1000_platform_data_1;
+	sja1000_pdata->osc_freq = clk_get_rate(clk);
+	#endif
+
+#ifdef	CONFIG_LS1A_MACH
+	#ifdef CONFIG_LS1X_CAN0
+	/* CAN0复用设置 */
+	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
+	ls1b_gpio_free(NULL, 67);
+	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
+	#endif
+	#ifdef CONFIG_LS1X_CAN1
+	/* CAN1复用设置 */
+	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
+	ls1b_gpio_free(NULL, 69);
+	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
+	#endif
+#elif	CONFIG_LS1B_MACH
+	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
+	#ifdef CONFIG_LS1X_CAN0
+	/* CAN0复用设置 */
+	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
+	ls1b_gpio_free(NULL, 39);
+	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
+	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
+	#endif
+	#ifdef CONFIG_LS1X_CAN1
+	/* CAN1复用设置 */
+	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
+	ls1b_gpio_free(NULL, 41);
+	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
+	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
+	#endif
+#endif
+	}
+#endif	//#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
 #ifdef CONFIG_LS1B_I2C
 	i2c_register_board_info(0, ls1b_i2c_devs, ARRAY_SIZE(ls1b_i2c_devs));

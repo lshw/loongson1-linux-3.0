@@ -163,6 +163,10 @@
 #define APB_CLK				AHB_CLK
 #define LS1B_GPIO_MUX_CTRL1 0xbfd00424
 
+/* CAN */
+#define LS1X_CAN0_BASE	0x1fe50000
+#define LS1X_CAN1_BASE	0x1fe54000
+
 /* AC97 */
 #define LS1B_AC97_REGS_BASE 0x1fe74000
 
