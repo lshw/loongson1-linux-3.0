@@ -153,7 +153,11 @@ static void set_normal_mode(struct net_device *dev)
 		}
 
 		/* set chip to normal mode */
+	#if defined(CONFIG_LS1X_CAN0) || defined(CONFIG_LS1X_CAN1)
+		priv->write_reg(priv, REG_MOD, MOD_STM);	/* LS1A/1B CAN operating mode */
+	#else
 		priv->write_reg(priv, REG_MOD, 0x00);
+	#endif
 		udelay(10);
 		status = priv->read_reg(priv, REG_MOD);
 	}
