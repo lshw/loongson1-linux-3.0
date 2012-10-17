@@ -536,7 +536,7 @@ static void ls1b_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 */
 	memcpy(buf, info->data_buff + info->buf_start, real_len);
 
-        show_debug(info->data_buff,0x40);
+//        show_debug(info->data_buff,0x40);
 
         info->buf_start += real_len;
 
@@ -592,11 +592,11 @@ static void ls1b_nand_write_buf(struct mtd_info *mtd,const uint8_t *buf, int len
 	int com_addr;
 
 	memcpy(info->data_buff + info->buf_start, buf, real_len);
-            show_debug(info->data_buff,0x20);
+ //           show_debug(info->data_buff,0x20);
  //           show_debug(info->data_buff+2048,0x20);
  //
  
-        dma_cache_wback((void *)(info->data_buff + info->buf_start), real_len);	//lxy
+//        dma_cache_wback((void *)(info->data_buff + info->buf_start), real_len);	//lxy
 
 	info->buf_start += real_len;
 
@@ -740,7 +740,7 @@ static void dma_setup(unsigned int flags,struct ls1b_nand_info *info)
     dma_base->step_times = (flags & DMA_STEP_TIMES)== DMA_STEP_TIMES ? info->dma_regs.step_times: info->dma_step_times;
     dma_base->cmd = (flags & DMA_CMD)== DMA_CMD ? info->dma_regs.cmd: info->dma_cmd;
 
-#if 0
+#if 1
     if((dma_base->cmd)&(0x1 << 12)){    
 
 //	memcpy((unsigned char*)cpy_buf, info->data_buff, info->cac_size);

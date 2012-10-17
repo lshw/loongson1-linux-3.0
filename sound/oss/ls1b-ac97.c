@@ -1329,6 +1329,25 @@ static int sb2f_audio_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static int ls1x_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	return 0;
+}
+
+static int ls1x_resume(struct platform_device *pdev)
+{
+	u32 flags, i;
+	mdelay(100);
+	for(i=0;i<100000;i++) *CSR |=1;
+//	sb2f_def_set();
+	return 0;
+}
+#else
+#define ls1x_suspend	NULL
+#define ls1x_resume	NULL
+#endif
+
 static struct platform_driver sb2f_audio_driver = {
 	.driver = {
 		.name	= "ls1b-audio",
@@ -1336,6 +1355,8 @@ static struct platform_driver sb2f_audio_driver = {
 	},
 	.probe		= sb2f_audio_probe,
 	.remove		= sb2f_audio_remove,
+	.suspend	= ls1x_suspend,
+	.resume		= ls1x_resume,
 };
 
 static int __devinit sb2f_audio_init(void)

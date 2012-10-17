@@ -440,18 +440,28 @@ static int ls1b_spi_remove(struct platform_device *dev)
 }
 
 #ifdef CONFIG_PM
-static int ls1b_spi_suspend(struct platform_device *pdev)
+static int ls1b_spi_suspend(struct device *dev)
 {
-	struct ls1b_spi *hw = platform_get_drvdata(pdev);
+//	struct ls1b_spi *hw = platform_get_drvdata(pdev);
+	struct ls1b_spi *hw = platform_get_drvdata(to_platform_device(dev));
 
 	return 0;
 }
 
-static int ls1b_spi_resume(struct platform_device *pdev)
+static int ls1b_spi_resume(struct device *dev)
 {
-	struct ls1b_spi *hw = platform_get_drvdata(pdev);
+	struct ls1b_spi *hw = platform_get_drvdata(to_platform_device(dev));
+	unsigned char val;
 
-	clk_enable(hw->clk);
+/* program defaults into the registers */
+	writeb(0xc0, hw->regs + REG_SPSR);
+	val = readb(hw->regs + REG_PARAM);
+	val &= 0xfe;
+	writeb(val, hw->regs + REG_PARAM);
+ 	writeb(0xd0, hw->regs + REG_SPCR);
+  	writeb(0x05, hw->regs + REG_SPER);
+
+//	clk_enable(hw->clk);
 	return 0;
 }
 

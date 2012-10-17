@@ -11,12 +11,32 @@ extern int usb_disabled(void);
 
 static void ls1x_start_ohc(void)
 {
-
+#ifdef CONFIG_LS1A_MACH
+	*(volatile int *)0xbfd00420 &= ~0x200000;/* enable USB */
+	*(volatile int *)0xbff10204 = 0;
+	mdelay(105);
+	*(volatile int *)0xbff10204 |= 0x40000000;/* ls1a usb reset stop */
+#elif defined(CONFIG_USB_EHCI_HCD_LS1B) || defined(CONFIG_USB_OHCI_HCD_LS1B)
+	*(volatile int *)0xbfd00424 &= ~0x800;/* enable USB */
+	*(volatile int *)0xbfd00424 &= ~0x80000000;/* ls1g usb reset */
+	mdelay(105);
+	*(volatile int *)0xbfd00424 |= 0x80000000;/* ls1g usb reset stop */
+#endif	//CONFIG_LS1A_MACH
 }
 
 static void ls1x_stop_ohc(void)
 {
-
+#if 0
+#ifndef CONFIG_USB_EHCI_HCD_LS1B
+#ifdef CONFIG_LS1A_MACH
+	*(volatile int *)0xbfd00420 |= 0x200000;/* disable USB */
+	*(volatile int *)0xbff10204 &= ~0x40000000;/* ls1a usb reset */
+#elif CONFIG_LS1B_MACH
+	*(volatile int *)0xbfd00424 |= 0x800;/* disable USB */
+	*(volatile int *)0xbfd00424 &= ~0x80000000;/* ls1g usb reset */
+#endif
+#endif
+#endif
 }
 
 static int __devinit ohci_ls1x_start(struct usb_hcd *hcd)
@@ -113,7 +133,7 @@ static int ohci_hcd_ls1x_drv_probe(struct platform_device *pdev)
 		goto err2;
 	}
 
-	ls1x_start_ohc();
+//	ls1x_start_ohc();
 	ohci_hcd_init(hcd_to_ohci(hcd));
 
 	ret = usb_add_hcd(hcd, pdev->resource[1].start,
