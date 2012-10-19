@@ -20,8 +20,13 @@
 #include <ls1b_board.h>
 #include <linux/delay.h>
 //#include <loongson.h>
+#include <../kernel/power/power.h>
 
 extern void prom_printf(char *fmt, ...);
+
+#define	LID_EN		(1 << 5)
+#define	RI_EN		(1 << 8)
+#define	PME_EN		(1 << 9)
 
 #define APB_BASE	0xbfe40000
 #define ACPI_BASE	0x3c000+APB_BASE
@@ -90,6 +95,43 @@ static unsigned int cached_int3_edge;
 static unsigned int cached_int4_en;  
 static unsigned int cached_int4_pol;  
 static unsigned int cached_int4_edge;  
+
+static unsigned int general_wake_conf;
+extern struct kobject *power_kobj;
+
+void general_wake_conf_set(unsigned int val)
+{
+	unsigned int temp;
+
+	temp = LID_EN | RI_EN | PME_EN;
+	val &= temp;
+	writel (0, (void *)GPE_EN);
+	writel(-1, (void *)GPE_STS);
+	writel(val, (void *)GPE_EN);	
+}
+
+static ssize_t gen_wake_store(struct kobject *kobj, struct kobj_attribute *attr,
+			       const char *buf, size_t n)
+{
+	general_wake_conf = simple_strtol(buf, NULL, 16);
+	return n;
+}
+
+static ssize_t gen_wake_show(struct kobject *kobj, struct kobj_attribute *attr,
+				char *buf)
+{
+	return sprintf (buf, "%d\n", general_wake_conf);
+}
+
+power_attr(gen_wake);
+
+static struct attribute * g[] = {
+	&gen_wake_attr.attr,
+	NULL,
+};
+static struct attribute_group attr_group = {
+		.attrs = g,
+};
 
 void arch_suspend_disable_irqs(void)
 {
@@ -442,6 +484,8 @@ static int ls1a_pm_enter(suspend_state_t state)
 	reg |= 1<<8;
 	writel(reg, PM1_EN);
 
+	general_wake_conf_set(general_wake_conf);
+
 	if(target_sleep_state == 3)
 		prom_printf("ENTER ACPI STR(S3) STATE\n");
 	if(target_sleep_state == 4)
@@ -620,6 +664,7 @@ static int __init ls1a_pm_init(void)
 {
 	suspend_set_ops(&ls1a_suspend_ops);
 	hibernation_set_ops(&ls1a_hibernation_ops);
+	sysfs_create_group(power_kobj, &attr_group);
 	return 0;
 }
 arch_initcall(ls1a_pm_init);

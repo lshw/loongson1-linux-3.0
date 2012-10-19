@@ -53,42 +53,43 @@ static void end_ls1b_board_irq(unsigned int irq)
 }
 #endif
 
-/*
+
 static int ls1b_board_irq_set_type(struct irq_data *irq_data, unsigned int flow_type)
 {
-	int mode;
+//	int mode;
 
 	if (flow_type & IRQF_TRIGGER_PROBE)
 		return 0;
 	switch (flow_type & IRQF_TRIGGER_MASK) {
-		case IRQF_TRIGGER_RISING:	mode = 0;	break;
-		case IRQF_TRIGGER_FALLING:	mode = 1;	break;
-		case IRQF_TRIGGER_HIGH:	mode = 2;	break;
-		case IRQF_TRIGGER_LOW:	mode = 3;	break;
-		default:
+	case IRQF_TRIGGER_RISING:
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol |= (1 << (irq_data->irq&0x1f));
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge |= (1 << (irq_data->irq&0x1f));
+		break;
+	case IRQF_TRIGGER_FALLING:
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol &= ~(1 << (irq_data->irq&0x1f));
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge |= (1 << (irq_data->irq&0x1f));
+		break;
+	case IRQF_TRIGGER_HIGH:
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol |= (1 << (irq_data->irq&0x1f));
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge &= ~(1 << (irq_data->irq&0x1f));
+		break;
+	case IRQF_TRIGGER_LOW:
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol &= ~(1 << (irq_data->irq&0x1f));
+		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge &= ~(1 << (irq_data->irq&0x1f));
+		break;
+	default:
 		return -EINVAL;
 	}
-
-	if(mode & 1)
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol = (1 << (irq_data->irq&0x1f));
-	else
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol &= ~(1 << (irq_data->irq&0x1f));
-
-	if(mode & 2)
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge = (1 << (irq_data->irq&0x1f));
-	else
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge &= ~(1 << (irq_data->irq&0x1f));
-
 	return 0;
+
 }
-*/
 
 static struct irq_chip ls1b_board_irq_chip = {
-	.name = "LS1B BOARD",
-	.irq_ack = ack_ls1b_board_irq,
-	.irq_mask = disable_ls1b_board_irq,
-	.irq_unmask = enable_ls1b_board_irq,
-//	.irq_set_type = ls1b_board_irq_set_type,
+	.name 		= "LS1B BOARD",
+	.irq_ack 	= ack_ls1b_board_irq,
+	.irq_mask 	= disable_ls1b_board_irq,
+	.irq_unmask 	= enable_ls1b_board_irq,
+	.irq_set_type 	= ls1b_board_irq_set_type,
 };
 
 static void ls1b_board_hw_irqdispatch(int n)
