@@ -319,7 +319,9 @@ void ls1a_restore_state_and_wakeup_code(void)
 	"lw	$23, 44($8)\n\t"
 
 	"lw	$26, 48($8)\n\t"//k0
+//	"mthi	$26\n\t"
 	"lw	$27, 52($8)\n\t"//k1
+//	"mtlo	$27\n\t"
 
 	"lw	$2, 56($8)\n\t"//v0
 	"lw	$3, 60($8)\n\t"//v1
@@ -360,6 +362,10 @@ static void ls1a_save_gpio_val(unsigned int *ptr)
 	*ptr++ = LOONGSON_GPIOOUT2;
 
 	*ptr = *(volatile unsigned int *)0xbfd00420;
+	
+	printk ("gpio_cfg0 = %x !\n",LOONGSON_GPIOCFG0);
+	printk ("gpio_cfg0 = %x !\n",LOONGSON_GPIOCFG1);
+	printk ("gpio_cfg0 = %x !\n",LOONGSON_GPIOCFG2);
 }
 
 static void ls1a_restore_gpio_val(unsigned int *ptr)
@@ -413,7 +419,9 @@ static int ls1a_pm_enter(suspend_state_t state)
 				"sw	$22, 40($8)\n\t"
 				"sw	$23, 44($8)\n\t"
 
+//				"mfhi	$26\n\t"
 				"sw	$26, 48($8)\n\t"//k0
+//				"mflo	$27\n\t"
 				"sw	$27, 52($8)\n\t"//k1
 
 				"sw	$2, 56($8)\n\t"//v0

@@ -8,13 +8,13 @@ config LS1A_MACH
 #	select ARCH_SPARSEMEM_ENABLE
 #	select BOARD_SCACHE
 	select BOOT_ELF32
-#	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
-	select CEVT_R4K
-	select CSRC_R4K
+	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
+#	select CEVT_R4K
+#	select CSRC_R4K
 	select SYS_HAS_CPU_LOONGSON1A
 	select CPU_HAS_WB
 #	select CS5536
-#	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
+	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
 	select DMA_NONCOHERENT
 #	select ZONE_DMA
 #	select GENERIC_ISA_DMA
@@ -172,6 +172,29 @@ config HAVE_PWM
 	  Be careful, some module's Pin multiplexing with the pwm,
 	  as NAND GMAC and SPI.
 
+config LS1X_EXTERN_TIMER
+	bool "loongson 1A/1B Extern Timer"
+	default n
+	depends on LS1A_MACH || LS1B_MACH
+	help
+	  If you want to enable the Loongson1 CPUFreq Driver, Please enable
+	  this option at first, otherwise, You will get wrong system time.
+
+choice
+	prompt	"Extern timer instead of mips timer for systerm"
+	depends on LS1X_EXTERN_TIMER
+	default LS1X_TIMER
+
+config	LS1X_HPET
+	bool	"hpet timer of LS1A for system"
+	default n
+	depends on LS1A_MACH 
+	select MIPS_EXTERNAL_TIMER
+	help
+	  If you want to enable the Loongson1A CPUFreq Driver, Please enable
+	  this option at first, otherwise, You will get wrong system time.
+	  only for ls1a.
+
 config LS1X_TIMER
 	tristate "loongson 1A/1B PWM Timer"
 	default n
@@ -182,9 +205,10 @@ config LS1X_TIMER
 	  this option at first, otherwise, You will get wrong system time.
 
 	  If unsure, say Yes.
+endchoice
 
 choice
-	prompt  "system timer select"
+	prompt  "system timer select for pwm-timer"
 	depends on LS1X_TIMER
 	default TIMER_USE_PWM0
 

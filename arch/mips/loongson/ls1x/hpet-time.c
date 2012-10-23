@@ -18,36 +18,30 @@
 #include <asm/time.h>
 
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1x_time.h>
+#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+//#include <asm/mach-loongson/ls1x/ls1x_time.h>
 
 #define TIMER_CLOCKEVENT 0
 #define TIMER_CLOCKSOURCE 1
 
+#if 0
 #define TIMER_CNTR	0x00
 #define TIMER_HRC	0x04
 #define TIMER_LRC	0x08
 #define TIMER_CTRL	0x0c
-
-#ifdef CONFIG_TIMER_USE_PWM0
-#define LS1X_TIMER_BASE	LS1B_PWM0_BASE
-#define LS1X_TIMER_IRQ	17
-
-#elif CONFIG_TIMER_USE_PWM1
-#define LS1X_TIMER_BASE	LS1B_PWM1_BASE
-#define LS1X_TIMER_IRQ	18
-
-#elif CONFIG_TIMER_USE_PWM2
-#define LS1X_TIMER_BASE	LS1B_PWM2_BASE
-#define LS1X_TIMER_IRQ	19
-
-#elif CONFIG_TIMER_USE_PWM3
-#define LS1X_TIMER_BASE	LS1B_PWM3_BASE
-#define LS1X_TIMER_IRQ	20
-
-#else
-#define LS1X_TIMER_BASE	LS1B_PWM0_BASE
-#define LS1X_TIMER_IRQ	17
 #endif
+
+#define	GEN_CAP_L	0x0
+#define	GEN_CAP_H	0x4
+#define	GEN_CONF	0x10
+#define	GEN_INTN_STATUS	0x20
+#define	GEN_MAIN_COUNT	0xf0
+#define	T0_CONF_CAP	0x100
+#define	T0_COM_VAL	0x108
+#define	T1_CONF_CAP	0x120
+#define	T1_COM_VAL	0x128
+#define	T2_CONF_CAP	0x140
+#define	T2_COM_VAL	0x148
 
 void __iomem *ls1x_timer_base;
 extern unsigned long ls1x_bus_clock;
@@ -80,7 +74,7 @@ static cycle_t ls1x_clocksource_read(struct clocksource *cs)
 	 */
 	jifs = jiffies;
 	/* read the count */
-	count = readl(ls1x_timer_base + TIMER_CNTR);
+	count = readl(ls1x_timer_base + GEN_MAIN_COUNT);
 
 	/*
 	 * It's possible for count to appear to go the wrong way for this
@@ -119,11 +113,12 @@ static irqreturn_t ls1x_clockevent_irq(int irq, void *devid)
 	struct clock_event_device *cd = devid;
 
 //	writel(readl(ls1x_timer_base+TIMER_CTRL) | 0x40, ls1x_timer_base + TIMER_CTRL);
-	if (cd->mode != CLOCK_EVT_MODE_PERIODIC)
-		writel(readl(ls1x_timer_base+TIMER_CTRL) & 0xfe, ls1x_timer_base + TIMER_CTRL);
+//	if (cd->mode != CLOCK_EVT_MODE_PERIODIC)
+//		writel(readl(ls1x_timer_base+TIMER_CTRL) & 0xfe, ls1x_timer_base + TIMER_CTRL);
 
-//	writel(0x00, ls1x_timer_base + TIMER_CNTR);
-	writel(0x29, ls1x_timer_base + TIMER_CTRL);
+	writel(0x00, ls1x_timer_base + GEN_CONF);
+	writel(0x00, ls1x_timer_base + GEN_MAIN_COUNT);
+	writel(0x01, ls1x_timer_base + GEN_CONF);
 
 	cd->event_handler(cd);
 
@@ -136,16 +131,17 @@ static void ls1x_clockevent_set_mode(enum clock_event_mode mode,
 	spin_lock(&ls1x_lock);
 	switch (mode) {
 	case CLOCK_EVT_MODE_PERIODIC:
-		writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_HRC);
-		writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_LRC);
-		writel(0x00, ls1x_timer_base + TIMER_CNTR);
-		writel(0x29, ls1x_timer_base + TIMER_CTRL);
+		writel(0x00, ls1x_timer_base + GEN_CONF);
+		writel(ls1x_jiffies_per_tick, ls1x_timer_base + T0_COM_VAL);
+		writel(0x00, ls1x_timer_base + GEN_MAIN_COUNT);
+		writel(0x01, ls1x_timer_base + GEN_CONF);
 	case CLOCK_EVT_MODE_RESUME:
-		writel(0x29, ls1x_timer_base + TIMER_CTRL);
+		writel(0x01, ls1x_timer_base + GEN_CONF);
 		break;
 	case CLOCK_EVT_MODE_ONESHOT:
+		break;
 	case CLOCK_EVT_MODE_SHUTDOWN:
-		writel(readl(ls1x_timer_base+TIMER_CTRL) & 0xfe, ls1x_timer_base + TIMER_CTRL);
+		writel(0x00, ls1x_timer_base + GEN_CONF);
 		break;
 	default:
 		break;
@@ -156,34 +152,34 @@ static void ls1x_clockevent_set_mode(enum clock_event_mode mode,
 static int ls1x_clockevent_set_next(unsigned long evt,
 	struct clock_event_device *cd)
 {
-	writel(evt, ls1x_timer_base + TIMER_HRC);
-	writel(evt, ls1x_timer_base + TIMER_LRC);
+	writel(0x00, ls1x_timer_base + GEN_CONF);
+	writel(evt, ls1x_timer_base + T0_COM_VAL);
 	
-	writel(0x00, ls1x_timer_base + TIMER_CNTR);
-	writel(0x29, ls1x_timer_base + TIMER_CTRL);
+	writel(0x00, ls1x_timer_base + GEN_MAIN_COUNT);
+	writel(0x01, ls1x_timer_base + GEN_CONF);
 
 	return 0;
 }
 
 static struct clock_event_device ls1x_clockevent = {
-	.name = "ls1x-timer",
+	.name = "ls1a-hpet",
 	.features = CLOCK_EVT_FEAT_PERIODIC,	// | CLOCK_EVT_FEAT_ONESHOT,
 	.set_next_event = ls1x_clockevent_set_next,
 	.set_mode = ls1x_clockevent_set_mode,
 	.rating = 200,
-	.irq = LS1X_TIMER_IRQ,
+	.irq = LS1A_BOARD_HPET_IRQ,
 };
 
 static struct irqaction timer_irqaction = {
 	.handler	= ls1x_clockevent_irq,
 	.flags		= IRQF_PERCPU | IRQF_TIMER,
-	.name		= "ls1x-timerirq",
+	.name		= "ls1a-hpetirq",
 	.dev_id		= &ls1x_clockevent,
 };
 
 void __init ls1x_timer_init(void)
 {
-	ls1x_timer_base = ioremap(LS1X_TIMER_BASE, 0xf);
+	ls1x_timer_base = ioremap(LS1A_HPET_BASE, 0x15f);
 	if (!ls1x_timer_base)
 		panic("Failed to ioremap timer registers");
 }
@@ -195,7 +191,8 @@ void __init setup_ls1x_timer(void)
 
 	ls1x_timer_init();
 
-	clk_rate = ls1x_bus_clock / 2;
+//	clk_rate = ls1x_bus_clock / 2;
+	clk_rate = 47683716;
 	ls1x_jiffies_per_tick = DIV_ROUND_CLOSEST(clk_rate, HZ);
 
 	clockevent_set_clock(&ls1x_clockevent, clk_rate);
@@ -210,15 +207,15 @@ void __init setup_ls1x_timer(void)
 	if (ret)
 		printk(KERN_ERR "Failed to register clocksource: %d\n", ret);
 
-	setup_irq(LS1X_TIMER_IRQ, &timer_irqaction);
+	setup_irq(LS1A_BOARD_HPET_IRQ, &timer_irqaction);
 
-	writel(0x00, ls1x_timer_base + TIMER_CTRL);
-	writel(0x00, ls1x_timer_base + TIMER_CNTR);
+	writel(0x00, ls1x_timer_base + GEN_CONF);
+	writel(0x00, ls1x_timer_base + GEN_MAIN_COUNT);
 
-//	writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_HRC);
-	writel(0xffffffff, ls1x_timer_base + TIMER_HRC);
-	writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_LRC);
+	writel(ls1x_jiffies_per_tick, ls1x_timer_base + T0_COM_VAL);
+	writel(0x04, ls1x_timer_base + T0_CONF_CAP);
+	writel(0x00, ls1x_timer_base + T1_CONF_CAP);
+	writel(0x00, ls1x_timer_base + T2_CONF_CAP);
 
-	writel(0x00, ls1x_timer_base + TIMER_CNTR);
-	writel(0x29, ls1x_timer_base + TIMER_CTRL);
+	writel(0x01, ls1x_timer_base + GEN_CONF);
 }

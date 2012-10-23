@@ -138,6 +138,7 @@ int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 
 	clk->rate = rate;
 
+#ifdef CONFIG_LS1B_MACH
 	regval = __raw_readl(LS1X_CLK_PLL_DIV);
 	regval |= 0x00000300;	//cpu_bypass 置1
 	regval &= ~0x0000003;	//cpu_rst 置0
@@ -146,6 +147,12 @@ int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
 	regval &= ~0x00000100;	//cpu_bypass 置0
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
+#else
+	regval = (ls1x_bus_clock / APB_CLK - 3) << 8;
+	regval |= 0x8888;
+	regval |= (loongson1_clockmod_table[i].index + 2);
+	__raw_writel(regval, LS1X_CLK_PLL_DIV);
+#endif
 
 	return ret;
 }

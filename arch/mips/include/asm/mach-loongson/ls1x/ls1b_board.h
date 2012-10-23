@@ -153,6 +153,9 @@
 /* I2C */
 #define LS1B_BOARD_I2C_BASE			0x1fe58000
 
+/*	HPET timer	*/
+#define	LS1A_HPET_BASE			0x1fe6c000
+
 /* APB BUS control regs */
 #define LS1X_CLK_BASE				0x1fe78030
 #define LS1B_BOARD_APB_MISC_BASE	0x1f004100

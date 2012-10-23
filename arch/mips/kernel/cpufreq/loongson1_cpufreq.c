@@ -22,6 +22,7 @@
 #include <linux/irq.h>
 
 #include <asm/clock.h>
+#include <asm/mach-loongson/ls1x/ls1b_board.h>
 
 extern unsigned long cpu_clock_freq;
 extern void loongson1_cpu_wait(void);
@@ -78,9 +79,13 @@ static int loongson1_cpufreq_target(struct cpufreq_policy *policy,
 	     &newstate))
 		return -EINVAL;
 
+#ifdef CONFIG_LS1B_MACH
 	freq =
 	    ((cpu_clock_freq / 1000) /
 	     loongson1_clockmod_table[newstate].index) * 2;
+#else
+	freq = (APB_CLK / 1000) * (loongson1_clockmod_table[newstate].index + 2) ;
+#endif
 	if (freq < policy->min || freq > policy->max)
 		return -EINVAL;
 
@@ -127,11 +132,16 @@ static int loongson1_cpufreq_cpu_init(struct cpufreq_policy *policy)
 	if (!cpuclk->rate)
 		return -EINVAL;
 
+#ifdef CONFIG_LS1B_MACH
 	/* clock table init */
 	for (i = 2;
 	     (loongson1_clockmod_table[i].frequency != CPUFREQ_TABLE_END);
 	     i++)
 		loongson1_clockmod_table[i].frequency = (cpuclk->rate / i) * 2;
+#else
+	for (i = 2; (loongson1_clockmod_table[i].frequency != CPUFREQ_TABLE_END); i++)
+		loongson1_clockmod_table[i].frequency = (APB_CLK / 1000) * (2 + i);
+#endif
 
 	policy->cur = loongson1_cpufreq_get(policy->cpu);
 
