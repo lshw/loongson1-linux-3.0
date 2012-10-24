@@ -181,23 +181,21 @@ config LS1X_EXTERN_TIMER
 	  this option at first, otherwise, You will get wrong system time.
 
 choice
-	prompt	"Extern timer instead of mips timer for systerm"
+	prompt "Extern timer instead of mips timer for systerm"
 	depends on LS1X_EXTERN_TIMER
 	default LS1X_TIMER
 
 config	LS1X_HPET
-	bool	"hpet timer of LS1A for system"
-	default n
-	depends on LS1A_MACH 
+	bool "hpet timer of LS1A for system"
 	select MIPS_EXTERNAL_TIMER
+	depends on LS1A_MACH
 	help
 	  If you want to enable the Loongson1A CPUFreq Driver, Please enable
 	  this option at first, otherwise, You will get wrong system time.
 	  only for ls1a.
 
 config LS1X_TIMER
-	tristate "loongson 1A/1B PWM Timer"
-	default n
+	bool "loongson 1A/1B PWM Timer"
 	select MIPS_EXTERNAL_TIMER
 	depends on LS1A_MACH || LS1B_MACH
 	help
@@ -209,6 +207,7 @@ endchoice
 
 choice
 	prompt  "system timer select for pwm-timer"
+	depends on LS1X_EXTERN_TIMER
 	depends on LS1X_TIMER
 	default TIMER_USE_PWM0
 

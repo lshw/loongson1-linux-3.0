@@ -58,6 +58,7 @@ EXPORT_SYMBOL(ls1x_lock);
 
 static cycle_t ls1x_clocksource_read(struct clocksource *cs)
 {
+#if 1
 	unsigned long flags;
 	int count;
 	u32 jifs;
@@ -101,16 +102,15 @@ static cycle_t ls1x_clocksource_read(struct clocksource *cs)
 	spin_unlock_irqrestore(&ls1x_lock, flags);
 
 	return (cycle_t) (jifs * ls1x_jiffies_per_tick) + count;
-
-//	return readl(ls1x_timer_base + TIMER_CNTR);
+#else
+	return readl(ls1x_timer_base + TIMER_CNTR);
+#endif
 }
 
 static struct clocksource ls1x_clocksource = {
 	.name = "ls1x-timer",
-	.rating = 200,
 	.read = ls1x_clocksource_read,
-//	.mask = CLOCKSOURCE_MASK(24),
-	.mask = CLOCKSOURCE_MASK(32),
+	.mask = CLOCKSOURCE_MASK(24),
 	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
@@ -118,7 +118,7 @@ static irqreturn_t ls1x_clockevent_irq(int irq, void *devid)
 {
 	struct clock_event_device *cd = devid;
 
-//	writel(readl(ls1x_timer_base+TIMER_CTRL) | 0x40, ls1x_timer_base + TIMER_CTRL);
+	writel(readl(ls1x_timer_base+TIMER_CTRL) | 0x40, ls1x_timer_base + TIMER_CTRL);
 	if (cd->mode != CLOCK_EVT_MODE_PERIODIC)
 		writel(readl(ls1x_timer_base+TIMER_CTRL) & 0xfe, ls1x_timer_base + TIMER_CTRL);
 
@@ -167,16 +167,16 @@ static int ls1x_clockevent_set_next(unsigned long evt,
 
 static struct clock_event_device ls1x_clockevent = {
 	.name = "ls1x-timer",
-	.features = CLOCK_EVT_FEAT_PERIODIC,	// | CLOCK_EVT_FEAT_ONESHOT,
+	.features = CLOCK_EVT_FEAT_ONESHOT,	// | CLOCK_EVT_FEAT_PERIODIC,
 	.set_next_event = ls1x_clockevent_set_next,
 	.set_mode = ls1x_clockevent_set_mode,
-	.rating = 200,
+	.rating = 300,
 	.irq = LS1X_TIMER_IRQ,
 };
 
 static struct irqaction timer_irqaction = {
 	.handler	= ls1x_clockevent_irq,
-	.flags		= IRQF_PERCPU | IRQF_TIMER,
+	.flags		= IRQF_DISABLED | IRQF_PERCPU | IRQF_TIMER,
 	.name		= "ls1x-timerirq",
 	.dev_id		= &ls1x_clockevent,
 };
@@ -199,12 +199,13 @@ void __init setup_ls1x_timer(void)
 	ls1x_jiffies_per_tick = DIV_ROUND_CLOSEST(clk_rate, HZ);
 
 	clockevent_set_clock(&ls1x_clockevent, clk_rate);
-	ls1x_clockevent.min_delta_ns = clockevent_delta2ns(0x4, &ls1x_clockevent);
-	ls1x_clockevent.max_delta_ns = clockevent_delta2ns(0xffff, &ls1x_clockevent);
+	ls1x_clockevent.min_delta_ns = clockevent_delta2ns(0x000300, &ls1x_clockevent);
+	ls1x_clockevent.max_delta_ns = clockevent_delta2ns(0xffffff, &ls1x_clockevent);
 	ls1x_clockevent.cpumask = cpumask_of(0);
 
 	clockevents_register_device(&ls1x_clockevent);
 
+	ls1x_clocksource.rating = 200 + clk_rate / 10000000;
 	ret = clocksource_register_hz(&ls1x_clocksource, clk_rate);
 
 	if (ret)
@@ -215,8 +216,7 @@ void __init setup_ls1x_timer(void)
 	writel(0x00, ls1x_timer_base + TIMER_CTRL);
 	writel(0x00, ls1x_timer_base + TIMER_CNTR);
 
-//	writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_HRC);
-	writel(0xffffffff, ls1x_timer_base + TIMER_HRC);
+	writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_HRC);
 	writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_LRC);
 
 	writel(0x00, ls1x_timer_base + TIMER_CNTR);
