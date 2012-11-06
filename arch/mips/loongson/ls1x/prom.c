@@ -5,6 +5,7 @@
  * option) any later version.
  */
 
+#include <linux/serial_reg.h>
 #include <linux/module.h>
 #include <linux/ctype.h>
 
@@ -144,8 +145,18 @@ void __init prom_free_prom_memory(void)
 {
 }
 
+#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
+
 void __init prom_putchar(char c)
 {
-	putDebugChar(c);
+	int timeout;
+
+	timeout = 1024;
+
+	while (((readb(PORT(UART_LSR)) & UART_LSR_THRE) == 0)
+			&& (timeout-- > 0))
+		;
+
+	writeb(c, PORT(UART_TX));
 }
 
