@@ -52,8 +52,8 @@
 #include <asm-generic/sizes.h>
 #include <linux/ahci_platform.h>
 
-static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
-	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
+//static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
+//	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
 
 #ifdef CONFIG_MTD_NAND_LS1X
 struct ls1b_nand_platform_data{
@@ -438,17 +438,7 @@ static int ts_get_pendown_state(void)
 int ts_init(void)
 {
 	ls1b_gpio_direction_input(NULL, TSC2007_GPIO_IRQ);		/* 输入使能 */
-	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (TSC2007_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (TSC2007_GPIO_IRQ & 0x1f));
 	return 0;
-}
-
-void ts_clear_penirq(void)
-{
-	(ls1b_board_hw0_icregs + 3) -> int_en &= ~(1 << (TSC2007_GPIO_IRQ & 0x1f));
 }
 
 static struct tsc2007_platform_data tsc2007_info = {
@@ -456,7 +446,6 @@ static struct tsc2007_platform_data tsc2007_info = {
 	.x_plate_ohms		= 180,
 	.get_pendown_state	= ts_get_pendown_state,
 	.init_platform_hw	= ts_init,
-//	.clear_penirq		= ts_clear_penirq,
 };
 #endif //#ifdef CONFIG_TOUCHSCREEN_TSC2007
 
@@ -466,12 +455,6 @@ static struct tsc2007_platform_data tsc2007_info = {
 int ft5x0x_irq_init(void)
 {
 	ls1b_gpio_direction_input(NULL, FT5X0X_GPIO_IRQ);		/* 输入使能 */
-
-	(ls1b_board_hw0_icregs + 3) -> int_edge	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (FT5X0X_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (FT5X0X_GPIO_IRQ & 0x1f));
 	return 0;
 }
 
@@ -844,13 +827,7 @@ int ads7846_detect_penirq(void)
 #ifdef CONFIG_LS1A_CORE_BOARD
 	*(volatile unsigned int *)(0xbfd00420) |= (1<<15);
 #endif
-		
-	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_edge &= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_pol &= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_clr	|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_set	&= ~(1 << (ADS7846_GPIO_IRQ & 0x1f));
-	(ls1b_board_hw0_icregs+2+(ADS7846_GPIO_IRQ+1)/32) -> int_en	|= (1 << (ADS7846_GPIO_IRQ & 0x1f));
-	
+
 	return (LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
 }
 	
@@ -1254,29 +1231,6 @@ static struct platform_device rotary_encoder_device = {
 		.platform_data = &raumfeld_rotary_encoder_info,
 	}
 };
-static void __init rotary_encoder_gpio_init(void)
-{
-	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (GPIO_ROTARY_A & 0x1f));	/* 边沿触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_ROTARY_A & 0x1f));	/* 电平触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_ROTARY_A & 0x1f));	/* 中断清空寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_ROTARY_A & 0x1f));	/* 中断置位寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (GPIO_ROTARY_A & 0x1f));	/* 中断使能寄存器 */
-
-	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (GPIO_ROTARY_B & 0x1f));	/* 边沿触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_ROTARY_B & 0x1f));	/* 电平触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_ROTARY_B & 0x1f));	/* 中断清空寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_ROTARY_B & 0x1f));	/* 中断置位寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (GPIO_ROTARY_B & 0x1f));	/* 中断使能寄存器 */
-	
-	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (GPIO_KEY_C & 0x1f));	/* 边沿触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (GPIO_KEY_C & 0x1f));	/* 电平触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (GPIO_KEY_C & 0x1f));	/* 中断清空寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (GPIO_KEY_C & 0x1f));	/* 中断置位寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (GPIO_KEY_C & 0x1f));	/* 中断使能寄存器 */
-}
-#else
-static void __init rotary_encoder_gpio_init(void)
-{}
 #endif //#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
 
 /* matrix keypad */
@@ -1351,51 +1305,6 @@ static struct platform_device ls1bkbd_device = {
 		.platform_data = &ls1bkbd_pdata,
 	},
 };
-
-static void __init board_mkp_init(void)
-{
-	/* 使能矩阵键盘的行中断,低电平触发方式. */
-/*	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (30 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (30 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (30 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (30 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (30 & 0x1f));
-
-	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (28 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (28 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (28 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (28 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (28 & 0x1f));*/
-
-	/* 使能矩阵键盘的行中断,低电平触发方式. */
-	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (16 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (16 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (16 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (16 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (16 & 0x1f));
-
-	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (17 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (17 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (17 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (17 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (17 & 0x1f));
-
-	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (18 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (18 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (18 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (18 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (18 & 0x1f));
-
-	(ls1b_board_hw0_icregs + 2) -> int_edge &= ~(1 << (19 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_pol	&= ~(1 << (19 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_clr	|= (1 << (19 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_set	&= ~(1 << (19 & 0x1f));
-	(ls1b_board_hw0_icregs + 2) -> int_en	|= (1 << (19 & 0x1f));
-}
-#else
-static inline void board_mkp_init(void)
-{
-}
 #endif	//#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
 
 #ifdef CONFIG_FB_SSD1305
@@ -1813,15 +1722,7 @@ int ls1b_platform_init(void)
 	/* 轮询方式探测card的插拔 */
 	ls1b_gpio_direction_input(NULL, DETECT_GPIO);		/* 输入使能 */
 	/* 中断方式探测card的插拔 */
-	(ls1b_board_hw0_icregs + 3) -> int_edge |= (1 << (DETECT_GPIO & 0x1f));		/* 边沿触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_pol	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 电平触发方式寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_clr	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断清空寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_set	&= ~(1 << (DETECT_GPIO & 0x1f));	/* 中断置位寄存器 */
-	(ls1b_board_hw0_icregs + 3) -> int_en	|= (1 << (DETECT_GPIO & 0x1f));		/* 中断使能寄存器 */
 #endif
-	
-	rotary_encoder_gpio_init();
-	board_mkp_init();
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
 	ads7846_detect_penirq();
