@@ -192,7 +192,7 @@ static const struct file_operations ls1b_wdt_fops = {
 	.write			= ls1b_wdt_write,
 };
 
-static int __init ls1b_wdt_probe(struct platform_device *pdev)
+static int ls1b_wdt_probe(struct platform_device *pdev)
 {
 	struct resource *regs;
 	int ret;

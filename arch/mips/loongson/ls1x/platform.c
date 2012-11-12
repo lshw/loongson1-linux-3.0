@@ -1636,7 +1636,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #define AHCI_PCI_BAR  5
 
-int ls1b_platform_init(void)
+int __init ls1b_platform_init(void)
 {
 	struct clk *clk;
 	struct plat_serial8250_port *p;
