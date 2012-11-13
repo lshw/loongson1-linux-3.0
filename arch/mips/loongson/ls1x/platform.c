@@ -43,6 +43,7 @@
 #include <linux/leds_pwm.h>
 #include <linux/can/platform/sja1000.h>
 
+#include <video/ls1xfb.h>
 #include <media/gc0308_platform.h>
 
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
@@ -531,27 +532,70 @@ static struct platform_device ls1b_i2c_device = {
 #endif //#ifdef CONFIG_LS1B_I2C
 
 /*
- * dc
+ * lcd
  */
-//#ifdef CONFIG_FB_LS1B
-#if defined(CONFIG_FB_LS1B) || defined(CONFIG_FB_LS1A)
-static struct resource ls1b_lcd_resource[] = {
+#if defined(CONFIG_FB_LOONGSON1)
+#include "video_modes.c"
+#ifdef CONFIG_LS1X_FB0
+static struct resource ls1x_fb0_resource[] = {
 	[0] = {
-		.start = LS1B_LCD_BASE,
-		.end   = LS1B_LCD_BASE + 0x00100000 - 1,
+		.start = LS1X_DC0_BASE,
+		.end   = LS1X_DC0_BASE + 0x0010 - 1,	/* 1M? */
 		.flags = IORESOURCE_MEM,
 	},
 };
 
-struct platform_device ls1b_dc_device = {
-	.name			= "ls1b-lcd",
-	.id				= -1,
-	.num_resources	= ARRAY_SIZE(ls1b_lcd_resource),
-	.resource		= ls1b_lcd_resource,
+struct ls1xfb_mach_info ls1x_lcd0_info = {
+	.id			= "Graphic lcd",
+	.modes			= video_modes,
+	.num_modes		= ARRAY_SIZE(video_modes),
+	.pix_fmt		= PIX_FMT_RGB565,
+	.active			= 1,
+	.invert_pixclock	= 0,
+	.invert_pixde	= 0,
+};
+
+struct platform_device ls1x_fb0_device = {
+	.name			= "ls1x-fb",
+	.id				= 0,
+	.num_resources	= ARRAY_SIZE(ls1x_fb0_resource),
+	.resource		= ls1x_fb0_resource,
 	.dev			= {
+		.platform_data = &ls1x_lcd0_info,
 	}
 };
-#endif //#ifdef CONFIG_FB_LS1B
+#endif	//#ifdef CONFIG_LS1X_FB1
+
+#ifdef CONFIG_LS1X_FB1
+static struct resource ls1x_fb1_resource[] = {
+	[0] = {
+		.start = LS1X_DC1_BASE,
+		.end   = LS1X_DC1_BASE + 0x0010 - 1,	/* 1M? */
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+struct ls1xfb_mach_info ls1x_lcd1_info = {
+	.id			= "Graphic vga",
+	.modes			= video_modes,
+	.num_modes		= ARRAY_SIZE(video_modes),
+	.pix_fmt		= PIX_FMT_RGB565,
+	.active			= 1,
+	.invert_pixclock	= 0,
+	.invert_pixde	= 0,
+};
+
+struct platform_device ls1x_fb1_device = {
+	.name			= "ls1x-fb",
+	.id				= 1,
+	.num_resources	= ARRAY_SIZE(ls1x_fb1_resource),
+	.resource		= ls1x_fb1_resource,
+	.dev			= {
+		.platform_data = &ls1x_lcd1_info,
+	}
+};
+#endif	//#ifdef CONFIG_LS1X_FB0
+#endif	//#if defined(CONFIG_FB_LOONGSON1)
 
 //gmac0
 #ifdef CONFIG_LS1B_GMAC0_OPEN
@@ -617,8 +661,8 @@ struct platform_device ls1b_gmac0_phy = {
 	.resource = (struct resource[]){
 		{
 			.name = "phyirq",
-			.start = 1,
-			.end = 1,
+			.start = PHY_POLL,
+			.end = PHY_POLL,
 			.flags = IORESOURCE_IRQ,
 		},
 	},
@@ -677,8 +721,8 @@ struct platform_device ls1b_gmac1_phy = {
 	.resource = (struct resource[]){
 		{
 			.name = "phyirq",
-			.start = 1,
-			.end = -1,
+			.start = PHY_POLL,
+			.end = PHY_POLL,
 			.flags = IORESOURCE_IRQ,
 		},
 	},
@@ -1521,11 +1565,18 @@ static struct platform_device ls1x_sja1000_1 = {
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
+	&uart8250_device,
+
+#ifdef CONFIG_LS1X_FB0
+	&ls1x_fb0_device,
+#endif
+#ifdef CONFIG_LS1X_FB1
+	&ls1x_fb1_device,
+#endif
+
 #ifdef CONFIG_MTD_NAND_LS1X
 	&ls1b_nand_device,
 #endif
-
-	&uart8250_device,
 
 #ifdef LOONGSON_AHCI
 	&ls1a_ahci_device,
@@ -1536,11 +1587,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #ifdef CONFIG_USB_EHCI_HCD_LS1B
 	&ls1b_ehci_device,
-#endif
-
-//#ifdef CONFIG_FB_LS1B
-#if defined(CONFIG_FB_LS1B) || defined(CONFIG_FB_LS1A)
-	&ls1b_dc_device,
 #endif
 
 #ifdef CONFIG_LS1B_GMAC0_OPEN   //lv

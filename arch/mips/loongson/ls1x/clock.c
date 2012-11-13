@@ -213,6 +213,7 @@ static void cpu_clk_init(struct clk *clk)
 #else
 	clk->rate = pll / (ctrl >> DIV_CPU_SHIFT);
 #endif
+	pr_info("cpuclock=%ldHz\n", clk->rate);
 }
 
 static void ddr_clk_init(struct clk *clk)
@@ -226,6 +227,7 @@ static void ddr_clk_init(struct clk *clk)
 #else
 	clk->rate = pll / (ctrl >> DIV_DDR_SHIFT);
 #endif
+	pr_info("busclock=%ldHz\n", clk->rate);
 }
 
 static void dc_clk_init(struct clk *clk)

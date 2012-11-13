@@ -161,22 +161,6 @@ config FB_SYS_IMAGEBLIT
 	  blitting. This is used by drivers that don't provide their own
 	  (accelerated) version and the framebuffer is in system RAM.
 
-config FB_LS1A
-	tristate "loongson 1a framebuffer support"
-	depends on FB && LS1A_MACH
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	default n
-
-config FB_LS1B
-	tristate "loongson 1b framebuffer support"
-	depends on FB && LS1B_MACH
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	default n
-
 menuconfig FB_FOREIGN_ENDIAN
 	bool "Framebuffer foreign endianness support"
 	depends on FB
@@ -1959,6 +1943,29 @@ config FB_68328
 	help
 	  Say Y here if you want to support the built-in frame buffer of
 	  the Motorola 68328 CPU family.
+
+config FB_LOONGSON1
+	tristate "Loongson1 framebuffer support"
+	depends on FB
+	depends on LS1A_MACH || LS1B_MACH
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	default n
+	---help---
+	  Frame buffer driver for the built-in LCD controller in the Loongson1 
+	  processor.
+
+config LS1X_FB0
+	tristate "Display Controller 0"
+	depends on FB_LOONGSON1
+	default n
+
+config LS1X_FB1
+	tristate "Display Controller 1 (only for 1A vga)"
+	depends on FB_LOONGSON1
+	depends on LS1A_MACH
+	default n
 
 config FB_PXA168
 	tristate "PXA168/910 LCD framebuffer support"

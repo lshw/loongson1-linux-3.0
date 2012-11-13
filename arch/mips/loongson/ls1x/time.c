@@ -167,7 +167,7 @@ static int ls1x_clockevent_set_next(unsigned long evt,
 
 static struct clock_event_device ls1x_clockevent = {
 	.name = "ls1x-timer",
-	.features = CLOCK_EVT_FEAT_ONESHOT,	// | CLOCK_EVT_FEAT_PERIODIC,
+	.features = CLOCK_EVT_FEAT_PERIODIC, // |  CLOCK_EVT_FEAT_ONESHOT,
 	.set_next_event = ls1x_clockevent_set_next,
 	.set_mode = ls1x_clockevent_set_mode,
 	.rating = 300,

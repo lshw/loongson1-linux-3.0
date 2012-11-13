@@ -8,18 +8,21 @@
 #include <linux/serial_reg.h>
 #include <linux/module.h>
 #include <linux/ctype.h>
+#include <video/ls1xfb.h>
 
 #include <asm/bootinfo.h>
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/fb.h>
 #include <prom.h>
 
 #define DEFAULT_MEMSIZE			64	/* If no memsize provided */
 #define DEFAULT_BUSCLOCK		133000000
 #define DEFAULT_CPUCLOCK		266000000
 
+#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
+
 #ifdef CONFIG_STMMAC_ETH
 extern unsigned char *hwaddr;
+char *tmp;
 #endif
 
 unsigned long cpu_clock_freq;
@@ -27,11 +30,9 @@ unsigned long ls1x_bus_clock;
 EXPORT_SYMBOL(cpu_clock_freq);
 EXPORT_SYMBOL(ls1x_bus_clock);
 
-unsigned long memsize, highmemsize;
 int prom_argc;
 char **prom_argv, **prom_envp;
-
-extern int putDebugChar(unsigned char byte);
+unsigned long memsize, highmemsize;
 
 const char *get_system_type(void)
 {
@@ -74,11 +75,8 @@ void __init prom_init_cmdline(void)
 	*c = 0;
 }
 
-#define PLL_FREQ_REG(x) *(volatile unsigned int *)(0xbfe78030+x)
 void __init prom_init(void)
 {
-	char *tmp, *end;
-
 	prom_argc = fw_arg0;
 	prom_argv = (char **)fw_arg1;
 	prom_envp = (char **)fw_arg2;
@@ -107,45 +105,80 @@ void __init prom_init(void)
 			&hwaddr[0], &hwaddr[1], &hwaddr[2], &hwaddr[3], &hwaddr[4], &hwaddr[5]);
 	}
 #endif
-	
-	tmp = strstr(arcs_cmdline, "video=ls1bfb:vga");
-	if (tmp) {
-		int i, xres, yres;
-		
-		tmp += 16;
-		for (i = 0; i < strlen(tmp); i++) {
-			if (isdigit(*(tmp+i))) {
-				break;
-			}
-		}
-		xres = simple_strtoul(tmp+i, &end, 10);
-		yres = simple_strtoul(end+1, NULL, 10);
-		if ((xres<=0 || xres>2000)||(yres<=0 || yres>2000)) {
-			xres = 1024;
-			yres = 768;
-		}
 
-		for (i=0; i<sizeof(vgamode)/sizeof(struct vga_struc); i++) {
-			if(vgamode[i].hr == xres && vgamode[i].vr == yres) {
+#ifdef CONFIG_LS1B_MACH
+	/* 只用于ls1b的lcd接口传vga接口时使用，如云终端，
+	 因为使用vga时，pll通过计算难以得到合适的分频;给LS1X_CLK_PLL_FREQ和LS1X_CLK_PLL_DIV
+	 寄存器一个固定的值 */
+	{
+	int i;
+	int default_xres = 800;
+	int default_yres = 600;
+	int default_refresh = 75;
+	struct ls1b_vga *input_vga;
+	extern struct ls1b_vga ls1b_vga_modes[];
+	char *strp, *options, *end;
+
+	options = strstr(arcs_cmdline, "video=ls1bvga:");
+	if (options) {
+		
+		options += 14;
+		/* ls1bvga:1920x1080-16@60 */
+		for (i=0; i<strlen(options); i++)
+			if (isdigit(*(options+i)))
+				break;	/* 查找options字串中第一个数字时i的值 */
+		if (i < 4) {
+			default_xres = simple_strtoul(options+i, &end, 10);
+			default_yres = simple_strtoul(end+1, NULL, 10);
+			/* refresh */
+			strp = strchr((const char *)options, '@');
+			if (strp) {
+				default_refresh = simple_strtoul(strp+1, NULL, 0);
+			}
+			if ((default_xres<=0 || default_xres>1920) || 
+				(default_yres<=0 || default_yres>1080)) {
+				pr_info("Warning: Resolution is out of range."
+					"MAX resolution is 1920x1080@60Hz\n");
+				default_xres = 800;
+				default_yres = 600;
+			}
+		}
+		for (input_vga=ls1b_vga_modes; input_vga->ls1b_pll_freq !=0; ++input_vga) {
+//			if((input_vga->xres == default_xres) && (input_vga->yres == default_yres) && 
+//				(input_vga->refresh == default_refresh)) {
+			if ((input_vga->xres == default_xres) && (input_vga->yres == default_yres)) {
 				break;
 			}
 		}
-		if (i<0) {
-			i = 0;
+		if (input_vga->ls1b_pll_freq) {
+			u32 pll, ctrl;
+			u32 x, divisor;
+
+			writel(input_vga->ls1b_pll_freq, LS1X_CLK_PLL_FREQ);
+			writel(input_vga->ls1b_pll_div, LS1X_CLK_PLL_DIV);
+			/* 计算ddr频率，更新串口分频 */
+			pll = input_vga->ls1b_pll_freq;
+			ctrl = input_vga->ls1b_pll_div & DIV_DDR;
+			divisor = (12 + (pll & 0x3f)) * APB_CLK / 2
+					+ ((pll >> 8) & 0x3ff) * APB_CLK / 1024 / 2;
+			divisor = divisor / (ctrl >> DIV_DDR_SHIFT);
+			divisor = divisor / 2 / (16*115200);
+			x = readb(PORT(UART_LCR));
+			writeb(x | UART_LCR_DLAB, PORT(UART_LCR));
+			writeb(divisor & 0xff, PORT(UART_DLL));
+			writeb((divisor>>8) & 0xff, PORT(UART_DLM));
+			writeb(x & ~UART_LCR_DLAB, PORT(UART_LCR));
 		}
-		PLL_FREQ_REG(0) = vgamode[i].pll_reg0;
-		PLL_FREQ_REG(4) = vgamode[i].pll_reg1;
 	}
+	}
+#endif
 	
-	pr_info("busclock=%ld, cpuclock=%ld, memsize=%ld, highmemsize=%ld\n",
-		ls1x_bus_clock, cpu_clock_freq, memsize, highmemsize);
+	pr_info("memsize=%ldMB, highmemsize=%ldMB\n", memsize, highmemsize);
 }
 
 void __init prom_free_prom_memory(void)
 {
 }
-
-#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 
 void __init prom_putchar(char c)
 {
