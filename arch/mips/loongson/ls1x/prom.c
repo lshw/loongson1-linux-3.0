@@ -18,8 +18,6 @@
 #define DEFAULT_BUSCLOCK		133000000
 #define DEFAULT_CPUCLOCK		266000000
 
-#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
-
 #ifdef CONFIG_STMMAC_ETH
 extern unsigned char *hwaddr;
 char *tmp;

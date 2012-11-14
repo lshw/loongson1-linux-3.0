@@ -28,12 +28,27 @@
 /* AHB BUS control regs */
 #define LS1B_BOARD_AHB_MISC_BASE	 0x1f003200
 #define AHB_MISC_CTRL		0x00
-#ifdef	CONFIG_LS1A_MACH
+
+/* 定义晶振频率和Early printk UART地址 */
+#ifdef	CONFIG_LS1A_CORE_BOARD
 #define AHB_CLK			25000000
-#else
-//#define AHB_CLK			25000000
+#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
+
+#elif defined(CONFIG_LS1A_CLOUD_TERMIAL)
+#define AHB_CLK			25000000
+#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
+
+#elif defined(CONFIG_LS1B_BOARD)
 #define AHB_CLK			33000000
-#endif
+#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
+
+#elif defined(CONFIG_LS1B_CORE_BOARD)
+#define AHB_CLK			25000000
+#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART5_BASE + offset))
+
+#endif	//#ifdef	CONFIG_LS1A_CORE_BOARD
+
+#define APB_CLK				AHB_CLK
 
 /* Interrupt register */
 #define REG_INT_EDGE	0x04
@@ -164,7 +179,6 @@
 #define REG_GPIO_R_APB		0x10
 #define REG_GPIO_W_APB		0x20
 #define REG_APB_MISC_CTL	0x40
-#define APB_CLK				AHB_CLK
 #define LS1B_GPIO_MUX_CTRL1 0xbfd00424
 
 /* CAN */
