@@ -535,7 +535,7 @@ static struct platform_device ls1b_i2c_device = {
  * lcd
  */
 #if defined(CONFIG_FB_LOONGSON1)
-#include "video_modes.c"
+#include "../video_modes.c"
 #ifdef CONFIG_LS1X_FB0
 static struct resource ls1x_fb0_resource[] = {
 	[0] = {
