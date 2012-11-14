@@ -11,9 +11,6 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 
-#define LOONGSON_REG(x)	\
-	(*(volatile u32 *)((char *)CKSEG1ADDR(x)))
-
 /*
  * Configuration address and data registers
  */
@@ -30,25 +27,23 @@
 #define AHB_MISC_CTRL		0x00
 
 /* 定义晶振频率和Early printk UART地址 */
-#ifdef	CONFIG_LS1A_CORE_BOARD
-#define AHB_CLK			25000000
-#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
-
+#ifdef CONFIG_LS1A_CORE_BOARD
+	#define AHB_CLK			25000000
+	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1A_CLOUD_TERMIAL)
-#define AHB_CLK			25000000
-#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
-
+	#define AHB_CLK			25000000
+	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1B_BOARD)
-#define AHB_CLK			33000000
-#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
-
+	#define AHB_CLK			33000000
+	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1B_CORE_BOARD)
-#define AHB_CLK			25000000
-#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART5_BASE + offset))
-
+	#define AHB_CLK			25000000
+	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART5_BASE + offset))
 #endif	//#ifdef	CONFIG_LS1A_CORE_BOARD
 
-#define APB_CLK				AHB_CLK
+#define APB_CLK			AHB_CLK
+
+#define LS1X_MUX_BASE			0x1fd00420
 
 /* Interrupt register */
 #define REG_INT_EDGE	0x04
@@ -60,39 +55,7 @@
 #define REG_INT_ISR		0x1c
 #define LS1B_BOARD_INTC_BASE	LS1B_BOARD_AHB_MISC_BASE + REG_INT_EDGE
 
-/* GPIO register */
-#define REG_GPIO_OE_AHB		0x20
-#define REG_GPIO_R_AHB		0x24
-#define REG_GPIO_W_AHB		0x28
-
-#define REG_GPIO_CFG0		0x1fd010c0		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668 0
-#define REG_GPIO_CFG1		0x1fd010c4		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668 1
-#define REG_GPIO_OE0		0x1fd010d0		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u51fa\u4f7f\u80fd 0
-#define REG_GPIO_OE1		0x1fd010d4		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u51fa\u4f7f\u80fd 1
-#define REG_GPIO_IN0		0x1fd010e0		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u5165\u5bc4\u5b58\u5668 0
-#define REG_GPIO_IN1		0x1fd010e4		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u5165\u5bc4\u5b58\u5668 1
-#define REG_GPIO_OUT0		0x1fd010f0		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u51fa\u5bc4\u5b58\u5668 0
-#define REG_GPIO_OUT1		0x1fd010f4		//GPIO \u914d\u7f6e\u5bc4\u5b58\u5668\u8f93\u51fa\u5bc4\u5b58\u5668 1
-
-#define LOONGSON_GPIOCFG0	LOONGSON_REG(REG_GPIO_CFG0)
-#define LOONGSON_GPIOCFG1	LOONGSON_REG(REG_GPIO_CFG1)
-#define LOONGSON_GPIOIE0 	LOONGSON_REG(REG_GPIO_OE0)
-#define LOONGSON_GPIOIE1	LOONGSON_REG(REG_GPIO_OE1)
-#define LOONGSON_GPIOIN0	LOONGSON_REG(REG_GPIO_IN0)
-#define LOONGSON_GPIOIN1	LOONGSON_REG(REG_GPIO_IN1)
-#define LOONGSON_GPIOOUT0	LOONGSON_REG(REG_GPIO_OUT0)
-#define LOONGSON_GPIOOUT1	LOONGSON_REG(REG_GPIO_OUT1)
-
-#ifdef CONFIG_LS1A_MACH
-#define REG_GPIO_CFG2		0x1fd010c8
-#define REG_GPIO_OE2		0x1fd010d8
-#define REG_GPIO_IN2		0x1fd010e8
-#define REG_GPIO_OUT2		0x1fd010f8
-#define LOONGSON_GPIOCFG2	LOONGSON_REG(REG_GPIO_CFG2)
-#define LOONGSON_GPIOIE2 	LOONGSON_REG(REG_GPIO_OE2)
-#define LOONGSON_GPIOIN2	LOONGSON_REG(REG_GPIO_IN2)
-#define LOONGSON_GPIOOUT2	LOONGSON_REG(REG_GPIO_OUT2)
-#endif
+#define LS1X_GPIO_BASE	0x1fd010c0
 
 /* SPI regs */
 #define LS1B_BOARD_SPI_BASE	0x1f000000 
@@ -175,11 +138,7 @@
 /* APB BUS control regs */
 #define LS1X_CLK_BASE				0x1fe78030
 #define LS1B_BOARD_APB_MISC_BASE	0x1f004100
-#define REG_GPIO_OE_APB 	0x00
-#define REG_GPIO_R_APB		0x10
-#define REG_GPIO_W_APB		0x20
 #define REG_APB_MISC_CTL	0x40
-#define LS1B_GPIO_MUX_CTRL1 0xbfd00424
 
 /* CAN */
 #define LS1X_CAN0_BASE	0x1fe50000
@@ -192,6 +151,8 @@
 #define LS1B_BOARD_PCI_REGS_BASE		 0x1f002000
 
 #include <regs-clk.h>
+#include <regs-mux.h>
+#include <regs-gpio.h>
 
 struct ls1b_usbh_data {
     u8      ports;      /* number of ports on root hub */

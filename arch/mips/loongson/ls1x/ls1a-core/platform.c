@@ -759,66 +759,25 @@ static struct mtd_partition partitions[] = {
 		.size		= 8*1024*1024, //MTDPART_SIZ_FULL
 	},
 */
-#if 1	//for bobodog program
-	[0] = {
-		.name		= "pmon_spi",
-		.offset		= 0,
-		.size		= 512 * 1024,	//512KB
-	//	.mask_flags	= MTD_WRITEABLE,
-	}, 
-	[1] = {
-		.name		= "kernel_spi",	
-		.offset		= 512 * 1024,
-		.size		= 0x210000,
-	},
-	[2] = {
-		.name		= "fs_spi",
-		.offset		= 0x290000,
-		.size		= 0x500000,
-	},
-	[3] = {
-		.name		= "data_spi",
-		.offset		= 0x790000,
-		.size		= 0x800000 - 0x790000,
-	},
-
-#else
 	[0] = {
 		.name		= "pmon",
 		.offset		= 0,
 		.size		= 512 * 1024,	//512KB
 	//	.mask_flags	= MTD_WRITEABLE,
-	}, 
-	[1] = {
-		.name		= "kernel",	
-		.offset		= 512 * 1024,
-		.size		= 0x2c0000,
 	},
-	[2] = {
-		.name		= "system",
-		.offset		= 0x340000,
-		.size		= 0x180000,
-	},
-	[3] = {
-		.name		= "data",
-		.offset		= 0x520000,
-		.size		= 0x800000 - 0x520000,
-	},
-#endif
 };
 
 static struct flash_platform_data flash = {
-	.name		= "ls1b_norflash",
+	.name		= "LS1A_NOR_Flash",
 	.parts		= partitions,
 	.nr_parts	= ARRAY_SIZE(partitions),
-	.type		= "w25q64",
+	.type		= "w25x40",
 };
 #endif /* CONFIG_MTD_M25P80 */
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
-#define DETECT_GPIO  41
-//#define DETECT_GPIO  56
+#define DETECT_GPIO  69
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
 {
@@ -865,12 +824,10 @@ int ads7846_pendown_state(void)
 	
 int ads7846_detect_penirq(void)
 {
-	//配置GPIO0
-	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);		/* 输入使能 */
-
-#ifdef CONFIG_LS1A_CORE_BOARD
-	*(volatile unsigned int *)(0xbfd00420) |= (1<<15);
-#endif
+	/* GPIO输入使能 */
+	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);
+	/* SPI0 CS1片选 */
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) | SPI0_USE_CAN0_TX, LS1X_MUX_CTRL0);
 
 	return (LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
 }
@@ -931,16 +888,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.chip_select 	= SPI0_CS1,
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
-		.irq				= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
-	},
-#endif
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	{	/* mmc/sd card */
-		.modalias		= "mmc_spi",		//mmc spi,
-		.bus_num 		= 0,
-		.chip_select	= SPI0_CS2,
-		.max_speed_hz	= 25000000,
-		.platform_data	= &mmc_spi,
+		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
 };
@@ -1686,6 +1634,7 @@ int __init ls1b_platform_init(void)
 {
 	struct clk *clk;
 	struct plat_serial8250_port *p;
+	u32 x;
 
 #ifdef CONFIG_LS1A_MACH
 	*(volatile int *)0xbfd00420 |= 0x200000;/* disable USB */
@@ -1775,17 +1724,24 @@ int __init ls1b_platform_init(void)
 #endif
 
 #ifdef CONFIG_LS1B_SPI0
-	/* disable gpio24-27 */
-	*(volatile unsigned int *)0xbfd010c0 &= ~(0xf << 24);
+	/* disable gpio40-43 */
+	__raw_writel(__raw_readl(LS1X_GPIO_CFG1) & ~(SPI0_MASK << SPI0_OFFSET), 
+			LS1X_GPIO_CFG1);
+	x = __raw_readl(LS1X_MUX_CTRL0);
+//	x |= SPI0_USE_CAN0_TX;	/* 解除CAN片选复用 */
+//	x |= SPI0_USE_CAN0_RX;	/* 解除CAN片选复用 */
+	__raw_writel(x, LS1X_MUX_CTRL0);
 	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
 #endif
 
 #ifdef CONFIG_LS1B_SPI1
-	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
-	/* 编程需要注意 */
-	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);
-	/* disable gpio38-41 */
-	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
+	/* LS1A的SPI1控制器与NAND复用，编程需要注意 */
+	__raw_writel(__raw_readl(LS1X_GPIO_CFG1) & ~(SPI1_MASK << SPI1_OFFSET), 
+			LS1X_GPIO_CFG1);	/* disable gpio44-47 */
+//	x = __raw_readl(LS1X_MUX_CTRL0) & ~NAND_D03_USE_SPI1;	/* 解除NAND复用 */
+//	x |= SPI1_USE_CAN1_TX;	/* 解除CAN片选复用 */
+//	x |= SPI1_USE_CAN1_RX;	/* 解除CAN片选复用 */
+//	__raw_writel(x, LS1X_MUX_CTRL0);
 	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
 #endif
 
@@ -1840,3 +1796,5 @@ int __init ls1b_platform_init(void)
 }
 
 arch_initcall(ls1b_platform_init);
+
+
