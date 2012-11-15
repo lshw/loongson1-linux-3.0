@@ -203,7 +203,7 @@ static void set_uart_clock_divider(void)
 		LS1X_UART6_BASE, LS1X_UART7_BASE, LS1X_UART8_BASE,
 		LS1X_UART9_BASE, LS1X_UART10_BASE, LS1X_UART11_BASE
 	};
-	#define PORT(id, offset)	(u8 *)(KSEG1ADDR(ls1b_uart_base[id] + offset))
+	#define UART_PORT(id, offset)	(u8 *)(KSEG1ADDR(ls1b_uart_base[id] + offset))
 
 	pll = readl(LS1X_CLK_PLL_FREQ);
 	ctrl = readl(LS1X_CLK_PLL_DIV) & DIV_DDR;
@@ -213,13 +213,13 @@ static void set_uart_clock_divider(void)
 	divisor = rate / 2 / (16*115200);
 	
 	for (i=0; i<12; i++) {
-		x = readb(PORT(i, UART_LCR));
-		writeb(x | UART_LCR_DLAB, PORT(i, UART_LCR));
+		x = readb(UART_PORT(i, UART_LCR));
+		writeb(x | UART_LCR_DLAB, UART_PORT(i, UART_LCR));
 	
-		writeb(divisor & 0xff, PORT(i, UART_DLL));
-		writeb((divisor>>8) & 0xff, PORT(i, UART_DLM));
+		writeb(divisor & 0xff, UART_PORT(i, UART_DLL));
+		writeb((divisor>>8) & 0xff, UART_PORT(i, UART_DLM));
 	
-		writeb(x & ~UART_LCR_DLAB, PORT(i, UART_LCR));
+		writeb(x & ~UART_LCR_DLAB, UART_PORT(i, UART_LCR));
 	}
 }
 
@@ -324,10 +324,10 @@ static void set_clock_divider(struct ls1xfb_info *fbi,
 				"Try smaller resolution\n");
 		divider_int = 1;
 	}
-	else if(divider_int > 17) {
+	else if(divider_int > 15) {
 		dev_warn(fbi->dev, "Warning: clock source is too fast."
 				"Try smaller resolution\n");
-		divider_int = 17;
+		divider_int = 15;
 	}
 
 	/*

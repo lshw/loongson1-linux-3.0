@@ -104,7 +104,7 @@ void __init prom_init(void)
 	}
 #endif
 
-#ifdef CONFIG_LS1B_MACH
+#if defined(CONFIG_LS1B_MACH) && defined(CONFIG_FB_LOONGSON1)
 	/* 只用于ls1b的lcd接口传vga接口时使用，如云终端，
 	 因为使用vga时，pll通过计算难以得到合适的分频;给LS1X_CLK_PLL_FREQ和LS1X_CLK_PLL_DIV
 	 寄存器一个固定的值 */
