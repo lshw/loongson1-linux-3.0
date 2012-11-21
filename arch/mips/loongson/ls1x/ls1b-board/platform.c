@@ -258,21 +258,18 @@ static struct platform_device uart8250_device = {
 
 static struct resource ls1a_ahci_resources[] = {
 	[0] = {
-		.start          = 0x1fe30000,
-		.end            = 0x1fe30000+0x1ff,
-		.flags          = IORESOURCE_MEM,
+		.start	= 0x1fe30000,
+		.end	= 0x1fe30000+0x1ff,
+		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-//		.start          = 36,
-//		.end            = 36,
-               .start          = LS1A_BOARD_SATA_IRQ,
-               .end            = LS1A_BOARD_SATA_IRQ,
-
-		.flags          = IORESOURCE_IRQ,
+		.start	= LS1A_BOARD_SATA_IRQ,
+		.end	= LS1A_BOARD_SATA_IRQ,
+		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static void __iomem *ls1a_ahci_map_table[6];
+//static void __iomem *ls1a_ahci_map_table[6];
 
 #if 0
 static struct platform_device ls1a_ahci_device = {
@@ -288,14 +285,13 @@ static struct platform_device ls1a_ahci_device = {
 static int ls1a_ahci_init(struct device *dev, void __iomem *mmio)
 {
 	/*ls1a adjust sata phy clock added by menghaibo*/
-        *(volatile int *)0xbfd00424 |= 0x80000000;
-//        *(volatile int *)0xbfd00418  = 0x38682650;
-        *(volatile int *)0xbfd00418  = AHCI_CLOCK_125MHZ;
-        *(volatile int *)0xbfe30000 &= 0x0;
+//	*(volatile int *)0xbfd00424 |= 0x80000000;
+//	*(volatile int *)0xbfd00418  = 0x38682650;
+	*(volatile int *)0xbfd00418  = AHCI_CLOCK_125MHZ;
+	*(volatile int *)0xbfe30000 &= 0x0;
 
 	return 0;
 }
-
 
 static struct ahci_platform_data ls1a_ahci_pdata = {
 	.init = ls1a_ahci_init,

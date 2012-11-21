@@ -258,21 +258,18 @@ static struct platform_device uart8250_device = {
 
 static struct resource ls1a_ahci_resources[] = {
 	[0] = {
-		.start          = 0x1fe30000,
-		.end            = 0x1fe30000+0x1ff,
-		.flags          = IORESOURCE_MEM,
+		.start	= 0x1fe30000,
+		.end	= 0x1fe30000+0x1ff,
+		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-//		.start          = 36,
-//		.end            = 36,
-               .start          = LS1A_BOARD_SATA_IRQ,
-               .end            = LS1A_BOARD_SATA_IRQ,
-
-		.flags          = IORESOURCE_IRQ,
+		.start	= LS1A_BOARD_SATA_IRQ,
+		.end	= LS1A_BOARD_SATA_IRQ,
+		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static void __iomem *ls1a_ahci_map_table[6];
+//static void __iomem *ls1a_ahci_map_table[6];
 
 #if 0
 static struct platform_device ls1a_ahci_device = {
@@ -288,14 +285,13 @@ static struct platform_device ls1a_ahci_device = {
 static int ls1a_ahci_init(struct device *dev, void __iomem *mmio)
 {
 	/*ls1a adjust sata phy clock added by menghaibo*/
-        *(volatile int *)0xbfd00424 |= 0x80000000;
-//        *(volatile int *)0xbfd00418  = 0x38682650;
-        *(volatile int *)0xbfd00418  = AHCI_CLOCK_125MHZ;
-        *(volatile int *)0xbfe30000 &= 0x0;
+//	*(volatile int *)0xbfd00424 |= 0x80000000;
+//	*(volatile int *)0xbfd00418  = 0x38682650;
+	*(volatile int *)0xbfd00418  = AHCI_CLOCK_125MHZ;
+	*(volatile int *)0xbfe30000 &= 0x0;
 
 	return 0;
 }
-
 
 static struct ahci_platform_data ls1a_ahci_pdata = {
 	.init = ls1a_ahci_init,
@@ -1747,37 +1743,6 @@ int __init ls1b_platform_init(void)
 
 #ifdef CONFIG_SPI_GPIO
 	spi_register_board_info(spi_gpio_devices, ARRAY_SIZE(spi_gpio_devices));
-#endif
-
-//modify by lvling
-#if defined(CONFIG_LS1B_GMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN)//open gmac0 and gmac1  
-	printk("open gmac0 and gmac1.\n");
-	/* 寄存器0xbfd00424有GMAC的使能开关 */
-	(*(volatile unsigned int *)0xbfd00424) &= ~((1<<13) | (1<<12));	/* 使能GMAC0 GMAC1 */
-	(*(volatile unsigned int *)0xbfd00420) |= (1 << 4 | 1 << 3);
-	(*(volatile unsigned int *)0xbfd00424) |= (0xf);
-
-#elif defined(CONFIG_LS1B_GMAC0_OPEN) && !defined(CONFIG_LS1B_GMAC1_OPEN)//open gmac0,close gmac1
-	printk("open gmac0 close gmac1.\n");
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 12);	//使能GMAC0
-	(*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
-
-//	(*(volatile unsigned int *)0xbfd00424) |= (1 << 13);	//禁止GMAC1
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
-	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4); //open uart0/1
-
-#elif !defined(CONFIG_LS1BGMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
-	printk("close gmac0 open gmac1.\n");
-//	(*(volatile unsigned int *)0xbfd00424) |= (1 << 12);	//禁止GMAC0
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
-
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 13);	//使能GMAC1
-	(*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
-	(*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
-  
-#else
-//	(*(volatile unsigned int *)0xbfd00424) |= ((1<<13) | (1<<12));	/* 禁止GMAC0 GMAC1 */
-	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);	//open uart0/1
 #endif
 
 #ifdef CONFIG_LS1A_MACH
