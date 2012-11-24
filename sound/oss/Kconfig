@@ -544,6 +544,6 @@ endif	# SOUND_OSS
 
 
 config SND_LS1B
-	tristate "loongson ls1b soundcard"
-	depends on SOUND_PRIME 
-	select SND_PCM
+	tristate "loongson ls1x soundcard"
+	depends on SOUND_PRIME
+

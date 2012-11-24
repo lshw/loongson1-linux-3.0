@@ -1511,11 +1511,11 @@ static struct platform_device ls1x_sja1000_1 = {
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&uart8250_device,
 
-#ifdef CONFIG_LS1X_FB0
-	&ls1x_fb0_device,
-#endif
 #ifdef CONFIG_LS1X_FB1
 	&ls1x_fb1_device,
+#endif
+#ifdef CONFIG_LS1X_FB0
+	&ls1x_fb0_device,
 #endif
 
 #ifdef CONFIG_MTD_NAND_LS1X

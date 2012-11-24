@@ -167,8 +167,8 @@ typedef struct audio_stream {
 } audio_stream_t;
 
 enum {
-STOP = 0,
-RUN = 1
+	STOP = 0,
+	RUN = 1
 };
 
 typedef struct audio_state {
@@ -189,5 +189,4 @@ typedef struct audio_state {
 #define AUDIO_FRAGSIZE_DEFAULT  0x2000
 
 #endif
-
 
