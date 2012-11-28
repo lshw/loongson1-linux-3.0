@@ -1,3 +1,4 @@
+/*  */
 #include <linux/types.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -21,10 +22,10 @@
 #define dis_zero  0
 #define ILI9341_LCD_MINOR			156
 
-#define ILI9341LCD_CLEAR			0x01		//ÇåÆÁ£¿
-#define ILI9341LCD_SENDCTRL			0x02		//·¢ËÍCtrl
-#define ILI9341LCD_SETSHORTDELAY	0x03		//SET¶ÌÔİµÄÑÓ³Ù
-#define ILI9341LCD_SETLONGDELAY		0x04		//SET³¤ÑÓ³Ù
+#define ILI9341LCD_CLEAR			0x01		//æ¸…å±ï¼Ÿ
+#define ILI9341LCD_SENDCTRL			0x02		//å‘é€Ctrl
+#define ILI9341LCD_SETSHORTDELAY	0x03		//SETçŸ­æš‚çš„å»¶è¿Ÿ
+#define ILI9341LCD_SETLONGDELAY		0x04		//SETé•¿å»¶è¿Ÿ
 #define ILI9341LCD_REST				0x05
 #define ILI9341LCD_WRITE_DOT		0x06
 #define ILI9341LCD_LINE				0x07
@@ -35,15 +36,15 @@
 
 static DEFINE_MUTEX(ili9341_lcd_mutex);
 
-//extern unsigned int Asii8[];		//6X8µÄASII×Ö·û¿â
-extern unsigned char Asii1529[];	//15X29µÄASII×Ö·û¿â
-extern unsigned char GB32[];		//32*32×Ô¶¨ÒåµÄºº×Ö¿â
+//extern unsigned int Asii8[];		//6X8çš„ASIIå­—ç¬¦åº“
+extern unsigned char Asii1529[];	//15X29çš„ASIIå­—ç¬¦åº“
+extern unsigned char GB32[];		//32*32è‡ªå®šä¹‰çš„æ±‰å­—åº“
 
-int x_witch;				//×Ö·ûĞ´ÈëÊ±µÄ¿í¶È
-int y_witch;				//×Ö·ûĞ´ÈëÊ±µÄ¸ß¶È
-int font_wrod;				//×ÖÌåµÄ´ó
-unsigned char *char_tab;	//×Ö¿âÖ¸Õë
-int plot_mode;				//»æÍ¼Ä£Ê½
+int x_witch;				//å­—ç¬¦å†™å…¥æ—¶çš„å®½åº¦
+int y_witch;				//å­—ç¬¦å†™å…¥æ—¶çš„é«˜åº¦
+int font_wrod;				//å­—ä½“çš„å¤§
+unsigned char *char_tab;	//å­—åº“æŒ‡é’ˆ
+int plot_mode;				//ç»˜å›¾æ¨¡å¼
 unsigned int bmp_color;
 unsigned int char_color;
 
@@ -163,8 +164,8 @@ static void write_data8(unsigned int dat)
 	
 	ret = readl(0xbfd010f0);
 	ret &= ~(0xFFFF << 8);
-//	tmp1 = (0x1F & data) << 19;	/* µÍ5bit */
-//	tmp2 = ((0xE0 & data) >> 5) << 10;	/* ¸ß3bit ((0xE0 & dat) >> 5) << 10; */
+//	tmp1 = (0x1F & data) << 19;	/* ä½5bit */
+//	tmp2 = ((0xE0 & data) >> 5) << 10;	/* é«˜3bit ((0xE0 & dat) >> 5) << 10; */
 	writel(ret | ((0x1F & dat) << 19) | ((0xE0 & dat) << 5), 0xbfd010f0);
 	gpio_set_value(LCDWR, 0);
 	gpio_set_value(LCDWR, 1);
@@ -224,10 +225,10 @@ static unsigned int read_data8(void)
 
 static void ili9341_rest(void)
 {
-	gpio_set_value(LCDRES, 0);	//LCD ¸´Î»ÓĞĞ§(L) 
-	mdelay(100); // ÑÓÊ±100ms , Datasheet ÒªÇóÖÁÉÙ´óÓÚ1us
-	gpio_set_value(LCDRES, 1);	//LCD ¸´Î»ÎŞĞ§(H)
-	mdelay(100); //Ó²¼ş¸´Î»
+	gpio_set_value(LCDRES, 0);	//LCD å¤ä½æœ‰æ•ˆ(L) 
+	mdelay(100); // å»¶æ—¶100ms , Datasheet è¦æ±‚è‡³å°‘å¤§äº1us
+	gpio_set_value(LCDRES, 1);	//LCD å¤ä½æ— æ•ˆ(H)
+	mdelay(100); //ç¡¬ä»¶å¤ä½
 }
 
 static void read_id4(void)
@@ -242,27 +243,27 @@ static void read_id4(void)
 }
 
 //========================================================================
-// º¯Êı: void clear_dot_lcd(int x, int y)
-// ÃèÊö: Çå³ıÔÚLCDµÄÕæÊµ×ø±êÏµÉÏµÄX¡¢Yµã£¨Çå³ıºó¸ÃµãÎªºÚÉ«£©
-// ²ÎÊı: x 		XÖá×ø±ê
-//		 y 		YÖá×ø±ê
-// ·µ»Ø: ÎŞ
-// ±¸×¢: 
-// °æ±¾:
+// å‡½æ•°: void clear_dot_lcd(int x, int y)
+// æè¿°: æ¸…é™¤åœ¨LCDçš„çœŸå®åæ ‡ç³»ä¸Šçš„Xã€Yç‚¹ï¼ˆæ¸…é™¤åè¯¥ç‚¹ä¸ºé»‘è‰²ï¼‰
+// å‚æ•°: x 		Xè½´åæ ‡
+//		 y 		Yè½´åæ ‡
+// è¿”å›: æ— 
+// å¤‡æ³¨: 
+// ç‰ˆæœ¬:
 //========================================================================
 static void clear_dot_lcd(int x, int y)
 {
-	x = y;//ÎŞÒâÒå£¬½öÎªÁË²»Ìá¾¯¸æ
+	x = y;//æ— æ„ä¹‰ï¼Œä»…ä¸ºäº†ä¸æè­¦å‘Š
 }
 
 //========================================================================
-// º¯Êı: unsigned int get_dot_lcd(int x, int y)
-// ÃèÊö: »ñÈ¡ÔÚLCDµÄÕæÊµ×ø±êÏµÉÏµÄX¡¢YµãÉÏµÄµ±Ç°Ìî³äÉ«Êı¾İ
-// ²ÎÊı: x 		XÖá×ø±ê
-//		 y 		YÖá×ø±ê
-// ·µ»Ø: ¸ÃµãµÄÑÕÉ«
-// ±¸×¢: 
-// °æ±¾:
+// å‡½æ•°: unsigned int get_dot_lcd(int x, int y)
+// æè¿°: è·å–åœ¨LCDçš„çœŸå®åæ ‡ç³»ä¸Šçš„Xã€Yç‚¹ä¸Šçš„å½“å‰å¡«å……è‰²æ•°æ®
+// å‚æ•°: x 		Xè½´åæ ‡
+//		 y 		Yè½´åæ ‡
+// è¿”å›: è¯¥ç‚¹çš„é¢œè‰²
+// å¤‡æ³¨: 
+// ç‰ˆæœ¬:
 //========================================================================
 static unsigned int get_dot_lcd(int x, int y)
 {
@@ -278,26 +279,26 @@ static unsigned int get_dot_lcd(int x, int y)
 }
 
 //========================================================================
-// º¯Êı: void set_dot_addr_lcd(int x, int y)
-// ÃèÊö: ÉèÖÃÔÚLCDµÄÕæÊµ×ø±êÏµÉÏµÄX¡¢Yµã¶ÔÓ¦µÄRAMµØÖ·
-// ²ÎÊı: x 		XÖá×ø±ê
-//		 y 		YÖá×ø±ê
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ½öÉèÖÃµ±Ç°²Ù×÷µØÖ·£¬ÎªºóÃæµÄÁ¬Ğø²Ù×÷×÷ºÃ×¼±¸
-// °æ±¾:
+// å‡½æ•°: void set_dot_addr_lcd(int x, int y)
+// æè¿°: è®¾ç½®åœ¨LCDçš„çœŸå®åæ ‡ç³»ä¸Šçš„Xã€Yç‚¹å¯¹åº”çš„RAMåœ°å€
+// å‚æ•°: x 		Xè½´åæ ‡
+//		 y 		Yè½´åæ ‡
+// è¿”å›: æ— 
+// å¤‡æ³¨: ä»…è®¾ç½®å½“å‰æ“ä½œåœ°å€ï¼Œä¸ºåé¢çš„è¿ç»­æ“ä½œä½œå¥½å‡†å¤‡
+// ç‰ˆæœ¬:
 //========================================================================
 static void set_dot_addr_lcd(int x, int y)
 {
-	//ÁĞµØÖ· x
+	//åˆ—åœ°å€ x
 	write_command(0x2A);
-	write_data8((x>>8) & 0xFF);	//¸ß8Î»
-	write_data8(x & 0xFF);		//µÍ8Î»
-	write_data8(0x00);			//¸Ä±äxyÏñËØ´óĞ¡Ê±ĞèÒªĞŞ¸ÄÕâÀï.
+	write_data8((x>>8) & 0xFF);	//é«˜8ä½
+	write_data8(x & 0xFF);		//ä½8ä½
+	write_data8(0x00);			//æ”¹å˜xyåƒç´ å¤§å°æ—¶éœ€è¦ä¿®æ”¹è¿™é‡Œ.
 	write_data8(0xEF);
-	//Ò³µØÖ· y
+	//é¡µåœ°å€ y
 	write_command(0x2B);
-	write_data8((y>>8) & 0xFF);	//¸ß8Î»
-	write_data8(y & 0xFF);		//µÍ8Î»
+	write_data8((y>>8) & 0xFF);	//é«˜8ä½
+	write_data8(y & 0xFF);		//ä½8ä½
 	write_data8(0x01);
 	write_data8(0x3F);
 	
@@ -305,12 +306,12 @@ static void set_dot_addr_lcd(int x, int y)
 }
 
 //========================================================================
-// º¯Êı: void fill_dot_lcd(unsigned int color)
-// ÃèÊö: Ìî³äÒ»¸öµãµ½LCDÏÔÊ¾»º³åRAMµ±ÖĞ£¬¶ø²»¹Üµ±Ç°ÒªÌî³äµÄµØÖ·ÈçºÎ
-// ²ÎÊı: color 		ÒªÌî³äµÄµãµÄÑÕÉ« 
-// ·µ»Ø: ÎŞ
-// ±¸×¢: 
-// °æ±¾:
+// å‡½æ•°: void fill_dot_lcd(unsigned int color)
+// æè¿°: å¡«å……ä¸€ä¸ªç‚¹åˆ°LCDæ˜¾ç¤ºç¼“å†²RAMå½“ä¸­ï¼Œè€Œä¸ç®¡å½“å‰è¦å¡«å……çš„åœ°å€å¦‚ä½•
+// å‚æ•°: color 		è¦å¡«å……çš„ç‚¹çš„é¢œè‰² 
+// è¿”å›: æ— 
+// å¤‡æ³¨: 
+// ç‰ˆæœ¬:
 //========================================================================
 static void fill_dot_lcd(unsigned int color)
 {
@@ -318,27 +319,27 @@ static void fill_dot_lcd(unsigned int color)
 	write_data16(color);
 }
 //========================================================================
-// º¯Êı: void write_dot_lcd(int x, int y, unsigned int i)
-// ÃèÊö: ÔÚLCDµÄÕæÊµ×ø±êÏµÉÏµÄX¡¢Yµã»æÖÆÌî³äÉ«ÎªiµÄµã
-// ²ÎÊı: x 		XÖá×ø±ê
-//		 y 		YÖá×ø±ê
-//		 i 		ÒªÌî³äµÄµãµÄÑÕÉ« 
-// ·µ»Ø: ÎŞ
-// ±¸×¢: 
-// °æ±¾:
+// å‡½æ•°: void write_dot_lcd(int x, int y, unsigned int i)
+// æè¿°: åœ¨LCDçš„çœŸå®åæ ‡ç³»ä¸Šçš„Xã€Yç‚¹ç»˜åˆ¶å¡«å……è‰²ä¸ºiçš„ç‚¹
+// å‚æ•°: x 		Xè½´åæ ‡
+//		 y 		Yè½´åæ ‡
+//		 i 		è¦å¡«å……çš„ç‚¹çš„é¢œè‰² 
+// è¿”å›: æ— 
+// å¤‡æ³¨: 
+// ç‰ˆæœ¬:
 //========================================================================
 static void write_dot_lcd(int x, int y, unsigned int i)
 {
-/*	//ÁĞµØÖ·
+/*	//åˆ—åœ°å€
 	write_command(0x2A);
-	write_data8((x>>8) & 0xFF);	//¸ß8Î»
-	write_data8(x & 0xFF);		//µÍ8Î»
+	write_data8((x>>8) & 0xFF);	//é«˜8ä½
+	write_data8(x & 0xFF);		//ä½8ä½
 	write_data8(0x01);
 	write_data8(0x3F);
-	//Ò³µØÖ·
+	//é¡µåœ°å€
 	write_command(0x2B);
-	write_data8((y>>8) & 0xFF);	//¸ß8Î»
-	write_data8(y & 0xFF);		//µÍ8Î»
+	write_data8((y>>8) & 0xFF);	//é«˜8ä½
+	write_data8(y & 0xFF);		//ä½8ä½
 	write_data8(0x00);
 	write_data8(0xEF);
 	
@@ -348,19 +349,19 @@ static void write_dot_lcd(int x, int y, unsigned int i)
 }
 
 //========================================================================
-// º¯Êı: void lcd_fill(unsigned int dat)
-// ÃèÊö: »áÆÁÌî³äÒÔdatµÄÊı¾İÖÁ¸÷µãÖĞ
-// ²ÎÊı: dat   ÒªÌî³äµÄÑÕÉ«Êı¾İ
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ½öÔÚLCD³õÊ¼»¯³ÌĞòµ±ÖĞµ÷ÓÃ
-// °æ±¾:
+// å‡½æ•°: void lcd_fill(unsigned int dat)
+// æè¿°: ä¼šå±å¡«å……ä»¥datçš„æ•°æ®è‡³å„ç‚¹ä¸­
+// å‚æ•°: dat   è¦å¡«å……çš„é¢œè‰²æ•°æ®
+// è¿”å›: æ— 
+// å¤‡æ³¨: ä»…åœ¨LCDåˆå§‹åŒ–ç¨‹åºå½“ä¸­è°ƒç”¨
+// ç‰ˆæœ¬:
 //========================================================================
 static void lcd_fill(unsigned int dat)
 {
 	int i;
 	int j;
 	set_dot_addr_lcd(0, 0);
-	//¸Ä±äxyÏñËØ´óĞ¡Ê±ĞèÒªĞŞ¸ÄÕâÀï.
+	//æ”¹å˜xyåƒç´ å¤§å°æ—¶éœ€è¦ä¿®æ”¹è¿™é‡Œ.
 	for(i=0; i<240; i++){
 		for(j=0; j<320; j++){
 			fill_dot_lcd(dat);
@@ -369,12 +370,12 @@ static void lcd_fill(unsigned int dat)
 }
 
 //========================================================================
-// º¯Êı: void lcd_fill_s(unsigned int number, unsigned int color)
-// ÃèÊö: Á¬ĞøÌî³äÒÔcolorÉ«µ÷µÄnumber¸öµã
-// ²ÎÊı: number Ìî³äµÄÊıÁ¿    color  ÏñËØµãµÄÑÕÉ«  
-// ·µ»Ø:
-// ±¸×¢:
-// °æ±¾:
+// å‡½æ•°: void lcd_fill_s(unsigned int number, unsigned int color)
+// æè¿°: è¿ç»­å¡«å……ä»¥colorè‰²è°ƒçš„numberä¸ªç‚¹
+// å‚æ•°: number å¡«å……çš„æ•°é‡    color  åƒç´ ç‚¹çš„é¢œè‰²  
+// è¿”å›:
+// å¤‡æ³¨:
+// ç‰ˆæœ¬:
 //========================================================================
 static void lcd_fill_s(unsigned int number, unsigned int color)
 {
@@ -385,14 +386,14 @@ static void lcd_fill_s(unsigned int number, unsigned int color)
 	}
 }
 
-//========================Òº¾§ÏÔÊ¾Ä£¿é³õÊ¼»¯================================= 
+//========================æ¶²æ™¶æ˜¾ç¤ºæ¨¡å—åˆå§‹åŒ–================================= 
 static void ili9341_init(void)
 { 
 	gpio_init();
-	gpio_set_value(LCDRES, 0);       //LCD ¸´Î»ÓĞĞ§(L) 
-	mdelay(100); // ÑÓÊ±100ms , Datasheet ÒªÇóÖÁÉÙ´óÓÚ1us
-	gpio_set_value(LCDRES, 1);    //LCD ¸´Î»ÎŞĞ§(H)
-	mdelay(100); //Ó²¼ş¸´Î»
+	gpio_set_value(LCDRES, 0);       //LCD å¤ä½æœ‰æ•ˆ(L) 
+	mdelay(100); // å»¶æ—¶100ms , Datasheet è¦æ±‚è‡³å°‘å¤§äº1us
+	gpio_set_value(LCDRES, 1);    //LCD å¤ä½æ— æ•ˆ(H)
+	mdelay(100); //ç¡¬ä»¶å¤ä½
 	read_id4();
 	//************* Start Initial Sequence **********//
 	write_command(0x11);	//Sleep OUT
@@ -412,14 +413,14 @@ static void ili9341_init(void)
 	write_data8(0x25);
 	write_data8(0x2b);
 
-	write_command(0x36);	//Memory Access Control ÄÚ´æ·ÃÎÊ¿ØÖÆ
-	write_data8(0x48);		//¸Ä±äxyÏñËØ´óĞ¡Ê±ĞèÒªĞŞ¸ÄÕâÀï.
+	write_command(0x36);	//Memory Access Control å†…å­˜è®¿é—®æ§åˆ¶
+	write_data8(0x48);		//æ”¹å˜xyåƒç´ å¤§å°æ—¶éœ€è¦ä¿®æ”¹è¿™é‡Œ.
 
-	write_command(0xB1);	//Frame Control Ö¡Æµ¿ØÖÆ
+	write_command(0xB1);	//Frame Control å¸§é¢‘æ§åˆ¶
 	write_data8(0x00);
 	write_data8(0x1b);		//OSC 0x16,0x18
 
-	write_command(0xB6);	//ÏÔÊ¾¹¦ÄÜ¿ØÖÆ
+	write_command(0xB6);	//æ˜¾ç¤ºåŠŸèƒ½æ§åˆ¶
 	write_data8(0x0A);
 	write_data8(0x82);
 
@@ -429,13 +430,13 @@ static void ili9341_init(void)
 	write_command(0xF2);	//??
 	write_data8(0x00);
 
-	write_command(0x26);	//Ù¤ÂêÇúÏßÉèÖÃ
+	write_command(0x26);	//ä¼½ç›æ›²çº¿è®¾ç½®
 	write_data8(0x01);
 
-	write_command(0x3a);	//ÏñËØ¸ñÊ½ÉèÖÃ
+	write_command(0x3a);	//åƒç´ æ ¼å¼è®¾ç½®
 	write_data8(0x55);		//16 bits / pixel 
 
-	write_command(0x2a);	//ÁĞµØÖ·ÉèÖÃ
+	write_command(0x2a);	//åˆ—åœ°å€è®¾ç½®
 	write_data8(0x00);
 	write_data8(0x00);
 	write_data8(0x00);
@@ -447,7 +448,7 @@ static void ili9341_init(void)
 	write_data8(0x3f);		//319
 
 	//=======================================
-	write_command(0xE0);	//ÕıÙ¤ÂêĞ£Õı
+	write_command(0xE0);	//æ­£ä¼½ç›æ ¡æ­£
 	write_data8(0x1f);
 	write_data8(0x25);
 	write_data8(0x25);
@@ -464,7 +465,7 @@ static void ili9341_init(void)
 	write_data8(0x00);
 	write_data8(0x00);
 
-	write_command(0XE1);	//¸ºÙ¤ÂêĞ£Õı
+	write_command(0XE1);	//è´Ÿä¼½ç›æ ¡æ­£
 	write_data8(0x00);
 	write_data8(0x1a);
 	write_data8(0x1c);
@@ -521,37 +522,37 @@ static void ili9341_init(void)
 }
 
 //========================================================================
-// º¯Êı: void font_set(int font_num, unsigned int color)
-// ÃèÊö: ÎÄ±¾×ÖÌåÉèÖÃ
-// ²ÎÊı: font_num ×ÖÌåÑ¡Ôñ,ÒÔÇı¶¯Ëù´øµÄ×Ö¿âÎª×¼
-//		 color  ÎÄ±¾ÑÕÉ«,½ö×÷ÓÃÓÚ×Ô´ø×Ö¿â  
-// ·µ»Ø: ÎŞ
-// ±¸×¢: 
-// °æ±¾:
+// å‡½æ•°: void font_set(int font_num, unsigned int color)
+// æè¿°: æ–‡æœ¬å­—ä½“è®¾ç½®
+// å‚æ•°: font_num å­—ä½“é€‰æ‹©,ä»¥é©±åŠ¨æ‰€å¸¦çš„å­—åº“ä¸ºå‡†
+//		 color  æ–‡æœ¬é¢œè‰²,ä»…ä½œç”¨äºè‡ªå¸¦å­—åº“  
+// è¿”å›: æ— 
+// å¤‡æ³¨: 
+// ç‰ˆæœ¬:
 //========================================================================
 static void font_set(int font_num, unsigned int color)
 {
 	switch(font_num)
 	{
-/*		case 0: font_wrod = 3;	//ASII×Ö·ûA
+/*		case 0: font_wrod = 3;	//ASIIå­—ç¬¦A
 				x_witch = 6;
 				y_witch = 1;
 				char_color = color;
 //				char_tab = (Asii8 - 32*3);
 		break;*/
-		case 1: font_wrod = 58;	//ASII×Ö·ûB
+		case 1: font_wrod = 58;	//ASIIå­—ç¬¦B
 				x_witch = 15;
 				y_witch = 29;
 				char_color = color;
 				char_tab = (unsigned char *)(Asii1529 - (32*58));
 		break;
-		case 2: font_wrod = 128;	//ºº×ÖA
+		case 2: font_wrod = 128;	//æ±‰å­—A
 				x_witch = 32;
 				y_witch = 32;
 				char_color = color;
 				char_tab = (unsigned char *)GB32;
 		break;
-/*		case 3: font_wrod = 16;	//ºº×ÖB
+/*		case 3: font_wrod = 16;	//æ±‰å­—B
 				x_witch = 16;
 				y_witch = 2;
 				char_color = color;
@@ -562,20 +563,20 @@ static void font_set(int font_num, unsigned int color)
 }
 
 //========================================================================
-// º¯Êı: void put_char(int x, int y, unsigned int a)
-// ÃèÊö: Ğ´ÈëÒ»¸ö±ê×¼×Ö·û
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê
-//		 a  ÒªÏÔÊ¾µÄ×Ö·ûÔÚ×Ö¿âÖĞµÄÆ«ÒÆÁ¿  
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ASCII×Ö·û¿ÉÖ±½ÓÊäÈëASCIIÂë¼´¿É
-// °æ±¾:
+// å‡½æ•°: void put_char(int x, int y, unsigned int a)
+// æè¿°: å†™å…¥ä¸€ä¸ªæ ‡å‡†å­—ç¬¦
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡
+//		 a  è¦æ˜¾ç¤ºçš„å­—ç¬¦åœ¨å­—åº“ä¸­çš„åç§»é‡  
+// è¿”å›: æ— 
+// å¤‡æ³¨: ASCIIå­—ç¬¦å¯ç›´æ¥è¾“å…¥ASCIIç å³å¯
+// ç‰ˆæœ¬:
 //========================================================================
 static void put_char(int x, int y, unsigned int a)
 {
-	int i,j;//,K;		//Êı¾İÔİ´æ
+	int i,j;//,K;		//æ•°æ®æš‚å­˜
 	unsigned char *p_data;
 	unsigned char temp;
-	p_data = char_tab + a*font_wrod;	//ÒªĞ´×Ö·ûµÄÊ×µØÖ·
+	p_data = char_tab + a*font_wrod;	//è¦å†™å­—ç¬¦çš„é¦–åœ°å€
 	j = 0;
 	while((j ++) < y_witch){
 		if(y > DIS_Y_MAX) break;
@@ -595,13 +596,13 @@ static void put_char(int x, int y, unsigned int a)
 }
 
 //========================================================================
-// º¯Êı: void put_string(int x, int y, char *p)
-// ÃèÊö: ÔÚx¡¢yÎªÆğÊ¼×ø±ê´¦Ğ´ÈëÒ»´®±ê×¼×Ö·û
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê
-//		 p  ÒªÏÔÊ¾µÄ×Ö·û´®  
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ½öÄÜÓÃÓÚ×Ô´øµÄASCII×Ö·û´®ÏÔÊ¾
-// °æ±¾:
+// å‡½æ•°: void put_string(int x, int y, char *p)
+// æè¿°: åœ¨xã€yä¸ºèµ·å§‹åæ ‡å¤„å†™å…¥ä¸€ä¸²æ ‡å‡†å­—ç¬¦
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡
+//		 p  è¦æ˜¾ç¤ºçš„å­—ç¬¦ä¸²  
+// è¿”å›: æ— 
+// å¤‡æ³¨: ä»…èƒ½ç”¨äºè‡ªå¸¦çš„ASCIIå­—ç¬¦ä¸²æ˜¾ç¤º
+// ç‰ˆæœ¬:
 //========================================================================
 static void put_string(int x, int y, char *p)
 {
@@ -618,18 +619,18 @@ static void put_string(int x, int y, char *p)
 }
 /*
 //========================================================================
-// º¯Êı: void bit_map(unsigned int *p, int x, int y)
-// ÃèÊö: Ğ´ÈëÒ»¸öBMPÍ¼Æ¬,ÆğµãÎª(x,y)
-// ²ÎÊı:   
-// ·µ»Ø: ÎŞ
-// ±¸×¢:
-// °æ±¾:
+// å‡½æ•°: void bit_map(unsigned int *p, int x, int y)
+// æè¿°: å†™å…¥ä¸€ä¸ªBMPå›¾ç‰‡,èµ·ç‚¹ä¸º(x,y)
+// å‚æ•°:   
+// è¿”å›: æ— 
+// å¤‡æ³¨:
+// ç‰ˆæœ¬:
 //========================================================================
 static void bit_map(unsigned int *p, int x, int y)
 {
-	int temp_with,temp_High,i,j;	//Êı¾İÔİ´æ
+	int temp_with,temp_High,i,j;	//æ•°æ®æš‚å­˜
 	temp_High = *(p ++);
-	temp_with = *(p ++);			//Í¼Æ¬¿í¶È
+	temp_with = *(p ++);			//å›¾ç‰‡å®½åº¦
 	i = 0;
 	while((i ++) < temp_High){
 		j = 0;
@@ -641,12 +642,12 @@ static void bit_map(unsigned int *p, int x, int y)
 }
 */
 //========================================================================
-// º¯Êı: void set_paint_mode(int mode, unsigned int color)
-// ÃèÊö: »æÍ¼Ä£Ê½ÉèÖÃ
-// ²ÎÊı: mode »æÍ¼Ä£Ê½    color  ÏñËØµãµÄÑÕÉ«,Ïàµ±ÓÚÇ°¾°É«  
-// ·µ»Ø: ÎŞ
-// ±¸×¢: modeÎŞĞ§
-// °æ±¾:
+// å‡½æ•°: void set_paint_mode(int mode, unsigned int color)
+// æè¿°: ç»˜å›¾æ¨¡å¼è®¾ç½®
+// å‚æ•°: mode ç»˜å›¾æ¨¡å¼    color  åƒç´ ç‚¹çš„é¢œè‰²,ç›¸å½“äºå‰æ™¯è‰²  
+// è¿”å›: æ— 
+// å¤‡æ³¨: modeæ— æ•ˆ
+// ç‰ˆæœ¬:
 //========================================================================
 static void set_paint_mode(int mode, unsigned int color)
 {
@@ -654,24 +655,24 @@ static void set_paint_mode(int mode, unsigned int color)
 	bmp_color = color;
 }
 //========================================================================
-// º¯Êı: void put_pixel(int x, int y)
-// ÃèÊö: ÔÚx¡¢yµãÉÏ»æÖÆÒ»¸öÇ°¾°É«µÄµã
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê
-// ·µ»Ø: ÎŞ
-// ±¸×¢: Ê¹ÓÃÇ°¾°É«
-// °æ±¾:
+// å‡½æ•°: void put_pixel(int x, int y)
+// æè¿°: åœ¨xã€yç‚¹ä¸Šç»˜åˆ¶ä¸€ä¸ªå‰æ™¯è‰²çš„ç‚¹
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡
+// è¿”å›: æ— 
+// å¤‡æ³¨: ä½¿ç”¨å‰æ™¯è‰²
+// ç‰ˆæœ¬:
 //========================================================================
 static void put_pixel(int x, int y)
 {
 	writ_dot(x, y, bmp_color);
 }
 //========================================================================
-// º¯Êı: void line_my(int s_x, int s_y, int e_x, int e_y)
-// ÃèÊö: ÔÚs_x¡¢s_yÎªÆğÊ¼×ø±ê£¬e_x¡¢e_yÎª½áÊø×ø±ê»æÖÆÒ»ÌõÖ±Ïß
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê
-// ·µ»Ø: ÎŞ
-// ±¸×¢: Ê¹ÓÃÇ°¾°É«
-// °æ±¾:
+// å‡½æ•°: void line_my(int s_x, int s_y, int e_x, int e_y)
+// æè¿°: åœ¨s_xã€s_yä¸ºèµ·å§‹åæ ‡ï¼Œe_xã€e_yä¸ºç»“æŸåæ ‡ç»˜åˆ¶ä¸€æ¡ç›´çº¿
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡
+// è¿”å›: æ— 
+// å¤‡æ³¨: ä½¿ç”¨å‰æ™¯è‰²
+// ç‰ˆæœ¬:
 //========================================================================
 static void line_my(int s_x, int s_y, int e_x, int e_y)
 {  
@@ -719,12 +720,12 @@ static void line_my(int s_x, int s_y, int e_x, int e_y)
 }
 /*
 //========================================================================
-// º¯Êı: void w_db_line(int *p)
-// ÃèÊö: »­Ò»¸öÈÎÒâ¶à±ßĞÎ
-// ²ÎÊı: p
-// ·µ»Ø: ¸Ãº¯ÊıÎŞĞ§
-// ±¸×¢: Ê¹ÓÃÇ°¾°É«
-// °æ±¾:
+// å‡½æ•°: void w_db_line(int *p)
+// æè¿°: ç”»ä¸€ä¸ªä»»æ„å¤šè¾¹å½¢
+// å‚æ•°: p
+// è¿”å›: è¯¥å‡½æ•°æ— æ•ˆ
+// å¤‡æ³¨: ä½¿ç”¨å‰æ™¯è‰²
+// ç‰ˆæœ¬:
 //========================================================================
 static void w_db_line(int *p)
 {
@@ -739,12 +740,12 @@ static void w_db_line(int *p)
 }*/
 
 //========================================================================
-// º¯Êı: void w_red_dot(int x, int y, int a, int b, int mode)
-// ÃèÊö: »æÖÆÔ²µÄ¸÷¸öÏñÏŞÖĞµÄµãºÍÏß
-// ²ÎÊı: 
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ¸Ãº¯Êı¶ÔÓÃ»§²»¿É¼û£¬Ê¹ÓÃÇ°¾°É«
-// °æ±¾:
+// å‡½æ•°: void w_red_dot(int x, int y, int a, int b, int mode)
+// æè¿°: ç»˜åˆ¶åœ†çš„å„ä¸ªåƒé™ä¸­çš„ç‚¹å’Œçº¿
+// å‚æ•°: 
+// è¿”å›: æ— 
+// å¤‡æ³¨: è¯¥å‡½æ•°å¯¹ç”¨æˆ·ä¸å¯è§ï¼Œä½¿ç”¨å‰æ™¯è‰²
+// ç‰ˆæœ¬:
 //========================================================================
 static void line_f(int s_x, int s_y, int e_x);//,int e_y);
 static void w_red_dot(int x, int y, int a, int b, int mode)
@@ -761,12 +762,12 @@ static void w_red_dot(int x, int y, int a, int b, int mode)
 	}
 }
 //========================================================================
-// º¯Êı: void w_red_err(int *a, int *b, int *r)
-// ÃèÊö: »­Ô²Îó²î¼ÆËã
-// ²ÎÊı: 
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ¸Ãº¯Êı¶ÔÓÃ»§²»¿É¼û
-// °æ±¾:
+// å‡½æ•°: void w_red_err(int *a, int *b, int *r)
+// æè¿°: ç”»åœ†è¯¯å·®è®¡ç®—
+// å‚æ•°: 
+// è¿”å›: æ— 
+// å¤‡æ³¨: è¯¥å‡½æ•°å¯¹ç”¨æˆ·ä¸å¯è§
+// ç‰ˆæœ¬:
 //========================================================================
 static void w_red_err(int *a, int *b, int *r)
 {
@@ -786,19 +787,19 @@ static void w_red_err(int *a, int *b, int *r)
 }
 
 //========================================================================
-// º¯Êı: void circle(int x, int y, int r, int mode)
-// ÃèÊö: ÒÔx,yÎªÔ²ĞÄRÎª°ë¾¶»­Ò»¸öÔ²(mode = 0) or Ô²Ãæ(mode = 1)
-// ²ÎÊı: 
-// ·µ»Ø: ÎŞ
-// ±¸×¢: »­Ô²º¯ÊıÖ´ĞĞ½ÏÂı£¬Èç¹ûMCUÓĞ¿´ÃÅ¹·£¬Çë×÷ºÃÇå¹·µÄ²Ù×÷
-// °æ±¾:
+// å‡½æ•°: void circle(int x, int y, int r, int mode)
+// æè¿°: ä»¥x,yä¸ºåœ†å¿ƒRä¸ºåŠå¾„ç”»ä¸€ä¸ªåœ†(mode = 0) or åœ†é¢(mode = 1)
+// å‚æ•°: 
+// è¿”å›: æ— 
+// å¤‡æ³¨: ç”»åœ†å‡½æ•°æ‰§è¡Œè¾ƒæ…¢ï¼Œå¦‚æœMCUæœ‰çœ‹é—¨ç‹—ï¼Œè¯·ä½œå¥½æ¸…ç‹—çš„æ“ä½œ
+// ç‰ˆæœ¬:
 //      2006/10/16      First version
 //========================================================================
 static void circle(int x, int y, int r, int mode)
 {
 	int arx1=0, ary1, arx2, ary2=0;
 	
-	pos_switch(&x, &y);						//×ø±ê±ä»»
+	pos_switch(&x, &y);						//åæ ‡å˜æ¢
 	x += 4;
 	ary1 = r;
 	arx2 = r;
@@ -818,27 +819,27 @@ static void circle(int x, int y, int r, int mode)
 	}
 }
 //========================================================================
-// º¯Êı: void rectangle(left, top, right, 
+// å‡½æ•°: void rectangle(left, top, right, 
 //		 			 bottom, mode)
-// ÃèÊö: ÒÔx,yÎªÔ²ĞÄRÎª°ë¾¶»­Ò»¸öÔ²(mode = 0) or Ô²Ãæ(mode = 1)
-// ²ÎÊı: left - ¾ØĞÎµÄ×óÉÏ½Çºá×ø±ê£¬·¶Î§0µ½118
-//		 top - ¾ØĞÎµÄ×óÉÏ½Ç×İ×ø±ê£¬·¶Î§0µ½50
-//		 right - ¾ØĞÎµÄÓÒÏÂ½Çºá×ø±ê£¬·¶Î§1µ½119
-//		 bottom - ¾ØĞÎµÄÓÒÏÂ½Ç×İ×ø±ê£¬·¶Î§1µ½51
-//		 mode - »æÖÆÄ£Ê½£¬¿ÉÒÔÊÇÏÂÁĞÊıÖµÖ®Ò»£º
-//				0:	¾ØĞÎ¿ò£¨¿ÕĞÄ¾ØĞÎ£©
-//				1:	¾ØĞÎÃæ£¨ÊµĞÄ¾ØĞÎ£©
-// ·µ»Ø: ÎŞ
-// ±¸×¢: »­Ô²º¯ÊıÖ´ĞĞ½ÏÂı£¬Èç¹ûMCUÓĞ¿´ÃÅ¹·£¬Çë×÷ºÃÇå¹·µÄ²Ù×÷
-// °æ±¾:
+// æè¿°: ä»¥x,yä¸ºåœ†å¿ƒRä¸ºåŠå¾„ç”»ä¸€ä¸ªåœ†(mode = 0) or åœ†é¢(mode = 1)
+// å‚æ•°: left - çŸ©å½¢çš„å·¦ä¸Šè§’æ¨ªåæ ‡ï¼ŒèŒƒå›´0åˆ°118
+//		 top - çŸ©å½¢çš„å·¦ä¸Šè§’çºµåæ ‡ï¼ŒèŒƒå›´0åˆ°50
+//		 right - çŸ©å½¢çš„å³ä¸‹è§’æ¨ªåæ ‡ï¼ŒèŒƒå›´1åˆ°119
+//		 bottom - çŸ©å½¢çš„å³ä¸‹è§’çºµåæ ‡ï¼ŒèŒƒå›´1åˆ°51
+//		 mode - ç»˜åˆ¶æ¨¡å¼ï¼Œå¯ä»¥æ˜¯ä¸‹åˆ—æ•°å€¼ä¹‹ä¸€ï¼š
+//				0:	çŸ©å½¢æ¡†ï¼ˆç©ºå¿ƒçŸ©å½¢ï¼‰
+//				1:	çŸ©å½¢é¢ï¼ˆå®å¿ƒçŸ©å½¢ï¼‰
+// è¿”å›: æ— 
+// å¤‡æ³¨: ç”»åœ†å‡½æ•°æ‰§è¡Œè¾ƒæ…¢ï¼Œå¦‚æœMCUæœ‰çœ‹é—¨ç‹—ï¼Œè¯·ä½œå¥½æ¸…ç‹—çš„æ“ä½œ
+// ç‰ˆæœ¬:
 //========================================================================
 static void rectangle(int left, int top, int right, 
 					int bottom, int mode)
 {
 	unsigned int uitemp;
 	
-	pos_switch(&left, &top);						//×ø±ê±ä»»
-	pos_switch(&right, &bottom);					//×ø±ê±ä»»
+	pos_switch(&left, &top);						//åæ ‡å˜æ¢
+	pos_switch(&right, &bottom);					//åæ ‡å˜æ¢
 	if(left > right){
 		uitemp = left;
 		left = right;
@@ -862,13 +863,13 @@ static void rectangle(int left, int top, int right,
 	}
 }
 //========================================================================
-// º¯Êı: void writ_dot(int x, int y, unsigned int color)
-// ÃèÊö: Ìî³äÒÔx,yÎª×ø±êµÄÏóËØ
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê      color  ÏñËØÑÕÉ« 
-// ·µ»Ø: ÎŞ
-// ±¸×¢: ÕâÀïÒÔ¼°Ö®Ç°µÄËùÓĞxºÍy×ø±êÏµ¶¼ÊÇÓÃ»§²ãµÄ£¬²¢²»ÊÇÊµ¼ÊLCDµÄ×ø±êÌåÏµ
-//		 ±¾º¯ÊıÌá¹©¿É½øĞĞ×ø±ê±ä»»µÄ½Ó¿Ú
-// °æ±¾:
+// å‡½æ•°: void writ_dot(int x, int y, unsigned int color)
+// æè¿°: å¡«å……ä»¥x,yä¸ºåæ ‡çš„è±¡ç´ 
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡      color  åƒç´ é¢œè‰² 
+// è¿”å›: æ— 
+// å¤‡æ³¨: è¿™é‡Œä»¥åŠä¹‹å‰çš„æ‰€æœ‰xå’Œyåæ ‡ç³»éƒ½æ˜¯ç”¨æˆ·å±‚çš„ï¼Œå¹¶ä¸æ˜¯å®é™…LCDçš„åæ ‡ä½“ç³»
+//		 æœ¬å‡½æ•°æä¾›å¯è¿›è¡Œåæ ‡å˜æ¢çš„æ¥å£
+// ç‰ˆæœ¬:
 //========================================================================
 static void writ_dot(int x, int y, unsigned int color)
 {
@@ -902,13 +903,13 @@ static void writ_dot(int x, int y, unsigned int color)
 #endif	
 }
 //========================================================================
-// º¯Êı: unsigned int get_dot(int x, int y)
-// ÃèÊö: »ñÈ¡x,yÎª×ø±êµÄÏóËØ
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê      
-// ·µ»Ø: color  ÏñËØÑÕÉ« 
-// ±¸×¢: ÕâÀïÒÔ¼°Ö®Ç°µÄËùÓĞxºÍy×ø±êÏµ¶¼ÊÇÓÃ»§²ãµÄ£¬²¢²»ÊÇÊµ¼ÊLCDµÄ×ø±êÌåÏµ
-//		 ±¾º¯ÊıÌá¹©¿É½øĞĞ×ø±ê±ä»»µÄ½Ó¿Ú
-// °æ±¾:
+// å‡½æ•°: unsigned int get_dot(int x, int y)
+// æè¿°: è·å–x,yä¸ºåæ ‡çš„è±¡ç´ 
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡      
+// è¿”å›: color  åƒç´ é¢œè‰² 
+// å¤‡æ³¨: è¿™é‡Œä»¥åŠä¹‹å‰çš„æ‰€æœ‰xå’Œyåæ ‡ç³»éƒ½æ˜¯ç”¨æˆ·å±‚çš„ï¼Œå¹¶ä¸æ˜¯å®é™…LCDçš„åæ ‡ä½“ç³»
+//		 æœ¬å‡½æ•°æä¾›å¯è¿›è¡Œåæ ‡å˜æ¢çš„æ¥å£
+// ç‰ˆæœ¬:
 //========================================================================
 static unsigned int get_dot(int x, int y)
 {
@@ -943,13 +944,13 @@ static unsigned int get_dot(int x, int y)
 }
 
 //========================================================================
-// º¯Êı: void clear_dot(int x, int y)
-// ÃèÊö: Çå³ıÒÔx,yÎª×ø±êµÄÏóËØ
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê      
-// ·µ»Ø: ÎŞ 
-// ±¸×¢: ÕâÀïÒÔ¼°Ö®Ç°µÄËùÓĞxºÍy×ø±êÏµ¶¼ÊÇÓÃ»§²ãµÄ£¬²¢²»ÊÇÊµ¼ÊLCDµÄ×ø±êÌåÏµ
-//		 ±¾º¯ÊıÌá¹©¿É½øĞĞ×ø±ê±ä»»µÄ½Ó¿Ú
-// °æ±¾:
+// å‡½æ•°: void clear_dot(int x, int y)
+// æè¿°: æ¸…é™¤ä»¥x,yä¸ºåæ ‡çš„è±¡ç´ 
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡      
+// è¿”å›: æ—  
+// å¤‡æ³¨: è¿™é‡Œä»¥åŠä¹‹å‰çš„æ‰€æœ‰xå’Œyåæ ‡ç³»éƒ½æ˜¯ç”¨æˆ·å±‚çš„ï¼Œå¹¶ä¸æ˜¯å®é™…LCDçš„åæ ‡ä½“ç³»
+//		 æœ¬å‡½æ•°æä¾›å¯è¿›è¡Œåæ ‡å˜æ¢çš„æ¥å£
+// ç‰ˆæœ¬:
 //========================================================================
 static void clear_dot(int x, int y)
 {
@@ -983,13 +984,13 @@ static void clear_dot(int x, int y)
 #endif	
 }
 //========================================================================
-// º¯Êı: void set_dot_addr(int x, int y)
-// ÃèÊö: ÉèÖÃµ±Ç°ĞèÒª²Ù×÷µÄÏóËØµØÖ·
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê      
-// ·µ»Ø: ÎŞ 
-// ±¸×¢: ÕâÀïÒÔ¼°Ö®Ç°µÄËùÓĞxºÍy×ø±êÏµ¶¼ÊÇÓÃ»§²ãµÄ£¬²¢²»ÊÇÊµ¼ÊLCDµÄ×ø±êÌåÏµ
-//		 ±¾º¯ÊıÌá¹©¿É½øĞĞ×ø±ê±ä»»µÄ½Ó¿Ú
-// °æ±¾:
+// å‡½æ•°: void set_dot_addr(int x, int y)
+// æè¿°: è®¾ç½®å½“å‰éœ€è¦æ“ä½œçš„è±¡ç´ åœ°å€
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡      
+// è¿”å›: æ—  
+// å¤‡æ³¨: è¿™é‡Œä»¥åŠä¹‹å‰çš„æ‰€æœ‰xå’Œyåæ ‡ç³»éƒ½æ˜¯ç”¨æˆ·å±‚çš„ï¼Œå¹¶ä¸æ˜¯å®é™…LCDçš„åæ ‡ä½“ç³»
+//		 æœ¬å‡½æ•°æä¾›å¯è¿›è¡Œåæ ‡å˜æ¢çš„æ¥å£
+// ç‰ˆæœ¬:
 //========================================================================
 static void set_dot_addr(int x, int y)
 {
@@ -1023,13 +1024,13 @@ static void set_dot_addr(int x, int y)
 #endif		
 }
 //========================================================================
-// º¯Êı: void pos_switch(unsigned int * x, unsigned int * y)
-// ÃèÊö: ½«»­ÃæµÄ×ø±ê±ä»»ÎªÊµ¼ÊLCDµÄ×ø±êÌåÏµ£¬ÒÔ±ãÓÚ¿ìËÙ»­Ô²ĞÎÒÔ¼°¾ØĞÎ
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê      
-// ·µ»Ø: ÎŞ 
-// ±¸×¢: ÕâÀïÒÔ¼°Ö®Ç°µÄËùÓĞxºÍy×ø±êÏµ¶¼ÊÇÓÃ»§²ãµÄ£¬²¢²»ÊÇÊµ¼ÊLCDµÄ×ø±êÌåÏµ
-//		 ±¾º¯ÊıÌá¹©¿É½øĞĞ×ø±ê±ä»»µÄ½Ó¿Ú
-// °æ±¾:
+// å‡½æ•°: void pos_switch(unsigned int * x, unsigned int * y)
+// æè¿°: å°†ç”»é¢çš„åæ ‡å˜æ¢ä¸ºå®é™…LCDçš„åæ ‡ä½“ç³»ï¼Œä»¥ä¾¿äºå¿«é€Ÿç”»åœ†å½¢ä»¥åŠçŸ©å½¢
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡      
+// è¿”å›: æ—  
+// å¤‡æ³¨: è¿™é‡Œä»¥åŠä¹‹å‰çš„æ‰€æœ‰xå’Œyåæ ‡ç³»éƒ½æ˜¯ç”¨æˆ·å±‚çš„ï¼Œå¹¶ä¸æ˜¯å®é™…LCDçš„åæ ‡ä½“ç³»
+//		 æœ¬å‡½æ•°æä¾›å¯è¿›è¡Œåæ ‡å˜æ¢çš„æ¥å£
+// ç‰ˆæœ¬:
 //========================================================================
 static void pos_switch(unsigned int * x, unsigned int * y)
 {
@@ -1074,12 +1075,12 @@ static void pos_switch(unsigned int * x, unsigned int * y)
 #endif
 }
 //========================================================================
-// º¯Êı: void line_f(int s_x, int s_y, int e_x, int e_y, int mode)
-// ÃèÊö: ÒÔs_x,s_yÎªÆğµã,e_x,e_yÎªÖÕµãÁ¬ĞøÌî³äÒ»ÌõÖ±ÏßÉÏµÄµã.ÓÃÓÚ»­¾ØĞÎ¡¢Ô²
-// ²ÎÊı: x  XÖá×ø±ê     y  YÖá×ø±ê      
-// ·µ»Ø: ÎŞ 
-// ±¸×¢: ÒÔÊµ¼ÊµÄLCD×ø±êÌåÏµÎª×¼
-// °æ±¾:
+// å‡½æ•°: void line_f(int s_x, int s_y, int e_x, int e_y, int mode)
+// æè¿°: ä»¥s_x,s_yä¸ºèµ·ç‚¹,e_x,e_yä¸ºç»ˆç‚¹è¿ç»­å¡«å……ä¸€æ¡ç›´çº¿ä¸Šçš„ç‚¹.ç”¨äºç”»çŸ©å½¢ã€åœ†
+// å‚æ•°: x  Xè½´åæ ‡     y  Yè½´åæ ‡      
+// è¿”å›: æ—  
+// å¤‡æ³¨: ä»¥å®é™…çš„LCDåæ ‡ä½“ç³»ä¸ºå‡†
+// ç‰ˆæœ¬:
 //========================================================================
 static void line_f(int s_x, int s_y, int e_x)//,int e_y)
 {  
@@ -1095,12 +1096,12 @@ static void line_f(int s_x, int s_y, int e_x)//,int e_y)
 		fill_dot_lcd(bmp_color);
 }
 //========================================================================
-// º¯Êı: void clr_screen(void)
-// ÃèÊö: È«ÆÁÒÔ³õÊ¼»¯ÆÁÄ»É«µÄÑÕÉ«½øĞĞÇåÆÁ
-// ²ÎÊı: ÎŞ      
-// ·µ»Ø: ÎŞ 
-// ±¸×¢: ÎŞ
-// °æ±¾:
+// å‡½æ•°: void clr_screen(void)
+// æè¿°: å…¨å±ä»¥åˆå§‹åŒ–å±å¹•è‰²çš„é¢œè‰²è¿›è¡Œæ¸…å±
+// å‚æ•°: æ—       
+// è¿”å›: æ—  
+// å¤‡æ³¨: æ— 
+// ç‰ˆæœ¬:
 //========================================================================
 static void clr_screen(void)
 {  
@@ -1110,7 +1111,7 @@ static void clr_screen(void)
 
 static void ili9341_test(void)
 {
-	ili9341_init();							//LCD³õÊ¼»¯
+	ili9341_init();							//LCDåˆå§‹åŒ–
 	font_set(1,0xf800);
 	put_string(10,10,"Mz Design!");
 //	clr_screen();
@@ -1141,10 +1142,10 @@ static ssize_t ili9341_lcd_write( struct file * file, const u16 __user * buf,
 #ifdef DEBUG
 	printk(KERN_DEBUG "LCD: write\n");
 #endif
-	//access_ok()º¯Êı ¼ì²éÓÃ»§¿Õ¼äÖ¸ÕëÊÇ·ñ¿ÉÓÃ
-	//buf  :   ÓÃ»§¿Õ¼äµÄÖ¸Õë±äÁ¿£¬ÆäÖ¸ÏòÒ»¸öÒª¼ì²éµÄÄÚ´æ¿é¿ªÊ¼´¦¡£
-	//count   :   Òª¼ì²éÄÚ´æ¿éµÄ´óĞ¡¡£
-	//´Ëº¯Êı¼ì²éÓÃ»§¿Õ¼äÖĞµÄÄÚ´æ¿éÊÇ·ñ¿ÉÓÃ¡£Èç¹û¿ÉÓÃ£¬Ôò·µ»ØÕæ(·Ç0Öµ)£¬·ñÔò·µ»Ø¼Ù(0)¡£
+	//access_ok()å‡½æ•° æ£€æŸ¥ç”¨æˆ·ç©ºé—´æŒ‡é’ˆæ˜¯å¦å¯ç”¨
+	//buf  :   ç”¨æˆ·ç©ºé—´çš„æŒ‡é’ˆå˜é‡ï¼Œå…¶æŒ‡å‘ä¸€ä¸ªè¦æ£€æŸ¥çš„å†…å­˜å—å¼€å§‹å¤„ã€‚
+	//count   :   è¦æ£€æŸ¥å†…å­˜å—çš„å¤§å°ã€‚
+	//æ­¤å‡½æ•°æ£€æŸ¥ç”¨æˆ·ç©ºé—´ä¸­çš„å†…å­˜å—æ˜¯å¦å¯ç”¨ã€‚å¦‚æœå¯ç”¨ï¼Œåˆ™è¿”å›çœŸ(é0å€¼)ï¼Œå¦åˆ™è¿”å›å‡(0)ã€‚
 	if (!access_ok(VERIFY_READ, buf, count))
 		return -EFAULT;
 
@@ -1299,7 +1300,7 @@ static int __init ili9341_lcd_init(void)
 //	mdelay(5000);
 */
 //	font_set(1,1);
-//	put_string(0, 0, ili9341_lcd_logo);//ÔÚÖ¸¶¨Î»ÖÃÏÔÊ¾×Ö·û´®
+//	put_string(0, 0, ili9341_lcd_logo);//åœ¨æŒ‡å®šä½ç½®æ˜¾ç¤ºå­—ç¬¦ä¸²
 	
 	mutex_unlock(&ili9341_lcd_mutex);
 	printk(KERN_EMERG "ili9341_lcd\n");

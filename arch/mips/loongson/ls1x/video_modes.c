@@ -1,8 +1,8 @@
 /* 自定义fb_videomode */
 static struct fb_videomode video_modes[] = {
-	[0] = {	// HX8238-D控制器
+	{	// HX8238-D控制器
 		.name	= "HX8238-D",
-		.pixclock	= 104837,
+		.pixclock	= 139784,
 		.refresh	= 80,
 		.xres		= 320,
 		.yres		= 240,
@@ -14,7 +14,21 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 8,	// 248-240
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-/*	[0] = {	// NT39016D控制器
+	{	// ILI9341控制器
+		.name	= "ILI9341",
+		.pixclock	= 155555,
+		.refresh	= 70,
+		.xres		= 240,
+		.yres		= 320,
+		.hsync_len	= 10,
+		.left_margin	= 20,
+		.right_margin	= 10,
+		.vsync_len	= 2,
+		.upper_margin	= 2,
+		.lower_margin	= 4,
+//		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
+	},
+/*	{	// NT39016D控制器
 		.name	= "NT39016D",
 		.pixclock	= 4000,
 		.refresh	= 60,
@@ -28,7 +42,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 10,	// 250-240
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},*/
-	[1] = {	//AT043TN24
+	{	//AT043TN24
 		.name	= "AT043TN24",
 		.pixclock	= 110229,
 		.refresh	= 60,
@@ -42,7 +56,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 1,
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[2] = {	// jbt6k74控制器
+	{	// jbt6k74控制器
 		.name	= "jbt6k74",
 		.pixclock	= 22000,
 		.refresh	= 60,
@@ -56,7 +70,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 2,	// 642-240
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[3] = {	//AT056TN52
+	{	//AT056TN52
 		.name	= "AT056TN52",
 		.pixclock	= 32552,
 		.refresh	= 60,
@@ -70,7 +84,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 32,	//
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[4] = {	//AT070TN93
+	{	//AT070TN93
 		.name	= "AT070TN93",
 		.pixclock	= 32552,
 		.refresh	= 60,
@@ -84,7 +98,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 1,	// 481-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[5] = {	//VESA 800x600@75Hz
+	{	//VESA 800x600@75Hz
 		.name	= "VESA",
 		.pixclock	= 20202,
 		.refresh	= 75,
@@ -98,7 +112,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 1,	// 481-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[6] = {	//VESA 1024x768@60Hz
+	{	//VESA 1024x768@60Hz
 		.name	= "VESA",
 		.pixclock	= 15384,
 		.refresh	= 60,
@@ -112,7 +126,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 3,
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[7] = {	//VESA 1280x1024@75Hz
+	{	//VESA 1280x1024@75Hz
 		.name	= "VESA",
 		.pixclock	= 7400,
 		.refresh	= 75,
@@ -126,7 +140,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 1,
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	[8] = {	//VESA 1440x900@75Hz
+	{	//VESA 1440x900@75Hz
 		.name	= "VESA",
 		.pixclock	= 7312,
 		.refresh	= 75,
