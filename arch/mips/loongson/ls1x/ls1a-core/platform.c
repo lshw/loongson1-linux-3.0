@@ -593,6 +593,55 @@ struct platform_device ls1x_fb1_device = {
 #endif	//#ifdef CONFIG_LS1X_FB0
 #endif	//#if defined(CONFIG_FB_LOONGSON1)
 
+#define GPIO_BACKLIGHT_CTRL	1
+#ifdef CONFIG_BACKLIGHT_GENERIC
+#include <linux/backlight.h>
+static void ls1x_bl_set_intensity(int intensity)
+{
+	if (intensity)
+		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 1);
+	else
+		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 0);
+}
+
+static struct generic_bl_info ls1x_bl_info = {
+	.name			= "ls1x-bl",
+	.max_intensity		= 0xff,
+	.default_intensity	= 0xff,
+	.set_bl_intensity	= ls1x_bl_set_intensity,
+};
+
+static struct platform_device ls1x_bl_dev = {
+	.name			= "generic-bl",
+	.id			= 1,
+	.dev = {
+		.platform_data	= &ls1x_bl_info,
+	},
+};
+#endif //#ifdef CONFIG_BACKLIGHT_GENERIC
+
+#ifdef CONFIG_LCD_PLATFORM
+#include <video/platform_lcd.h>
+static void ls1x_lcd_power_set(struct plat_lcd_data *pd,
+				   unsigned int power)
+{
+	if (power)
+		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 1);
+	else
+		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 0);
+}
+
+static struct plat_lcd_data ls1x_lcd_power_data = {
+	.set_power		= ls1x_lcd_power_set,
+};
+
+static struct platform_device ls1x_lcd_powerdev = {
+	.name			= "platform-lcd",
+	.dev.parent		= &ls1x_fb0_device.dev,
+	.dev.platform_data	= &ls1x_lcd_power_data,
+};
+#endif //#ifdef CONFIG_LCD_PLATFORM
+
 //gmac0
 #ifdef CONFIG_LS1B_GMAC0_OPEN
 static struct resource ls1b_mac0_resources[] = {
@@ -1622,6 +1671,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
+#ifdef CONFIG_BACKLIGHT_GENERIC
+	&ls1x_bl_dev
+#endif
+#ifdef CONFIG_LCD_PLATFORM
+	&ls1x_lcd_powerdev,
+#endif
 };
 
 #define AHCI_PCI_BAR  5
@@ -1757,9 +1812,14 @@ int __init ls1b_platform_init(void)
 	*(volatile int *)0xbfd00424 |= 0x80000000;/* ls1g usb reset stop */
 #endif	//CONFIG_LS1A_MACH
 
+#ifdef CONFIG_BACKLIGHT_GENERIC
+	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
+#endif
+#ifdef CONFIG_LCD_PLATFORM
+	gpio_request(GPIO_BACKLIGHT_CTRL, "lcd_enable");
+#endif
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 
 arch_initcall(ls1b_platform_init);
-
 
