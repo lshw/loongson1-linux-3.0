@@ -3,6 +3,8 @@
 
 #include <ls1b_board.h>
 #include <linux/fb.h>
+#include <linux/i2c.h>
+#include <linux/i2c-algo-bit.h>
 
 /*
  * Buffer pixel format
@@ -20,10 +22,23 @@
 /*
  * LS1X LCD controller private state.
  */
+struct ls1xfb_info;
+
+struct ls1xfb_i2c_chan {
+	struct ls1xfb_info *par;
+	struct i2c_adapter adapter;
+	struct i2c_algo_bit_data algo;
+	unsigned int sda_pin;
+	unsigned int scl_pin;
+};
+
 struct ls1xfb_info {
 	struct device		*dev;
 	struct clk		*clk;
 	struct fb_info		*info;
+
+	struct ls1xfb_i2c_chan chan;
+	unsigned char *edid;
 
 	void __iomem		*reg_base;
 	dma_addr_t		fb_start_dma;
@@ -65,5 +80,9 @@ struct ls1b_vga {
 	unsigned int ls1b_pll_div;
 };
 #endif
+
+extern int ls1xfb_probe_i2c_connector(struct fb_info *info, u8 **out_edid);
+extern void ls1xfb_create_i2c_busses(struct fb_info *info);
+extern void ls1xfb_delete_i2c_busses(struct fb_info *info);
 
 #endif /* __ASM_MACH_LS1XFB_H */

@@ -678,6 +678,13 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	 */
 	set_mode(fbi, &info->var, mi->modes, mi->pix_fmt, 1);
 
+#if defined(CONFIG_FB_LS1X_I2C)
+	ls1xfb_create_i2c_busses(info);
+	ls1xfb_probe_i2c_connector(info, &fbi->edid);
+	fb_edid_to_monspecs(fbi->edid, &info->monspecs);
+	kfree(fbi->edid);
+#endif
+
 	fb_videomode_to_modelist(mi->modes, mi->num_modes, &info->modelist);
 
 	/*

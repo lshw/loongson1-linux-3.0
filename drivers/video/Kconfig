@@ -1967,6 +1967,19 @@ config LS1X_FB1
 	depends on LS1A_MACH
 	default n
 
+config FB_LS1X_I2C
+	bool "Enable DDC2 Support"
+	depends on FB_LOONGSON1
+	select FB_DDC
+	---help---
+		This enables I2C support for Loongson1.  This is used
+		only for getting EDID information from the attached display
+		allowing for robust video mode handling and switching.
+
+		Because fbdev-2.6 requires that drivers must be able to
+		independently validate video mode parameters, you should say Y
+		here.
+
 config FB_PXA168
 	tristate "PXA168/910 LCD framebuffer support"
 	depends on FB && (CPU_PXA168 || CPU_PXA910)
