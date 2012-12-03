@@ -535,6 +535,25 @@ static struct fb_ops ls1xfb_ops = {
 //	.fb_ioctl	= ls1xfb_ioctl,	/* 可用于LCD控制器的Switch Panel位，实现显示单元0和1的相互复制 */
 };
 
+static void ls1x_update_var(struct fb_var_screeninfo *var,
+			      const struct fb_videomode *modedb)
+{
+	var->xres = var->xres_virtual = modedb->xres;
+	var->yres = modedb->yres;
+        if (var->yres_virtual < var->yres)
+	    var->yres_virtual = var->yres;
+        var->xoffset = var->yoffset = 0;
+        var->pixclock = modedb->pixclock;
+        var->left_margin = modedb->left_margin;
+        var->right_margin = modedb->right_margin;
+        var->upper_margin = modedb->upper_margin;
+        var->lower_margin = modedb->lower_margin;
+        var->hsync_len = modedb->hsync_len;
+        var->vsync_len = modedb->vsync_len;
+        var->sync = modedb->sync;
+        var->vmode = modedb->vmode;
+}
+
 static int __devinit ls1xfb_init_mode(struct fb_info *info,
 			      struct ls1xfb_mach_info *mi)
 {
@@ -561,7 +580,11 @@ static int __devinit ls1xfb_init_mode(struct fb_info *info,
 //		m->refresh = refresh;
 //		m = fb_find_nearest_mode(m, &info->modelist);
 //		if (m)
+			#if defined(CONFIG_FB_LS1X_I2C)
+			ls1x_update_var(&info->var, m);
+			#else
 			fb_videomode_to_var(&info->var, m);
+			#endif
 	}
 	pr_info("%s:%dx%d-%d@%d\n", m->name, 
 		var->xres, var->yres, var->bits_per_pixel, refresh);
@@ -676,16 +699,18 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	/*
 	 * Set video mode according to platform data.
 	 */
-	set_mode(fbi, &info->var, mi->modes, mi->pix_fmt, 1);
-
-#if defined(CONFIG_FB_LS1X_I2C)
+	#if defined(CONFIG_FB_LS1X_I2C)
 	ls1xfb_create_i2c_busses(info);
 	ls1xfb_probe_i2c_connector(info, &fbi->edid);
 	fb_edid_to_monspecs(fbi->edid, &info->monspecs);
 	kfree(fbi->edid);
-#endif
-
+	fb_videomode_to_modelist(info->monspecs.modedb,
+				 info->monspecs.modedb_len,
+				 &info->modelist);
+	#else
+	set_mode(fbi, &info->var, mi->modes, mi->pix_fmt, 1);
 	fb_videomode_to_modelist(mi->modes, mi->num_modes, &info->modelist);
+	#endif
 
 	/*
 	 * init video mode data.

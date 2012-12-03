@@ -17,7 +17,7 @@
 
 #include "edid.h"
 
-#define SAVAGE_DDC 	0x50
+#define LS1X_DDC 	0x50
 
 #define VGA_CR_IX	0x3d4
 #define VGA_CR_DATA	0x3d5
@@ -117,7 +117,7 @@ void ls1xfb_create_i2c_busses(struct fb_info *info)
 //		par->chan.par = NULL;
 //	}
 
-	ls1x_setup_i2c_bus(&par->chan, "SAVAGE DDC2");
+	ls1x_setup_i2c_bus(&par->chan, "LS1X DDC2");
 }
 
 void ls1xfb_delete_i2c_busses(struct fb_info *info)
