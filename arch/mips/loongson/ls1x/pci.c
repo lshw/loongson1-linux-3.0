@@ -35,7 +35,7 @@
 #include <linux/init.h>
 
 extern struct pci_ops ls1a_pci_pci_ops;
-extern void prom_printf(char * fmt, ...);
+//extern void prom_printf(char * fmt, ...);
 
 static struct resource ls1a_pci_mem_resource = {
         .name   = "LS232 PCI MEM",
@@ -82,8 +82,8 @@ static int __init pcibios_init(void)
 
 #ifdef CONFIG_TRACE_BOOT
 #endif
-	prom_printf("arch_initcall:pcibios_init\n");
-	prom_printf("register_pci_controller : %x\n",&ls1a_pci_controller);
+	pr_info("arch_initcall:pcibios_init\n");
+	pr_info("register_pci_controller : %x\n",&ls1a_pci_controller);
 
 	if(!disablepci)
 	register_pci_controller(&ls1a_pci_controller);
