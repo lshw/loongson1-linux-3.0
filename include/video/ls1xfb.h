@@ -81,8 +81,18 @@ struct ls1b_vga {
 };
 #endif
 
+#if defined(CONFIG_FB_LS1X_I2C)
 extern int ls1xfb_probe_i2c_connector(struct fb_info *info, u8 **out_edid);
 extern void ls1xfb_create_i2c_busses(struct fb_info *info);
 extern void ls1xfb_delete_i2c_busses(struct fb_info *info);
+#endif
+
+#if defined(CONFIG_FB_GC300_ACCEL)
+void gc300_hw_init(struct fb_info *info);
+int gc300fb_sync(struct fb_info *info);
+void gc300fb_copyarea(struct fb_info *info, const struct fb_copyarea *region);
+void gc300fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect);
+void gc300fb_imageblit(struct fb_info *info, const struct fb_image *image);
+#endif
 
 #endif /* __ASM_MACH_LS1XFB_H */
