@@ -120,40 +120,11 @@ static void set_pix_fmt(struct fb_var_screeninfo *var, int pix_fmt)
 	}
 }
 
-static void set_mode(struct ls1xfb_info *fbi, struct fb_var_screeninfo *var,
-		     struct fb_videomode *mode, int pix_fmt, int ystretch)
-{
-	struct fb_info *info = fbi->info;
-
-	set_pix_fmt(var, pix_fmt);
-
-	var->xres = mode->xres;
-	var->yres = mode->yres;
-	var->xres_virtual = max(var->xres, var->xres_virtual);
-	if (ystretch)
-		var->yres_virtual = info->fix.smem_len /
-			(var->xres_virtual * (var->bits_per_pixel >> 3));
-	else
-		var->yres_virtual = max(var->yres, var->yres_virtual);
-	var->grayscale = 0;
-	var->accel_flags = FB_ACCEL_NONE;
-	var->pixclock = mode->pixclock;
-	var->left_margin = mode->left_margin;
-	var->right_margin = mode->right_margin;
-	var->upper_margin = mode->upper_margin;
-	var->lower_margin = mode->lower_margin;
-	var->hsync_len = mode->hsync_len;
-	var->vsync_len = mode->vsync_len;
-	var->sync = mode->sync;
-	var->vmode = FB_VMODE_NONINTERLACED;
-	var->rotate = FB_ROTATE_UR;
-}
-
 static int ls1xfb_check_var(struct fb_var_screeninfo *var,
 			      struct fb_info *info)
 {
 	struct ls1xfb_info *fbi = info->par;
-	int pix_fmt;
+	int pix_fmt, mode_valid = 0;
 
 	/*
 	 * Determine which pixel format we're going to use.
@@ -163,6 +134,31 @@ static int ls1xfb_check_var(struct fb_var_screeninfo *var,
 		return pix_fmt;
 	set_pix_fmt(var, pix_fmt);
 	fbi->pix_fmt = pix_fmt;
+
+#if 0
+	if (!info->monspecs.hfmax || !info->monspecs.vfmax ||
+	    !info->monspecs.dclkmax || !fb_validate_mode(var, info))
+		mode_valid = 1;
+
+	/* calculate modeline if supported by monitor */
+	if (!mode_valid && info->monspecs.gtf) {
+		if (!fb_get_mode(FB_MAXTIMINGS, 0, var, info))
+			mode_valid = 1;
+	}
+#endif
+	if (!mode_valid) {
+		const struct fb_videomode *mode;
+
+		mode = fb_find_best_mode(var, &info->modelist);
+		if (mode) {
+//			ls1x_update_var(var, mode);
+			fb_videomode_to_var(var, mode);
+			mode_valid = 1;
+		}
+	}
+
+	if (!mode_valid && info->monspecs.modedb_len)
+		return -EINVAL;
 
 	/*
 	 * Basic geometry sanity checks.
@@ -717,14 +713,17 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	 */
 	#if defined(CONFIG_FB_LS1X_I2C)
 	ls1xfb_create_i2c_busses(info);
-	ls1xfb_probe_i2c_connector(info, &fbi->edid);
-	fb_edid_to_monspecs(fbi->edid, &info->monspecs);
-	kfree(fbi->edid);
-	fb_videomode_to_modelist(info->monspecs.modedb,
-				 info->monspecs.modedb_len,
-				 &info->modelist);
+	if (ls1xfb_probe_i2c_connector(info, &fbi->edid)) {
+		/* 使用自定义modes */
+		fb_videomode_to_modelist(mi->modes, mi->num_modes, &info->modelist);
+	} else {
+		fb_edid_to_monspecs(fbi->edid, &info->monspecs);
+		kfree(fbi->edid);
+		fb_videomode_to_modelist(info->monspecs.modedb,
+					 info->monspecs.modedb_len,
+					 &info->modelist);
+	}
 	#else
-	set_mode(fbi, &info->var, mi->modes, mi->pix_fmt, 1);
 	fb_videomode_to_modelist(mi->modes, mi->num_modes, &info->modelist);
 	#endif
 

@@ -22,8 +22,15 @@
 #define VGA_CR_IX	0x3d4
 #define VGA_CR_DATA	0x3d5
 
+//#if defined(CONFIG_LS1A_CLOUD_TERMIAL)
+#if defined(CONFIG_LS1A_MACH)
 #define SCL_GPIO	64
 #define SDA_GPIO	65
+//#elif defined(CONFIG_LS1B_CORE_BOARD)
+#elif defined(CONFIG_LS1B_MACH)
+#define SCL_GPIO	32
+#define SDA_GPIO	33
+#endif
 
 static void ls1x_gpio_setscl(void *data, int val)
 {
