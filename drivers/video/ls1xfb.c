@@ -1,4 +1,5 @@
 /*
+ *  Based partly on pxa168fb.c
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License. See the file COPYING in the main directory of this archive for
  *  more details.
@@ -535,6 +536,7 @@ static struct fb_ops ls1xfb_ops = {
 //	.fb_ioctl	= ls1xfb_ioctl,	/* 可用于LCD控制器的Switch Panel位，实现显示单元0和1的相互复制 */
 };
 
+#if defined(CONFIG_FB_LS1X_I2C)
 static void ls1x_update_var(struct fb_var_screeninfo *var,
 			      const struct fb_videomode *modedb)
 {
@@ -553,6 +555,7 @@ static void ls1x_update_var(struct fb_var_screeninfo *var,
         var->sync = modedb->sync;
         var->vmode = modedb->vmode;
 }
+#endif
 
 static int __devinit ls1xfb_init_mode(struct fb_info *info,
 			      struct ls1xfb_mach_info *mi)
@@ -779,6 +782,9 @@ failed_free_cmap:
 failed_free_clk:
 	clk_disable(fbi->clk);
 failed_free_fbmem:
+#ifdef CONFIG_FB_LS1X_I2C
+	ls1xfb_delete_i2c_busses(info);
+#endif
 	dma_free_coherent(fbi->dev, info->fix.smem_len,
 			info->screen_base, fbi->fb_start_dma);
 failed_free_info:
@@ -804,6 +810,10 @@ static int __devexit ls1xfb_remove(struct platform_device *pdev)
 
 	if (info->cmap.len)
 		fb_dealloc_cmap(&info->cmap);
+
+#ifdef CONFIG_FB_LS1X_I2C
+	ls1xfb_delete_i2c_busses(info);
+#endif
 
 	dma_free_coherent(fbi->dev, PAGE_ALIGN(info->fix.smem_len),
 				info->screen_base, info->fix.smem_start);

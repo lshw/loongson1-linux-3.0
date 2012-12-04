@@ -353,7 +353,7 @@ static void sb2f_audio_timeout(unsigned long data)
 static irqreturn_t ac97_dma_read_intr(int irq, void *private)
 {
 	audio_stream_t *s = (audio_stream_t *) private;
-	audio_dmadesc_t *desc,**pdesc;
+	audio_dmadesc_t *desc;
 	unsigned long flags;
 
 	if(list_empty(&s->run_list)) {
@@ -527,7 +527,6 @@ static void sb2f_open_set(int mode)
 static void sb2f_def_set(void)
 {
 	static unsigned short sample_rate = 0xac44;
-	int i;
 
 	/*ac97 config*/
 //	write_reg(OCCR,0x6b6b); //OCCR0   L&& R enable ; 3/4 empty; dma enabled;8 bits;var rate(0x202);
@@ -609,7 +608,6 @@ static int sb2f_audio_write(struct file *file, const char *buffer, size_t count,
 static int sb2f_copy_to_user(audio_stream_t *s, char *buffer, u32 count)
 {
 	audio_dmadesc_t *desc;
-	audio_dmadesc_t **pdesc;
 	int ret = 0;
 
 	while(!list_empty(&s->done_list) && count) {

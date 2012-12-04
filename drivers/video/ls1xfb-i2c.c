@@ -124,6 +124,8 @@ void ls1xfb_delete_i2c_busses(struct fb_info *info)
 {
 	struct ls1xfb_info *par = info->par;
 
+	gpio_free(par->chan.sda_pin);
+	gpio_free(par->chan.scl_pin);
 	if (par->chan.par)
 		i2c_del_adapter(&par->chan.adapter);
 
