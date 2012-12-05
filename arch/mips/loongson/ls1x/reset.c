@@ -10,6 +10,7 @@
 
 #include <asm/reboot.h>
 
+#include <asm/gpio.h>
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 
 static void ls1x_restart(char *command)
@@ -19,6 +20,10 @@ static void ls1x_restart(char *command)
 	writel(1, wdt_base + WDT_EN);
 	writel(1, wdt_base + WDT_TIMER);
 	writel(1, wdt_base + WDT_SET);
+
+#ifdef CONFIG_LS1A_CLOUD_TERMIAL
+	ls1b_gpio_direction_output(NULL, 0, 0);
+#endif
 	
 	while (1) {
 		__asm__(".set push;\n"
