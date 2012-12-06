@@ -88,6 +88,7 @@ extern void ls1xfb_delete_i2c_busses(struct fb_info *info);
 #endif
 
 #if defined(CONFIG_FB_GC300_ACCEL)
+void gc300_set_par(struct fb_info *info);
 void gc300_hw_init(struct fb_info *info);
 int gc300fb_sync(struct fb_info *info);
 void gc300fb_copyarea(struct fb_info *info, const struct fb_copyarea *region);

@@ -483,7 +483,7 @@ static int ls1xfb_set_par(struct fb_info *info)
 	writel(x | LS1X_FB_PANEL_CONF_DE, fbi->reg_base + LS1X_FB_PANEL_CONF);
 
 #if defined(CONFIG_FB_GC300_ACCEL)
-	gc300_hw_init(info);
+	gc300_set_par(info);
 #endif
 
 	return 0;
@@ -743,6 +743,10 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	 * enable controller clock
 	 */
 	clk_enable(fbi->clk);
+
+#if defined(CONFIG_FB_GC300_ACCEL)
+	gc300_hw_init(info);
+#endif
 
 	/* init ls1x lcd controller */
 	{

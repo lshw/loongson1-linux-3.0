@@ -912,17 +912,9 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 	{	/* DataFlash chip */
 		.modalias	= "w25q64",		//"m25p80",
 		.bus_num 		= 0,
-		.chip_select	= 0,
+		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
-	},
-#endif
-#ifdef CONFIG_SPI_MCP3201
-	{	/* ADC chip */
-		.modalias	= "mcp3201",
-		.bus_num 		= 0,
-		.chip_select	= 0,
-		.max_speed_hz	= 80000000,
 	},
 #endif
 #ifdef CONFIG_TOUCHSCREEN_ADS7846

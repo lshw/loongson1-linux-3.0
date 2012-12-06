@@ -15,31 +15,10 @@
 
 gcSURFACEINFO gcDisplaySurface;
 
-void gc300_hw_init(struct fb_info *info)
+void gc300_set_par(struct fb_info *info)
 {
 	struct ls1xfb_info *fbi = info->par;
 	struct fb_var_screeninfo *var = &info->var;
-
-	*(volatile int *)0xbfd00420 |= 0x00100000;	/* 关闭GPU */
-	mdelay(100);
-	do {
-		*(volatile int *)0xbfd00420 &= ~0x00100000;	/* 使能GPU */
-	} while ((*(volatile int *)0xbfd00420 & 0x00100000) != 0);
-	mdelay(100);
-
-	// Set register base address.
-	gcREG_BASE = 0xBC200000;	/* gc300寄存器基地址 */
-
-//	gcVIDEOBASE = 0xA2000000;
-//	gcVIDEOSIZE = 0x2000000;
-	gcVIDEOSIZE = 64 * 1024;
-	gcVIDEOBASE = kmalloc(sizeof(UINT32) * gcVIDEOSIZE, GFP_KERNEL);
-
-	// Init memory.
-	gcMemReset();
-
-	// Init target surface.
-	gcDisplaySurface.address = fbi->fb_start_dma;	/* 固定 */
 	/* 可变 */
 	gcDisplaySurface.stride  = var->xres_virtual * var->bits_per_pixel / 8;
 	switch(fbi->pix_fmt) {
@@ -69,10 +48,36 @@ void gc300_hw_init(struct fb_info *info)
 	// Init clipping.
 	gcDisplaySurface.clip.left   = 0;
 	gcDisplaySurface.clip.top    = 0;
-	gcDisplaySurface.clip.right  = var->xres; 
+	gcDisplaySurface.clip.right  = var->xres;
 	gcDisplaySurface.clip.bottom = var->yres;
 
 	gcSelect2DPipe();
+}
+
+void gc300_hw_init(struct fb_info *info)
+{
+	struct ls1xfb_info *fbi = info->par;
+
+	*(volatile int *)0xbfd00420 |= 0x00100000;	/* 关闭GPU */
+	mdelay(100);
+	do {
+		*(volatile int *)0xbfd00420 &= ~0x00100000;	/* 使能GPU */
+	} while ((*(volatile int *)0xbfd00420 & 0x00100000) != 0);
+	mdelay(100);
+
+	// Set register base address.
+	gcREG_BASE = 0xbc200000;	/* gc300寄存器基地址 */
+
+	gcVIDEOSIZE = 64 * 1024;
+	gcVIDEOBASE = kmalloc(sizeof(UINT32) * gcVIDEOSIZE, GFP_KERNEL);
+
+	// Init memory.
+	gcMemReset();
+
+	// Init target surface.
+	gcDisplaySurface.address = fbi->fb_start_dma;	/* 固定 */
+
+//	gc300_set_var(info);
 }
 
 void gc300_remove(void)

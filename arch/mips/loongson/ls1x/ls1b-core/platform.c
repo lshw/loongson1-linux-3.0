@@ -955,7 +955,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 	{	/* DataFlash chip */
 		.modalias	= "w25q64",		//"m25p80",
 		.bus_num 		= 0,
-		.chip_select	= 0,
+		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
 	},
@@ -964,7 +964,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 	{	/* ADC chip */
 		.modalias	= "mcp3201",
 		.bus_num 		= 0,
-		.chip_select	= 0,
+		.chip_select	= SPI0_CS3,
 		.max_speed_hz	= 80000000,
 	},
 #endif
