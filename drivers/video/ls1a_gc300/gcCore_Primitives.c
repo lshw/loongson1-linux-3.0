@@ -310,6 +310,7 @@ extern void gc_dump_cmdbuf(void);
 void gcStart(void)
 {
 	int i;
+	int timeout = 204800;
 	UINT32 idle;
 	UINT32 my_gc_cmdbufaddr = gcCMDBUFADDR;
 
@@ -332,19 +333,16 @@ void gcStart(void)
 	//zgj-2010-3-24 for ( i = 0; i < 5000; i++)
 	for ( i = 0; i < 500000; i++) {
 		idle = gcReportIdle(NULL);
-	#if 0
-		if(idle != 0x000000FF)
-		printk("%d:0x%x \n",i,idle);
-	#endif
-		//zgj if (!(idle ^ 0x7FFFFFFF)) break;
 		if (!(idle ^ 0x000000FF)) break;
-//		apSleep(1);
 	}
 
-	//zgj if (idle ^ 0x3FFFFFFF)
 	if (idle ^ 0x000000FF) {
 		printk("gcStart: chip has not become idle: 0x%08X\n", idle);
 	}
+
+//	do {
+//		idle = gcReportIdle(NULL) & 0xff;
+//	} while ((idle != 0xff) && (timeout-- > 0));
 
 	// Reset the buffer.
 	gcCMDBUFCURRADDR = gcCMDBUFADDR;
