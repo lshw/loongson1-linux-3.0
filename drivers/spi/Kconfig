@@ -73,14 +73,6 @@ config LS1B_SPI1
 	help
 	  This is the driver for the Loongson 1B SOC SPI Controller 1.
 	  
-config SPI_MCP3201
-	tristate "ls1b adc mcp3201 chip"
-	depends on SPI_MASTER && LS1B_SPI
-	default n
-	help
-	  SPI driver for adc mcp3201 chip
-	  
-
 config SPI_ALTERA
 	tristate "Altera SPI Controller"
 	select SPI_BITBANG

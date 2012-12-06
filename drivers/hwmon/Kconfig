@@ -39,6 +39,15 @@ config HWMON_DEBUG_CHIP
 
 comment "Native drivers"
 
+config SPI_MCP3201
+	tristate "MCP3201 adc chip"
+	depends on SPI_MASTER && EXPERIMENTAL
+	help
+	  This adc driver is base on spi-bus.
+	  This driver can also be built as a module.  If so, the module
+	  will be called adcxx.
+
+
 config SENSORS_ABITUGURU
 	tristate "Abit uGuru (rev 1 & 2)"
 	depends on X86 && DMI && EXPERIMENTAL
