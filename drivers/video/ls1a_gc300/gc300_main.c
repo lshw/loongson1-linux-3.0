@@ -66,7 +66,7 @@ void gc300_hw_init(struct fb_info *info)
 	mdelay(100);
 
 	// Set register base address.
-	gcREG_BASE = 0xbc200000;	/* gc300寄存器基地址 */
+//	gcREG_BASE = 0xbc200000;	/* gc300寄存器基地址 */
 
 	gcVIDEOSIZE = 64 * 1024;
 	gcVIDEOBASE = kmalloc(sizeof(UINT32) * gcVIDEOSIZE, GFP_KERNEL);

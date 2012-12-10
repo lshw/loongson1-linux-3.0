@@ -105,27 +105,14 @@ UINT64 SETBITS64(UINT64* Data, const int Start, const int End, const UINT64 Valu
 	return *Data;
 }
 
-void gcPoke(UINT32 Address, UINT32 Data)
+void gcPoke(UINT32 *Address, UINT32 Data)
 {
-	if(!(Address & 0x80000000))
-		Address |= 0xA0000000;
-	if((Data & 0xFF000000)==0xA2000000) {
-	#ifdef MY_POKE_GPU_DEBUG
-		printk("org data : 0x%x\n",Data);
-	#endif
-		Data &= 0x0FFFFFFF;
-	}
-#ifdef MY_POKE_GPU_DEBUG
-	printk("===========poke %p : 0x%8x  ==========\n",Address,Data);
-#endif
-	*(PUINT32) Address = Data;
+	*Address = Data;
 }
 
-UINT32 gcPeek(UINT32 Address)
+UINT32 gcPeek(UINT32 *Address)
 {
-	if(!(Address & 0x80000000))
-		Address |= 0xA0000000;
-	return *(PUINT32) Address;
+	return *Address;
 }
 
 UINT32 gcGetNextColor16(UINT32 Color)

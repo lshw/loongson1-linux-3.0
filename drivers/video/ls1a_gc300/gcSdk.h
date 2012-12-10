@@ -87,7 +87,7 @@ typedef void*		PVOID;
 #include "gcUtilities.h"
 
 // Register base location.
-extern UINT32 gcREG_BASE;
+//extern UINT32 gcREG_BASE;
 
 // Memory allocation values.
 extern UINT32 gcRAMSIZE;
@@ -98,12 +98,12 @@ extern UINT32 gcVIDEOSIZE;	/* fb显存大小 */
 
 extern UINT32 gcHEAPBASE;
 extern UINT32 gcSTACKBASE;
-extern UINT32 gcVIDEOBASE;	/* fb显示基地址 */
+extern UINT32 *gcVIDEOBASE;	/* fb显示基地址 */
 
 // Command buffer.
-extern UINT32 gcCMDBUFADDR;
+extern UINT32 *gcCMDBUFADDR;
 extern UINT32 gcCMDBUFSIZE;
-extern UINT32 gcCMDBUFCURRADDR;
+extern UINT32 *gcCMDBUFCURRADDR;
 extern UINT32 gcCMDBUFCURRSIZE;
 
 // Display surface.

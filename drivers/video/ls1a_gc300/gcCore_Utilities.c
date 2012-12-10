@@ -2,18 +2,19 @@
 #include <linux/errno.h>
 #include <linux/mm.h>
 #include "gcSdk.h"
-//#include "common.h"
 
-UINT32 gcREG_BASE = 0xBC200000;	/* gc300寄存器基地址 */
+//UINT32 gcREG_BASE = 0xBC200000;	/* gc300寄存器基地址 */
 
 UINT32 gcReadReg(UINT32 Address)
 {
-	return *(PUINT32) (gcREG_BASE + (Address << 2));
+//	return *(PUINT32) (gcREG_BASE + (Address << 2));
+	return *(volatile unsigned int *)(0xBC200000 + (Address << 2));
 }
 
 void gcWriteReg(UINT32 Address, UINT32 Data)
 {
-	*(PUINT32) (gcREG_BASE + (Address << 2)) = Data;
+//	*(PUINT32) (gcREG_BASE + (Address << 2)) = Data;
+	*(volatile unsigned int *)(0xBC200000 + (Address << 2)) = Data;
 }
 
 UINT32 gcReportIdle(char* Message)

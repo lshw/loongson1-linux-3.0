@@ -27,13 +27,13 @@ static UINT32 g_gcPageTableIndex;	/* 页表索引 */
 #endif
 
 // The address of the next block of memory to be allocated.
-static UINT32 g_gcCurrAddr;
+static UINT32 *g_gcCurrAddr;
 static UINT32 g_gcCurrSize;
 
 // Command buffer.
-UINT32 gcCMDBUFADDR;	/* 命令缓存地址 */
+UINT32 *gcCMDBUFADDR;	/* 命令缓存地址 */
 UINT32 gcCMDBUFSIZE;	/* 命令缓存大小 */
-UINT32 gcCMDBUFCURRADDR;	/* 当前命令缓存地址 */
+UINT32 *gcCMDBUFCURRADDR;	/* 当前命令缓存地址 */
 UINT32 gcCMDBUFCURRSIZE;	/* 当前命令缓存大小 */
 
 // Allocation history.
@@ -48,7 +48,7 @@ UINT32 gcVIDEOSIZE;	/* fb显存大小 */
 
 UINT32 gcHEAPBASE;
 UINT32 gcSTACKBASE;
-UINT32 gcVIDEOBASE;	/* fb显示基地址 */
+UINT32 *gcVIDEOBASE;	/* fb显示基地址 */
 
 #if gcENABLEVIRTUAL
 UINT32 gcGetVirtualAddress(UINT32 Index, UINT32 Offset)
@@ -106,9 +106,9 @@ void gcMemReset(void)
 #endif
 }
 
-UINT32 gcMemAllocate(UINT32 Size)
+UINT32 *gcMemAllocate(UINT32 Size)
 {
-	UINT32 result = 0;
+	UINT32 *result = NULL;
 
 	// Align.
 	Size = (Size + 63) & ~63;
@@ -119,7 +119,7 @@ UINT32 gcMemAllocate(UINT32 Size)
 		result = g_gcCurrAddr;
 
 		// Store current pointer and size.
-		g_gcHistory[g_gcHistoryIndex].addr  = g_gcCurrAddr;
+		g_gcHistory[g_gcHistoryIndex].addr  = (UINT32)g_gcCurrAddr;
 		g_gcHistory[g_gcHistoryIndex].size  = g_gcCurrSize;
 #if gcENABLEVIRTUAL
 		g_gcHistory[g_gcHistoryIndex].index = g_gcPageTableIndex;
@@ -127,7 +127,7 @@ UINT32 gcMemAllocate(UINT32 Size)
 		g_gcHistoryIndex++;
 
 		// Update current pointers.
-		g_gcCurrAddr += Size;
+		g_gcCurrAddr += (Size/4);
 		g_gcCurrSize -= Size;
 	}
 
@@ -229,10 +229,10 @@ void gcMemFree(void)
 void gcAppendEnd(void)
 {
 	gcPoke(gcCMDBUFCURRADDR, SETFIELDVALUE(0, AQ_COMMAND_END_COMMAND, OPCODE, END));
-	gcCMDBUFCURRADDR += 4;
+	gcCMDBUFCURRADDR++;
 
 	gcPoke(gcCMDBUFCURRADDR, 0);
-	gcCMDBUFCURRADDR += 4;
+	gcCMDBUFCURRADDR++;
 }
 
 void gcInitSurface(gcSURFACEINFO* Surface, UINT32 Width, UINT32 Height, UINT32 Format)
@@ -271,9 +271,9 @@ void gcAllocateSurface(gcSURFACEINFO* Surface, UINT32 Width, UINT32 Height, UINT
 #endif
 }
 
-UINT32 gcAllocateQueueSpace(UINT32 Count)
+UINT32 *gcAllocateQueueSpace(UINT32 Count)
 {
-	UINT32 result;
+	UINT32 *result;
 	UINT32 size = ((Count + 1) & ~1) * sizeof(UINT32);
 
 	// Queue is full?
@@ -283,7 +283,7 @@ UINT32 gcAllocateQueueSpace(UINT32 Count)
 
 	// Allocate the space.
 	result = gcCMDBUFCURRADDR;
-	gcCMDBUFCURRADDR += size;
+	gcCMDBUFCURRADDR += (size/4);
 	gcCMDBUFCURRSIZE -= size;
 
 	// Return result.
