@@ -7,20 +7,19 @@
 #include <linux/string.h>
 #include <linux/fb.h>
 #include <linux/module.h>
-#include <linux/delay.h>
 
 #include <video/ls1xfb.h>
 
 #include "gcSdk.h"
 
-gcSURFACEINFO gcDisplaySurface;
+static gcSURFACEINFO gcDisplaySurface;
 
 void gc300_set_par(struct fb_info *info)
 {
 	struct ls1xfb_info *fbi = info->par;
 	struct fb_var_screeninfo *var = &info->var;
 	/* 可变 */
-	gcDisplaySurface.stride  = var->xres_virtual * var->bits_per_pixel / 8;
+	gcDisplaySurface.stride  = var->xres * var->bits_per_pixel / 8;
 	switch(fbi->pix_fmt) {
 		case PIX_FMT_RGB444:
 			gcDisplaySurface.format  = AQDE_SRC_CONFIG_FORMAT_A4R4G4B4;
@@ -69,13 +68,15 @@ void gc300_hw_init(struct fb_info *info)
 //	gcREG_BASE = 0xbc200000;	/* gc300寄存器基地址 */
 
 	gcVIDEOSIZE = 64 * 1024;
-	gcVIDEOBASE = kmalloc(sizeof(UINT32) * gcVIDEOSIZE, GFP_KERNEL);
+	gcVIDEOBASE = (UINT32)kmalloc(sizeof(UINT32) * gcVIDEOSIZE, GFP_KERNEL);
 
 	// Init memory.
 	gcMemReset();
 
 	// Init target surface.
-	gcDisplaySurface.address = fbi->fb_start_dma;	/* 固定 */
+	/* 注意需要把xxxAddr寄存器的高位（31）清零 TYPE=SYSYEM */
+	gcDisplaySurface.address = fbi->fb_start_dma & 0x7FFFFFFF;
+//	gcDisplaySurface.address = fbi->fb_start_dma & 0x0FFFFFFF;
 
 //	gc300_set_var(info);
 }
@@ -216,7 +217,8 @@ void gc300fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
 	Target->rect.top    =  rect->dy;
 	Target->rect.bottom =  rect->dy + height;
 
-	gcClear(Target, &Target->rect, rect->color);
+//	gcClear(Target, &Target->rect, rect->color);
+	gcClear(Target, &Target->rect, 0x07e007e0);
 
 	gcFlush2DAndStall();
 	gcStart();
@@ -232,3 +234,4 @@ EXPORT_SYMBOL(gc300fb_copyarea);
 EXPORT_SYMBOL(gc300fb_fillrect);
 EXPORT_SYMBOL(gc300fb_imageblit);
 */
+

@@ -1,6 +1,3 @@
-#include <linux/kernel.h>
-#include <linux/errno.h>
-
 #include "gcSdk.h"
 
 UINT32 gcGetStretchFactor(UINT32 SrcSize, UINT32 DstSize)

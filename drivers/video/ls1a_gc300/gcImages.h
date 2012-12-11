@@ -1,6 +1,7 @@
 #ifndef _gcIMAGES_H_
 #define _gcIMAGES_H_
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // Coordinate structures.
 
@@ -95,8 +96,16 @@ gcYV12SEQUENCEHEADER;
 ////////////////////////////////////////////////////////////////////////////////
 // Declare image functions.
 
-void gcLoadImage(gcIMAGEDESCRIPTOR* ImageInfo);
-UINT32 gcImageWidth(gcIMAGEDESCRIPTOR* Surface);
-UINT32 gcImageHeight(gcIMAGEDESCRIPTOR* Surface);
+void gcLoadImage(
+	gcIMAGEDESCRIPTOR* ImageInfo
+	);
+
+UINT32 gcImageWidth(
+	gcIMAGEDESCRIPTOR* Surface
+	);
+
+UINT32 gcImageHeight(
+	gcIMAGEDESCRIPTOR* Surface
+	);
 
 #endif

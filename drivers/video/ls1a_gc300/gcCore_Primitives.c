@@ -1,17 +1,7 @@
-#include <linux/kernel.h>
-#include <linux/errno.h>
-#include <linux/mm.h>
-
-#include <stdarg.h>
 #include "gcSdk.h"
-
-#define Z_DEBUG_GPU_PRI /*printk("%s - %s : %d\n",__FILE__,__FUNCTION__,__LINE__);*/
-#undef MY_DEBUG_GPU_23
 
 static UINT32 lineX;
 static UINT32 lineY;
-
-//extern void apSleep(UINT32 msec);
 
 UINT32 gcGetPixelSize(UINT32 Format)
 {
@@ -42,11 +32,7 @@ UINT32 gcGetPixelSize(UINT32 Format)
 void gcLoadState(UINT32 Address, UINT32 Count, ...)
 {
 	va_list argList;
-	UINT32 *cmdAddress;
-
-#ifdef MY_DEBUG_GPU_23
-	printk("%s : Address:%p, Count:0x%x  \n", __FUNCTION__, Address, Count);
-#endif
+	UINT32 cmdAddress;
 
 	// Init the argument list.
 	va_start(argList, Count);
@@ -59,79 +45,76 @@ void gcLoadState(UINT32 Address, UINT32 Count, ...)
 		SETFIELDVALUE(0, AQ_COMMAND_LOAD_STATE_COMMAND, OPCODE, LOAD_STATE)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, ADDRESS, Address)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, COUNT, Count));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	// Copy the data.
 	while (Count--) {
 		UINT32 data = va_arg(argList, UINT32);
 		gcPoke(cmdAddress, data);
-		cmdAddress++;
+		cmdAddress += 4;
 	}
 }
 
 void gcLoadStatePtr(UINT32 Address, UINT32 Count, PUINT32 Values)
 {
 	// Allocate space in the buffer.
-	UINT32 *cmdAddress = gcAllocateQueueSpace(1 + Count);
-
-#ifdef MY_DEBUG_GPU_23
-	printk("%s : Address:%p, Count:0x%x ,Values:0x%x \n", __FUNCTION__, Address, Count, Values);
-#endif
+	UINT32 cmdAddress = gcAllocateQueueSpace(1 + Count);
 
 	// Construct load state command.
 	gcPoke(cmdAddress,
 		SETFIELDVALUE(0, AQ_COMMAND_LOAD_STATE_COMMAND, OPCODE, LOAD_STATE)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, ADDRESS, Address)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, COUNT, Count));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	// Copy the data.
 	while (Count--) {
 		UINT32 data = *Values++;
 		gcPoke(cmdAddress, data);
-		cmdAddress++;
+		cmdAddress += 4;
 	}
 }
 
 void gcFlush2DAndStall(void)
 {
 	// Allocate space in the buffer.
-	UINT32 *cmdAddress = gcAllocateQueueSpace(6);
+	UINT32 cmdAddress = gcAllocateQueueSpace(6);
 
 	// Flush 2D.
 	gcPoke(cmdAddress,
 		SETFIELDVALUE(0, AQ_COMMAND_LOAD_STATE_COMMAND, OPCODE, LOAD_STATE)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, ADDRESS, AQFlushRegAddrs)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, COUNT, 1));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	gcPoke(cmdAddress, SETFIELDVALUE(0, AQ_FLUSH, PE2D_CACHE, ENABLE));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	// Semaphore.
 	gcPoke(cmdAddress,
 		SETFIELDVALUE(0, AQ_COMMAND_LOAD_STATE_COMMAND, OPCODE, LOAD_STATE)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, ADDRESS, AQSemaphoreRegAddrs)
 		| SETFIELD(0, AQ_COMMAND_LOAD_STATE_COMMAND, COUNT, 1));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	gcPoke(cmdAddress,
 		SETFIELDVALUE(0, AQ_SEMAPHORE, SOURCE, FRONT_END) |
 		SETFIELDVALUE(0, AQ_SEMAPHORE, DESTINATION, PIXEL_ENGINE));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	// Stall.
 	gcPoke(cmdAddress, SETFIELDVALUE(0, STALL_COMMAND, OPCODE, STALL));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	gcPoke(cmdAddress,
 		SETFIELDVALUE(0, STALL, STALL_SOURCE, FRONT_END) |
 		SETFIELDVALUE(0, STALL, STALL_DESTINATION, PIXEL_ENGINE));
-	cmdAddress++;
+	cmdAddress += 4;
 }
 
 void gcSelect2DPipe(void)
 {
+
 	gcLoadState(AQPipeSelectRegAddrs, 1,
 		SETFIELDVALUE(0, AQ_PIPE_SELECT, PIPE, PIPE2D));
 }
@@ -141,32 +124,33 @@ void gcStartDE(UINT32 RectCount, gcRECT* Rect)
 	UINT32 i;
 
 	// Allocate space in the buffer.
-	UINT32 *cmdAddress = gcAllocateQueueSpace(1 + RectCount * 2);
+	UINT32 cmdAddress = gcAllocateQueueSpace(1 + RectCount * 2);
+
 
 	// Construct start DE command.
 	gcPoke(cmdAddress,
 		SETFIELDVALUE(0, AQ_COMMAND_START_DE_COMMAND, OPCODE, START_DE)
 		| SETFIELD(0, AQ_COMMAND_START_DE_COMMAND, COUNT, RectCount)
 		| SETFIELD(0, AQ_COMMAND_START_DE_COMMAND, DATA_COUNT, 0));
-	cmdAddress += 2;
+	cmdAddress += 8;
 
 	// Copy rectangles.
 	for (i = 0; i < RectCount; i++) {
 		gcPoke(cmdAddress,
 			SETFIELD(0, AQ_COMMAND_TOP_LEFT, X, Rect[i].left)
 			| SETFIELD(0, AQ_COMMAND_TOP_LEFT, Y, Rect[i].top));
-		cmdAddress++;
+		cmdAddress += 4;
 
 		gcPoke(cmdAddress,
 			SETFIELD(0, AQ_COMMAND_BOTTOM_RIGHT, X, Rect[i].right)
 			| SETFIELD(0, AQ_COMMAND_BOTTOM_RIGHT, Y, Rect[i].bottom));
-		cmdAddress++;
+		cmdAddress += 4;
 	}
 }
 
 void gcStartMonoDE(gcIMAGEDESCRIPTOR* Data, gcRECT* Rect, UINT32 SrcPack)
 {
-	UINT32 *cmdAddress;
+	UINT32 cmdAddress;
 	UINT32 dataCount;
 	UINT32 columnWidth;
 	UINT32 columnHeight;
@@ -181,6 +165,7 @@ void gcStartMonoDE(gcIMAGEDESCRIPTOR* Data, gcRECT* Rect, UINT32 SrcPack)
 #else
 	PUINT32 dataAddress = (PUINT32) Data->surface.address;
 #endif
+
 
 	// Stream size.
 	UINT32 streamWidth  = Data->surface.rect.right  - Data->surface.rect.left;
@@ -226,18 +211,18 @@ void gcStartMonoDE(gcIMAGEDESCRIPTOR* Data, gcRECT* Rect, UINT32 SrcPack)
 		SETFIELDVALUE(0, AQ_COMMAND_START_DE_COMMAND, OPCODE, START_DE)
 		| SETFIELD(0, AQ_COMMAND_START_DE_COMMAND, COUNT, 1)
 		| SETFIELD(0, AQ_COMMAND_START_DE_COMMAND, DATA_COUNT, dataCount));
-	cmdAddress += 2;
+	cmdAddress += 8;
 
 	// Copy the rectangle.
 	gcPoke(cmdAddress,
 		SETFIELD(0, AQ_COMMAND_TOP_LEFT, X, Rect->left)
 		| SETFIELD(0, AQ_COMMAND_TOP_LEFT, Y, Rect->top));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	gcPoke(cmdAddress,
 		SETFIELD(0, AQ_COMMAND_BOTTOM_RIGHT, X, Rect->right)
 		| SETFIELD(0, AQ_COMMAND_BOTTOM_RIGHT, Y, Rect->bottom));
-	cmdAddress++;
+	cmdAddress += 4;
 
 	// Dispatch based on the packing.
 	if (SrcPack == AQDE_SRC_CONFIG_PACK_UNPACKED) {
@@ -250,8 +235,7 @@ void gcStartMonoDE(gcIMAGEDESCRIPTOR* Data, gcRECT* Rect, UINT32 SrcPack)
 			memcpy((PVOID)cmdAddress, srcAddress, lineSize);
 
 			// Advance to the next.
-			//cmdAddress += lineSize;
-			cmdAddress += (lineSize/4);
+			cmdAddress += lineSize;
 			srcAddress += Data->surface.stride;
 		}
 	}
@@ -291,22 +275,14 @@ void gcStartMonoDE(gcIMAGEDESCRIPTOR* Data, gcRECT* Rect, UINT32 SrcPack)
 				}
 
 				gcPoke(cmdAddress, streamData);
-				cmdAddress++;
+				cmdAddress += 4;
 			}
 		}
 	}
 }
 
-#undef Z_DEBUG_CMDBUF 
-//#define Z_DEBUG_CMDBUF 1
-
-#ifdef Z_DEBUG_CMDBUF
-extern void gc_dump_cmdbuf(void);
-#endif
-
 void gcStart(void)
 {
-	int i;
 	int timeout = 204800;
 	UINT32 idle;
 	UINT32 my_gc_cmdbufaddr = gcCMDBUFADDR;
@@ -317,26 +293,14 @@ void gcStart(void)
 	// Start execution.
 	if(my_gc_cmdbufaddr & 0x80000000)  //zgj
 		my_gc_cmdbufaddr &= 0x0FFFFFFF;
+	/* VIRTUAL SYSYTEM */
+	/* 注意需要把xxxAddr寄存器的高位（31）清零 TYPE=SYSYEM */
 	gcWriteReg(AQCmdBufferAddrRegAddrs, my_gc_cmdbufaddr);
-//	gcWriteReg(AQCmdBufferAddrRegAddrs, gcCMDBUFADDR);
-
-#ifdef Z_DEBUG_CMDBUF
-	gc_dump_cmdbuf();
-#endif
-
 	gcWriteReg(AQCmdBufferCtrlRegAddrs, 0xFFFFFFFF);
+	mdelay(2);
+//	printk("++++my_gc_cmdbufaddr=%x  gcCMDBUFADDR=%x\n", my_gc_cmdbufaddr, gcCMDBUFADDR);
 
 	// Wait for idle.
-	//zgj-2010-3-24 for ( i = 0; i < 5000; i++)
-	for ( i = 0; i < 500000; i++) {
-		idle = gcReportIdle(NULL);
-		if (!(idle ^ 0x000000FF)) break;
-	}
-
-	if (idle ^ 0x000000FF) {
-		printk("gcStart: chip has not become idle: 0x%08X\n", idle);
-	}
-/*
 	do {
 		idle = gcReportIdle(NULL) & 0xff;
 	} while ((idle != 0xff) && (timeout-- > 0));
@@ -344,7 +308,7 @@ void gcStart(void)
 	if (timeout == 0) {
 		printk("gcStart: chip has not become idle: 0x%08X\n", idle);
 	}
-*/
+
 	// Reset the buffer.
 	gcCMDBUFCURRADDR = gcCMDBUFADDR;
 	gcCMDBUFCURRSIZE = gcCMDBUFSIZE;
@@ -366,8 +330,6 @@ void gcSetSource(
 	BOOL SrcRelative
 	)
 {
-Z_DEBUG_GPU_PRI
-	Surface->address &= 0x0FFFFFFF;  //zgj DMA
 	gcLoadState(AQDESrcAddressRegAddrs, 6,
 		// AQDESrcAddress.
 		Surface->address,
@@ -402,7 +364,7 @@ void gcSetMonoSource(
 	BOOL SrcRelative
 	)
 {
-Z_DEBUG_GPU_PRI
+
 	gcLoadState(AQDESrcConfigRegAddrs, 3,
 		// AQDESrcConfig.
 		SETFIELDVALUE(0, AQDE_SRC_CONFIG, LOCATION, STREAM)
@@ -433,8 +395,6 @@ void gcSetMaskedSource(
 	BOOL SrcRelative
 	)
 {
-Z_DEBUG_GPU_PRI
-	Surface->address &= 0x0FFFFFFF;  //zgj DMA
 	gcLoadState(AQDESrcAddressRegAddrs, 6,
 		// AQDESrcAddress.
 		Surface->address,
@@ -458,8 +418,7 @@ Z_DEBUG_GPU_PRI
 
 void gcSetTarget(gcSURFACEINFO* Surface, UINT32 Command)
 {
-Z_DEBUG_GPU_PRI
-	Surface->address &= 0x0FFFFFFF;  //zgj DMA
+//	printk("++++++%x  %x\n", Surface->stride, Surface->address);
 	gcLoadState(AQDEDestAddressRegAddrs, 4,
 		// AQDEDestAddress.
 		Surface->address,
@@ -547,7 +506,7 @@ void gcRect(gcSURFACEINFO* Target, gcRECT* Rect, gcBRUSH* Brush)
 {
 	gcRECT lineRect;
 
-Z_DEBUG_GPU_PRI
+
 	// Draw top horizontal line.
 	lineRect.left   = Rect->left;
 	lineRect.top    = Rect->top;
@@ -673,7 +632,6 @@ void gcBitBlt(
 		}
 	}
 
-	// bltCommand = AQDE_DEST_CONFIG_COMMAND_BIT_BLT; //zgj
 	// Setup ROP.
 	gcSetROP4(FgRop, BgRop);
 
@@ -778,7 +736,6 @@ void gcSetSourceRot(
 	UINT32 imgHeight
 	)
 {
-	Surface->address &= 0x0FFFFFFF;  //zgj DMA
 	gcLoadState(AQDESrcAddressRegAddrs, 6,
 
 		// AQDESrcAddress.
@@ -825,7 +782,6 @@ void gcSetTargetRot(
 	UINT32 trgHeight
 	)
 {
-	Surface->address &= 0x0FFFFFFF;  //zgj DMA
 	gcLoadState(AQDEDestAddressRegAddrs, 4,
 		// AQDEDestAddress.
 		Surface->address,

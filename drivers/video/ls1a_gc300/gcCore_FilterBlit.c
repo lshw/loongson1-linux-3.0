@@ -1,5 +1,3 @@
-#include <linux/kernel.h>
-#include <linux/errno.h>
 #include "gcSdk.h"
 
 void gcSetStretchFactor(UINT32 HorFactor, UINT32 VerFactor)

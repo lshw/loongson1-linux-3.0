@@ -2,8 +2,10 @@
 #define _gcSDK_H_
 
 // System headers.
-
-//testStretch
+#include <linux/kernel.h>
+#include <linux/errno.h>
+#include <linux/mm.h>
+#include <linux/delay.h>
 
 //testStretch
 
@@ -87,31 +89,39 @@ typedef void*		PVOID;
 #include "gcUtilities.h"
 
 // Register base location.
-//extern UINT32 gcREG_BASE;
+extern UINT32 gcREG_BASE;
 
 // Memory allocation values.
 extern UINT32 gcRAMSIZE;
 extern UINT32 gcCODESIZE;
 extern UINT32 gcHEAPSIZE;
 extern UINT32 gcSTACKSIZE;
-extern UINT32 gcVIDEOSIZE;	/* fb显存大小 */
+extern UINT32 gcVIDEOSIZE;
 
 extern UINT32 gcHEAPBASE;
 extern UINT32 gcSTACKBASE;
-extern UINT32 *gcVIDEOBASE;	/* fb显示基地址 */
+extern UINT32 gcVIDEOBASE;
 
 // Command buffer.
-extern UINT32 *gcCMDBUFADDR;
+extern UINT32 gcCMDBUFADDR;
 extern UINT32 gcCMDBUFSIZE;
-extern UINT32 *gcCMDBUFCURRADDR;
+extern UINT32 gcCMDBUFCURRADDR;
 extern UINT32 gcCMDBUFCURRSIZE;
 
 // Display surface.
 extern gcSURFACEINFO gcDisplaySurface;
 
 // API functions.
-void gcSetMemoryAllocation(void);
-void gcAppInit(void);
-void gcFlushDisplay(void);
+void gcSetMemoryAllocation(
+	void
+	);
+
+void gcAppInit(
+	void
+	);
+
+void gcFlushDisplay(
+	void
+	);
 
 #endif // _gcSDK_H_

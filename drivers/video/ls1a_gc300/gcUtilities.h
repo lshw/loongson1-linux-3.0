@@ -140,6 +140,7 @@ UINT64 SETBITS64(UINT64* Data, const int Start, const int End, const UINT64 Valu
 	(reg##_##field##_##value & __MASK(reg##_##field)) \
 )
 
+
 /******************************************************************************\
 ****************************** Utility Functions ******************************
 \******************************************************************************/
@@ -147,10 +148,9 @@ UINT64 SETBITS64(UINT64* Data, const int Start, const int End, const UINT64 Valu
 void gcAppInit(void);
 UINT32 gcReadReg(UINT32 Address);
 void gcWriteReg(UINT32 Address, UINT32 Data);
-void gcPoke(UINT32 *Address, UINT32 Data);
-UINT32 gcPeek(UINT32 *Address);
+void gcPoke(UINT32 Address, UINT32 Data);
+UINT32 gcPeek(UINT32 Address);
 UINT32 gcReportIdle(char* Message);
-UINT32 gcReportRegs(void);
 UINT32 gcGetNextColor16(UINT32 Color);
 UINT32 gcRand(UINT32 Range);
 UINT32 gcRandExclusive(UINT32 Range, UINT32 ExcludeValue);
@@ -164,7 +164,4 @@ int GalSaveDIBitmap(const char *filename,
 					 unsigned char *bits, 
 					 int alignedWidth, 
 					 int alignedHeight);
-
-UINT32 printSelectMenu(void);
-void gcGenerateRect_Stretch(gcRECT* Rect, gcRECT* BoundingRect);
 #endif

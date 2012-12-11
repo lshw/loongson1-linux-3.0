@@ -1,5 +1,3 @@
-#include <linux/kernel.h>
-#include <linux/errno.h>
 #include "gcSdk.h"
 
 extern unsigned long GPU_fbaddr;
@@ -20,21 +18,21 @@ gcALLOCHISTORY;
 #define PAGE_SIZE			4096
 
 // Page table.
-static BOOL g_gcPageTableFlushed;	/* 页表刷新标记 */
-static UINT32 g_gcPageTableAddr;	/* 页表地址 */
-static UINT32 g_gcPageTableSize;	/* 页表大小 */
-static UINT32 g_gcPageTableIndex;	/* 页表索引 */
+static BOOL g_gcPageTableFlushed;
+static UINT32 g_gcPageTableAddr;
+static UINT32 g_gcPageTableSize;
+static UINT32 g_gcPageTableIndex;
 #endif
 
 // The address of the next block of memory to be allocated.
-static UINT32 *g_gcCurrAddr;
+static UINT32 g_gcCurrAddr;
 static UINT32 g_gcCurrSize;
 
 // Command buffer.
-UINT32 *gcCMDBUFADDR;	/* 命令缓存地址 */
-UINT32 gcCMDBUFSIZE;	/* 命令缓存大小 */
-UINT32 *gcCMDBUFCURRADDR;	/* 当前命令缓存地址 */
-UINT32 gcCMDBUFCURRSIZE;	/* 当前命令缓存大小 */
+UINT32 gcCMDBUFADDR;
+UINT32 gcCMDBUFSIZE;
+UINT32 gcCMDBUFCURRADDR;
+UINT32 gcCMDBUFCURRSIZE;
 
 // Allocation history.
 static gcALLOCHISTORY g_gcHistory[128];
@@ -44,11 +42,11 @@ static UINT32 g_gcHistoryIndex;
 UINT32 gcCODESIZE;
 UINT32 gcHEAPSIZE;
 UINT32 gcSTACKSIZE;
-UINT32 gcVIDEOSIZE;	/* fb显存大小 */
+UINT32 gcVIDEOSIZE;
 
 UINT32 gcHEAPBASE;
 UINT32 gcSTACKBASE;
-UINT32 *gcVIDEOBASE;	/* fb显示基地址 */
+UINT32 gcVIDEOBASE;
 
 #if gcENABLEVIRTUAL
 UINT32 gcGetVirtualAddress(UINT32 Index, UINT32 Offset)
@@ -79,9 +77,13 @@ UINT32 gcGetPhysicalAddress(UINT32 VirtualAddress)
 void gcMemReset(void)
 {
 	// Reset current buffer info.
-	// g_gcCurrAddr = gcVIDEOBASE = __SD_LCD_BAR_BASE;
-	g_gcCurrAddr = gcVIDEOBASE; //zgj = GPU_fbaddr & 0x0FFFFFFF ;
-	g_gcCurrSize = gcVIDEOSIZE; //zgj-2010-3-22 = 680 * 480;
+	g_gcCurrAddr = gcVIDEOBASE ; //zgj = GPU_fbaddr & 0x0FFFFFFF ;
+	g_gcCurrSize = gcVIDEOSIZE ; //zgj-2010-3-22 = 680 * 480;
+
+#ifdef MY_GPU_DEBUG_MEMRESET
+    printk("Video memory  : 0x%08X to 0x%08X\n", 
+		g_gcCurrAddr, g_gcCurrAddr + g_gcCurrSize);
+#endif
 
 	// Reset history.
 	g_gcHistoryIndex = 0;
@@ -90,12 +92,19 @@ void gcMemReset(void)
 	gcCMDBUFSIZE = gcCMDBUFCURRSIZE = 32 * 1024;
 	gcCMDBUFADDR = gcCMDBUFCURRADDR = gcMemAllocate(gcCMDBUFSIZE);
 
+#ifdef MY_GPU_DEBUG_MEMRESET
+	printk("Command buffer: 0x%08X to 0x%08X\n", 
+		gcCMDBUFADDR, gcCMDBUFADDR + gcCMDBUFSIZE);
+#endif
+
 #if gcENABLEVIRTUAL
 	// Allocate page table.
 	g_gcPageTableFlushed = TRUE;
 	g_gcPageTableSize    = PAGE_TABLE_ENTRIES * sizeof(UINT32);
 	g_gcPageTableAddr    = gcMemAllocate(g_gcPageTableSize);
 	g_gcPageTableIndex   = 0;
+	printk("Page table    : 0x%08X to 0x%08X\n",
+		g_gcPageTableAddr, g_gcPageTableAddr + g_gcPageTableSize);
 
 	// Set the base address of the page table.
 	gcWriteReg(AQMemoryFePageTableRegAddrs,  g_gcPageTableAddr);
@@ -106,9 +115,9 @@ void gcMemReset(void)
 #endif
 }
 
-UINT32 *gcMemAllocate(UINT32 Size)
+UINT32 gcMemAllocate(UINT32 Size)
 {
-	UINT32 *result = NULL;
+	UINT32 result = 0;
 
 	// Align.
 	Size = (Size + 63) & ~63;
@@ -119,7 +128,7 @@ UINT32 *gcMemAllocate(UINT32 Size)
 		result = g_gcCurrAddr;
 
 		// Store current pointer and size.
-		g_gcHistory[g_gcHistoryIndex].addr  = (UINT32)g_gcCurrAddr;
+		g_gcHistory[g_gcHistoryIndex].addr  = g_gcCurrAddr;
 		g_gcHistory[g_gcHistoryIndex].size  = g_gcCurrSize;
 #if gcENABLEVIRTUAL
 		g_gcHistory[g_gcHistoryIndex].index = g_gcPageTableIndex;
@@ -127,7 +136,7 @@ UINT32 *gcMemAllocate(UINT32 Size)
 		g_gcHistoryIndex++;
 
 		// Update current pointers.
-		g_gcCurrAddr += (Size/4);
+		g_gcCurrAddr += Size;
 		g_gcCurrSize -= Size;
 	}
 
@@ -212,7 +221,6 @@ void gcVirtualizeSurface(gcSURFACEINFO* Surface)
 }
 #endif
 
-/* 以下没用？ */
 void gcMemFree(void)
 {
 	if (g_gcHistoryIndex) {
@@ -229,10 +237,10 @@ void gcMemFree(void)
 void gcAppendEnd(void)
 {
 	gcPoke(gcCMDBUFCURRADDR, SETFIELDVALUE(0, AQ_COMMAND_END_COMMAND, OPCODE, END));
-	gcCMDBUFCURRADDR++;
+	gcCMDBUFCURRADDR += 4;
 
 	gcPoke(gcCMDBUFCURRADDR, 0);
-	gcCMDBUFCURRADDR++;
+	gcCMDBUFCURRADDR += 4;
 }
 
 void gcInitSurface(gcSURFACEINFO* Surface, UINT32 Width, UINT32 Height, UINT32 Format)
@@ -271,9 +279,9 @@ void gcAllocateSurface(gcSURFACEINFO* Surface, UINT32 Width, UINT32 Height, UINT
 #endif
 }
 
-UINT32 *gcAllocateQueueSpace(UINT32 Count)
+UINT32 gcAllocateQueueSpace(UINT32 Count)
 {
-	UINT32 *result;
+	UINT32 result;
 	UINT32 size = ((Count + 1) & ~1) * sizeof(UINT32);
 
 	// Queue is full?
@@ -283,54 +291,10 @@ UINT32 *gcAllocateQueueSpace(UINT32 Count)
 
 	// Allocate the space.
 	result = gcCMDBUFCURRADDR;
-	gcCMDBUFCURRADDR += (size/4);
+	gcCMDBUFCURRADDR += size;
 	gcCMDBUFCURRSIZE -= size;
 
 	// Return result.
 	return result;
 }
-
-int gc_dump_cmdbuf(void)
-{
-	int i = 0;
-	UINT32 dump_addr = gcCMDBUFADDR;
-//	UINT32 dump_addr=gcCMDBUFCURRADDR;
-
-	printk("Dump GC CMD buffer\n");
-	if(!(dump_addr & 0x80000000))
-		dump_addr |= 0xA0000000;
-	for(i=0; i<512; i=i+4)
-	//for(i=0;i<gcCMDBUFCURRSIZE; i=i+4)
-	{
-		if((i%16) == 0)
-			printk("%x :  ", (dump_addr+i));
-		printk(" %8x ", *(UINT32 *)(dump_addr+i));
-		if((i%16) == 12)
-			printk("\n");
-	}
-
-	return 0;
-}
-#if 0
-int gc_dump_cmdbuf_toram(void)
-{
-    int i=0;
-    //UINT32 dump_addr=gcCMDBUFADDR;
-    UINT32 dump_addr=gcCMDBUFCURRADDR;
-    printk("Dump GC CMD buffer\n");
-    if(!(dump_addr & 0x80000000))
-        dump_addr |= 0xA0000000;
-    //for(i=0;i<512; i=i+4)
-    for(i=0;i<gcCMDBUFCURRSIZE; i=i+4)
-    {
-        if((i%16) == 0)
-            printk("%p :  ",(dump_addr+i));
-        printk(" %8x ",*(UINT32 *)(dump_addr+i));
-        if((i%16) == 12)
-            printk("\n");
-    }
-
-    return 0;
-}
-#endif
 

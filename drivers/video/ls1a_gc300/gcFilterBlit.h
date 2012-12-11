@@ -123,7 +123,7 @@ void gcVerFilterBlit(
 	gcRECT* SrcRect,
 	gcPOINT* SrcOrigin
 	);
-
+/*
 void gcFilterBlit(
 	gcSURFACEINFO* Target,
 	gcSURFACEINFO* Source,
@@ -133,7 +133,7 @@ void gcFilterBlit(
 	UINT32 HorKernelSize,
 	UINT32 VerKernelSize
 	);
-
+*/
 void gcStartVR(
 	UINT32 Horizontal
 	);
