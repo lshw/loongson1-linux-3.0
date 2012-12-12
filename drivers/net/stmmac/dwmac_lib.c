@@ -37,7 +37,6 @@ struct m25p {
         u8                      *command;
 };
 
-
 extern struct m25p *flash_tmp;
 extern unsigned char *hwaddr;
 
@@ -247,18 +246,20 @@ void dwmac_dma_flush_tx_fifo(void __iomem *ioaddr)
 void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 			 unsigned int high, unsigned int low)
 {
-	struct erase_info instr;
 	unsigned long data;
-	size_t retlen;
-	int ret;
-	u8 buf[512];
-	u8 *tmp;
 	
 	data = (addr[5] << 8) | addr[4];
 	writel(data, ioaddr + high);
 	data = (addr[3] << 24) | (addr[2] << 16) | (addr[1] << 8) | addr[0];
 	writel(data, ioaddr + low);
 
+#ifdef CONFIG_MTD_M25P80
+{
+	struct erase_info instr;
+	size_t retlen;
+	int ret;
+	u8 buf[512];
+	u8 *tmp;
 
 	flash_tmp->mtd.read(&flash_tmp->mtd, 0x70000, 512, &retlen, buf);
 	tmp = buf + 512 - 6;	
@@ -280,32 +281,33 @@ void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 	ret = flash_tmp->mtd.write(&flash_tmp->mtd, 0x70000, 512, &retlen, buf);
 	if(ret < 0)
 		DWMAC_LIB_DBG("m25p80_write_by_mac is failed.\n");
-
+}
+#endif
 }
 
-//modify by lvling
 void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 			 unsigned int high, unsigned int low)
 {
-	/*
-	unsigned int hi_addr, lo_addr;
-
-	// Read the MAC address from the hardware 
-	hi_addr = readl(ioaddr + high);
-	lo_addr = readl(ioaddr + low);
-
-	// Extract the MAC address from the high and low words
-	addr[0] = lo_addr & 0xff;
-	addr[1] = (lo_addr >> 8) & 0xff;
-	addr[2] = (lo_addr >> 16) & 0xff;
-	addr[3] = (lo_addr >> 24) & 0xff;
-	addr[4] = hi_addr & 0xff;
-	addr[5] = (hi_addr >> 8) & 0xff;
-	*/
+#ifdef CONFIG_MTD_M25P80
 	addr[0] = hwaddr[0];
 	addr[1] = hwaddr[1];
 	addr[2] = hwaddr[2];
 	addr[3] = hwaddr[3];
 	addr[4] = hwaddr[4];
 	addr[5] = hwaddr[5];
+#else
+	unsigned int hi_addr, lo_addr;
+
+	/* Read the MAC address from the hardware */
+	hi_addr = readl(ioaddr + high);
+	lo_addr = readl(ioaddr + low);
+
+	/* Extract the MAC address from the high and low words */
+	addr[0] = lo_addr & 0xff;
+	addr[1] = (lo_addr >> 8) & 0xff;
+	addr[2] = (lo_addr >> 16) & 0xff;
+	addr[3] = (lo_addr >> 24) & 0xff;
+	addr[4] = hi_addr & 0xff;
+	addr[5] = (hi_addr >> 8) & 0xff;
+#endif
 }
