@@ -182,7 +182,7 @@ EXPORT_SYMBOL_GPL(clk_round_rate);
 DEFINE_SPINLOCK(loongson1_wait_lock);
 void loongson1_cpu_wait(void)
 {
-	u32 cpu_freq;
+//	u32 cpu_freq;
 	unsigned long flags;
 
 	spin_lock_irqsave(&loongson1_wait_lock, flags);

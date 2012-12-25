@@ -1,10 +1,6 @@
 /*
  * Platform device support for GS232 SoCs.
  *
- * Copyright 2009, Su Wen <suwen@ict.ac.cn>
- *	
- * base on Au1xxx Socs drivers by Matt Porter <mporter@kernel.crashing.org>
- *
  * This file is licensed under the terms of the GNU General Public
  * License version 2.  This program is licensed "as is" without any
  * warranty of any kind, whether express or implied.
@@ -52,9 +48,6 @@
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
 #include <linux/ahci_platform.h>
-
-//static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
-//	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
 
 #ifdef CONFIG_MTD_NAND_LS1X
 struct ls1b_nand_platform_data{
@@ -560,7 +553,7 @@ struct platform_device ls1x_fb0_device = {
 		.platform_data = &ls1x_lcd0_info,
 	}
 };
-#endif	//#ifdef CONFIG_LS1X_FB1
+#endif	//#ifdef CONFIG_LS1X_FB0
 
 #ifdef CONFIG_LS1X_FB1
 static struct resource ls1x_fb1_resource[] = {
@@ -590,42 +583,39 @@ struct platform_device ls1x_fb1_device = {
 		.platform_data = &ls1x_lcd1_info,
 	}
 };
-#endif	//#ifdef CONFIG_LS1X_FB0
+#endif	//#ifdef CONFIG_LS1X_FB1
 #endif	//#if defined(CONFIG_FB_LOONGSON1)
 
 //gmac0
 #ifdef CONFIG_LS1B_GMAC0_OPEN
 static struct resource ls1b_mac0_resources[] = {
-        [0] = {
-                .start  = LS1B_BOARD_GMAC1_BASE,
-                .end    = LS1B_BOARD_GMAC1_BASE + SZ_8K - 1,
-                .flags  = IORESOURCE_MEM,
-        },
-        [1] = {
-                .name   = "macirq",
-                .start  = LS1B_BOARD_GMAC1_IRQ,
-                .flags  = IORESOURCE_IRQ,
-        },
+	[0] = {
+		.start  = LS1B_BOARD_GMAC1_BASE,
+		.end    = LS1B_BOARD_GMAC1_BASE + SZ_8K - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] = {
+		.name   = "macirq",
+		.start  = LS1B_BOARD_GMAC1_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
 };
 
 static struct plat_stmmacenet_data ls1b_mac0_data = {
-        .bus_id         = 0,
-#ifdef	CONFIG_LS1A_CORE_BOARD
-      .pbl            = 32,
-#endif
-        .has_gmac       = 1,
-	.enh_desc	= 0,
-        /*.tx_coe               = 1,*/
+	.bus_id = 0,
+	.pbl = 32,
+	.has_gmac = 1,
+	.enh_desc = 0,
 };
 
 struct platform_device ls1b_gmac0_mac = {
-        .name           = "stmmaceth",
-        .id             = 0,
-        .num_resources  = ARRAY_SIZE(ls1b_mac0_resources),
-        .resource       = ls1b_mac0_resources,
-        .dev            = {
-                .platform_data = &ls1b_mac0_data,
-        },
+	.name           = "stmmaceth",
+	.id             = 0,
+	.num_resources  = ARRAY_SIZE(ls1b_mac0_resources),
+	.resource       = ls1b_mac0_resources,
+	.dev            = {
+		.platform_data = &ls1b_mac0_data,
+	},
 };
 
 static struct plat_stmmacphy_data  phy0_private_data = {
@@ -671,35 +661,34 @@ struct platform_device ls1b_gmac0_phy = {
 //gmac1
 #ifdef CONFIG_LS1B_GMAC1_OPEN
 static struct resource ls1b_mac1_resources[] = {
-        [0] = {
-                .start  = LS1B_BOARD_GMAC2_BASE,
-                .end    = LS1B_BOARD_GMAC2_BASE + SZ_8K - 1,
-                .flags  = IORESOURCE_MEM,
-        },
-        [1] = {
-                .name   = "macirq",
-                .start  = LS1B_BOARD_GMAC2_IRQ,
-                .flags  = IORESOURCE_IRQ,
-        },
+	[0] = {
+		.start  = LS1B_BOARD_GMAC2_BASE,
+		.end    = LS1B_BOARD_GMAC2_BASE + SZ_8K - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] = {
+		.name   = "macirq",
+		.start  = LS1B_BOARD_GMAC2_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
 };
 
 
 static struct plat_stmmacenet_data ls1b_mac1_data = {
-        .bus_id         = 1,
-//      .pbl            = 32,
-        .has_gmac       = 1,
-	.enh_desc	= 0,
-        /*.tx_coe               = 1,*/
+	.bus_id = 1,
+//	.pbl = 32,
+	.has_gmac = 1,
+	.enh_desc = 0,
 };
 
 struct platform_device ls1b_gmac1_mac = {
-        .name           = "stmmaceth",
-        .id             = 1,
-        .num_resources  = ARRAY_SIZE(ls1b_mac1_resources),
-        .resource       = ls1b_mac1_resources,
-        .dev            = {
-                .platform_data = &ls1b_mac1_data,
-        },
+	.name           = "stmmaceth",
+	.id             = 1,
+	.num_resources  = ARRAY_SIZE(ls1b_mac1_resources),
+	.resource       = ls1b_mac1_resources,
+	.dev            = {
+		.platform_data = &ls1b_mac1_data,
+	},
 };
 
 static struct plat_stmmacphy_data  phy1_private_data = {
