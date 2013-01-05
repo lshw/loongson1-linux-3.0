@@ -7,6 +7,7 @@
 
 #include <linux/serial_reg.h>
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <linux/ctype.h>
 #include <video/ls1xfb.h>
 
@@ -95,6 +96,21 @@ void __init prom_init(void)
 	if (cpu_clock_freq == 0)
 		cpu_clock_freq = 200 * 1000000;
 #endif
+
+	/* 需要复位一次USB控制器，且复位时间要足够长，否则启动时莫名其妙的死机 */
+	#ifdef CONFIG_LS1A_MACH
+	#define MUX_CTRL0 LS1X_MUX_CTRL0
+	#define MUX_CTRL1 LS1X_MUX_CTRL1
+	#elif CONFIG_LS1B_MACH
+	#define MUX_CTRL0 LS1X_MUX_CTRL1
+	#define MUX_CTRL1 LS1X_MUX_CTRL1
+	#endif
+	/* USB controller enable and reset */
+	__raw_writel(__raw_readl(MUX_CTRL0) & (~USB_SHUT), MUX_CTRL0);
+	__raw_writel(__raw_readl(MUX_CTRL1) & (~USB_RESET), MUX_CTRL1);
+	mdelay(60);
+	/* reset stop */
+	__raw_writel(__raw_readl(MUX_CTRL1) | USB_RESET, MUX_CTRL1);
 
 #ifdef CONFIG_STMMAC_ETH
 	tmp = prom_getenv("ethaddr");

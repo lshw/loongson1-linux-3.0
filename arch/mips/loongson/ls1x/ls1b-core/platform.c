@@ -1552,14 +1552,6 @@ int __init ls1b_platform_init(void)
 	struct clk *clk;
 	struct plat_serial8250_port *p;
 
-#ifdef CONFIG_LS1A_MACH
-	*(volatile int *)0xbfd00420 |= 0x200000;/* disable USB */
-	*(volatile int *)0xbff10204 &= ~0x40000000;/* ls1a usb reset */
-#elif CONFIG_LS1B_MACH
-	*(volatile int *)0xbfd00424 |= 0x800;/* disable USB */
-	*(volatile int *)0xbfd00424 &= ~0x80000000;/* ls1g usb reset */
-#endif
-
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
 	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) = 0x1;
 #endif
@@ -1684,18 +1676,6 @@ int __init ls1b_platform_init(void)
 //	(*(volatile unsigned int *)0xbfd00424) |= ((1<<13) | (1<<12));	/* 禁止GMAC0 GMAC1 */
 	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);	//open uart0/1
 #endif
-
-#ifdef CONFIG_LS1A_MACH
-	*(volatile int *)0xbfd00420 &= ~0x200000;/* enable USB */
-	*(volatile int *)0xbff10204 = 0;
-	mdelay(105);
-	*(volatile int *)0xbff10204 |= 0x40000000;/* ls1a usb reset stop */
-#elif defined(CONFIG_USB_EHCI_HCD_LS1B) || defined(CONFIG_USB_OHCI_HCD_LS1B)
-	*(volatile int *)0xbfd00424 &= ~0x800;/* enable USB */
-	*(volatile int *)0xbfd00424 &= ~0x80000000;/* ls1g usb reset */
-	mdelay(105);
-	*(volatile int *)0xbfd00424 |= 0x80000000;/* ls1g usb reset stop */
-#endif	//CONFIG_LS1A_MACH
 
 #ifdef CONFIG_BACKLIGHT_GENERIC
 	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
