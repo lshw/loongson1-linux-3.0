@@ -176,7 +176,7 @@ struct ls1b_vga ls1b_vga_modes[] = {
 		.refresh = 60,
 	#if AHB_CLK == 25000000
 		.ls1b_pll_freq = 0x2181d,
-		.ls1b_pll_div = 0x8a292a00,
+		.ls1b_pll_div = 0x8a28ea00,
 	#else	//AHB_CLK == 33000000
 		.ls1b_pll_freq = 0x21813,
 		.ls1b_pll_div = 0x8a28ea00,
@@ -188,10 +188,10 @@ struct ls1b_vga ls1b_vga_modes[] = {
 		.refresh = 75,
 	#if AHB_CLK == 25000000
 		.ls1b_pll_freq = 0x3af1e,
-		.ls1b_pll_div = 0x86292a00,
+		.ls1b_pll_div = 0x8628ea00,
 	#else	//AHB_CLK == 33000000
 		.ls1b_pll_freq = 0x3af14,
-		.ls1b_pll_div = 0x86292a00,
+		.ls1b_pll_div = 0x8628ea00,
 	#endif
 	},
 	{
@@ -200,10 +200,10 @@ struct ls1b_vga ls1b_vga_modes[] = {
 		.refresh = 75,
 	#if AHB_CLK == 25000000
 		.ls1b_pll_freq = 0x3af1f,
-		.ls1b_pll_div = 0x86292a00,
+		.ls1b_pll_div = 0x8628ea00,
 	#else	//AHB_CLK == 33000000
 		.ls1b_pll_freq = 0x3af14,
-		.ls1b_pll_div = 0x86292a00,
+		.ls1b_pll_div = 0x8628ea00,
 	#endif
 	},
 	{},
