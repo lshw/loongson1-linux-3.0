@@ -1,0 +1,7 @@
+config WM8782_LS1X
+	tristate "loongson-1x of WM8782 Wireless module support"
+	depends on MAC80211
+	select CRC_CCITT
+	select WIRELESS_EXT
+	select WEXT_PRIV
+	select WEXT_SPY
