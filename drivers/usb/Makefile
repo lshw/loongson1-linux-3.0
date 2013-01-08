@@ -4,7 +4,6 @@
 
 # Object files in subdirectories
 
-obj-n				+= lmedev/
 obj-$(CONFIG_USB)		+= core/
 
 obj-$(CONFIG_USB_MON)		+= mon/

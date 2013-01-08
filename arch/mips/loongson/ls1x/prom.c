@@ -105,12 +105,17 @@ void __init prom_init(void)
 	#define MUX_CTRL0 LS1X_MUX_CTRL1
 	#define MUX_CTRL1 LS1X_MUX_CTRL1
 	#endif
+//	__raw_writel(__raw_readl(MUX_CTRL0) | USB_SHUT, MUX_CTRL0);
+//	__raw_writel(__raw_readl(MUX_CTRL1) & (~USB_RESET), MUX_CTRL1);
+//	mdelay(10);
+//	#if defined(CONFIG_USB_EHCI_HCD_LS1X) || defined(CONFIG_USB_OHCI_HCD_LS1X)
 	/* USB controller enable and reset */
 	__raw_writel(__raw_readl(MUX_CTRL0) & (~USB_SHUT), MUX_CTRL0);
 	__raw_writel(__raw_readl(MUX_CTRL1) & (~USB_RESET), MUX_CTRL1);
 	mdelay(60);
 	/* reset stop */
 	__raw_writel(__raw_readl(MUX_CTRL1) | USB_RESET, MUX_CTRL1);
+//	#endif
 
 #ifdef CONFIG_STMMAC_ETH
 	tmp = prom_getenv("ethaddr");

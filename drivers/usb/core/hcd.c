@@ -2441,7 +2441,6 @@ int usb_add_hcd(struct usb_hcd *hcd,
 			goto err_request_irq;
 	}
 
-//	printk ("lxy: in %s !------1------>\n", __FUNCTION__);
 	hcd->state = HC_STATE_RUNNING;
 	retval = hcd->driver->start(hcd);
 	if (retval < 0) {
@@ -2449,7 +2448,6 @@ int usb_add_hcd(struct usb_hcd *hcd,
 		goto err_hcd_driver_start;
 	}
 
-//	printk ("lxy: in %s !------2------>\n", __FUNCTION__);
 	/* starting here, usbcore will pay attention to this root hub */
 	rhdev->bus_mA = min(500u, hcd->power_budget);
 	if ((retval = register_root_hub(hcd)) != 0)
@@ -2462,7 +2460,6 @@ int usb_add_hcd(struct usb_hcd *hcd,
 		goto error_create_attr_group;
 	}
 
-//	printk ("lxy: in %s !------3------>\n", __FUNCTION__);
 	if (hcd->uses_new_polling && HCD_POLL_RH(hcd))
 		usb_hcd_poll_rh_status(hcd);
 	return retval;

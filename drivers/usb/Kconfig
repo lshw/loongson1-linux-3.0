@@ -23,8 +23,6 @@ config USB_ARCH_HAS_HCD
 	default y if ARM				# SL-811
 	default y if BLACKFIN				# SL-811
 	default y if SUPERH				# r8a66597-hcd
-	default y if LS1B_MACH
-	default y if LS1A_MACH
 	default PCI
 
 # many non-PCI SOC chips embed OHCI

@@ -90,15 +90,13 @@ config USB_EHCI_TT_NEWSCHED
 	  saying N.
 
 	  If unsure, say Y.
-	  
-	  
-config USB_EHCI_HCD_LS1B	#lxy
-	bool "EHCI support for loognson1b chips"
+
+config USB_EHCI_HCD_LS1B
+	bool "EHCI support for loognson1 chips"
 	depends on USB_EHCI_HCD && (LS1B_MACH || LS1A_MACH)
 	default y
 	---help---
-	  Enables support for the EHCI controller on loongson1b chips.
-
+	  Enables support for the EHCI controller on loongson 1a/1b chips.
 
 config USB_EHCI_HCD_PMC_MSP
 	tristate "EHCI support for on-chip PMC MSP71xx USB controller"
@@ -295,15 +293,13 @@ config USB_OHCI_HCD
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ohci-hcd.
-	  
-	  
-config USB_OHCI_HCD_LS1B		#lxy
-	bool "OHCI support for loognson1b chips"
+
+config USB_OHCI_HCD_LS1B
+	bool "OHCI support for loognson1 chips"
 	depends on USB_OHCI_HCD && (LS1B_MACH || LS1A_MACH)
 	default y
 	---help---
-	  Enables support for the OHCI controller on loongson1b chips.
-
+	  Enables support for the OHCI controller on loongson 1a/1b chips.
 
 config USB_OHCI_HCD_OMAP1
 	bool "OHCI support for OMAP1/2 chips"

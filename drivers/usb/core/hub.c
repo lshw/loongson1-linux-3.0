@@ -2907,7 +2907,6 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	 * value.
 	 */
 
-//	printk ("lxy: in %s !----0---->\n", __FUNCTION__);
 	for (i = 0; i < GET_DESCRIPTOR_TRIES; (++i, msleep(100))) {
 		if (USE_NEW_SCHEME(retry_counter) && !(hcd->driver->flags & HCD_USB3)) {
 			struct usb_device_descriptor *buf;
@@ -2951,7 +2950,6 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 					buf->bMaxPacketSize0;
 			kfree(buf);
 
-//			printk ("lxy: in %s !----1---->\n", __FUNCTION__);
 			retval = hub_port_reset(hub, port1, udev, delay);
 			if (retval < 0)		/* error or disconnect */
 				goto fail;
@@ -2977,7 +2975,6 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
  		 * authorization will assign the final address.
  		 */
 
-//		printk ("lxy: in %s !----2---->\n", __FUNCTION__);
 		if (udev->wusb == 0) {
 			for (j = 0; j < SET_ADDRESS_TRIES; ++j) {
 				retval = hub_set_address(udev, devnum);
@@ -3008,7 +3005,6 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				break;
   		}
 
-//		printk ("lxy: in %s !----3---->\n", __FUNCTION__);
 		retval = usb_get_device_descriptor(udev, 8);
 		if (retval < 8) {
 			dev_err(&udev->dev,
