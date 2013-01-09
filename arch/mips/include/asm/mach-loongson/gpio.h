@@ -13,7 +13,7 @@
 #ifndef	__STLS2F_GPIO_H
 #define	__STLS2F_GPIO_H
 
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <irq.h>
 #include <asm-generic/gpio.h>
 
 extern void gpio_set_value(unsigned gpio, int value);

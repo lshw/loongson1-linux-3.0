@@ -26,9 +26,6 @@
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
-
 
 #define TSC2007_MEASURE_TEMP0		(0x0 << 4)
 #define TSC2007_MEASURE_AUX		(0x2 << 4)
@@ -59,7 +56,6 @@
 #define READ_Z2		(ADC_ON_12BIT | TSC2007_MEASURE_Z2)
 #define READ_X		(ADC_ON_12BIT | TSC2007_MEASURE_X)
 #define PWRDOWN		(TSC2007_12BIT | TSC2007_POWER_OFF_IRQ_EN)
-
 
 struct ts_event {
 	u16	x;
@@ -176,8 +172,6 @@ static void tsc2007_work(struct work_struct *work)
 	 * and IRQ). Unfortunately such callback is not always available,
 	 * in that case we have rely on the pressure anyway.
 	 */
-//	 printk("lxy: in %s !\n", __FUNCTION__);
-	
 	if (ts->get_pendown_state) {
 		if (unlikely(!ts->get_pendown_state())) {
 			tsc2007_send_up_event(ts);
@@ -234,10 +228,10 @@ static void tsc2007_work(struct work_struct *work)
 
  out:
 	if (ts->pendown || debounced)
-		schedule_delayed_work(&ts->work, msecs_to_jiffies(ts->poll_period));
+		schedule_delayed_work(&ts->work,
+				      msecs_to_jiffies(ts->poll_period));
 	else
 		enable_irq(ts->irq);
-
 }
 
 static irqreturn_t tsc2007_irq(int irq, void *handle)
@@ -246,7 +240,8 @@ static irqreturn_t tsc2007_irq(int irq, void *handle)
 
 	if (!ts->get_pendown_state || likely(ts->get_pendown_state())) {
 		disable_irq_nosync(ts->irq);
-		schedule_delayed_work(&ts->work, msecs_to_jiffies(ts->poll_delay));
+		schedule_delayed_work(&ts->work,
+				      msecs_to_jiffies(ts->poll_delay));
 	}
 
 	if (ts->clear_penirq)
@@ -276,7 +271,6 @@ static int __devinit tsc2007_probe(struct i2c_client *client,
 	struct input_dev *input_dev;
 	int err;
 
-	printk ("lxy: tsc2007_probe!\n");
 	if (!pdata) {
 		dev_err(&client->dev, "platform data is required!\n");
 		return -EINVAL;
@@ -403,3 +397,4 @@ module_exit(tsc2007_exit);
 MODULE_AUTHOR("Kwangwoo Lee <kwlee@mtekvision.com>");
 MODULE_DESCRIPTION("TSC2007 TouchScreen Driver");
 MODULE_LICENSE("GPL");
+

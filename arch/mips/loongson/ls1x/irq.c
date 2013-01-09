@@ -20,8 +20,8 @@
 #include <asm/i8259.h>
 #include <asm/mipsregs.h>
 #include <asm/system.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <ls1b_board.h>
+#include <irq.h>
 
 static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
 	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));

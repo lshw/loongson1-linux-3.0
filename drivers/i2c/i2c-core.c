@@ -863,7 +863,6 @@ static int i2c_register_adapter(struct i2c_adapter *adap)
 	if (adap->nr < __i2c_first_dynamic_bus_num)
 		i2c_scan_static_board_info(adap);
 
-//	printk ("lxy: in %s, adap->nr = %d, bus_num = %d !\n", __FUNCTION__, adap->nr, __i2c_first_dynamic_bus_num);
 	/* Notify drivers */
 	mutex_lock(&core_lock);
 	bus_for_each_drv(&i2c_bus_type, NULL, adap, __process_new_adapter);
@@ -1322,7 +1321,7 @@ int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 	 */
 
 	if (adap->algo->master_xfer) {
-#ifdef DEBUG	//lxy
+#ifdef DEBUG
 		for (ret = 0; ret < num; ret++) {
 			dev_dbg(&adap->dev, "master_xfer[%d] %c, addr=0x%02x, "
 				"len=%d%s\n", ret, (msgs[ret].flags & I2C_M_RD)

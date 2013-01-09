@@ -8,8 +8,9 @@
 #include <linux/fs.h>
 #include <linux/time.h>
 #include <linux/errno.h>
+
 #include <ls1b_board.h>
-#include <ls1b_board_int.h>
+#include <irq.h>
 #include <asm/segment.h>
 #include <asm/ioctl.h>
 #include <asm/uaccess.h>

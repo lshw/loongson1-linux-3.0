@@ -17,9 +17,9 @@
 #include <asm/types.h>
 #include <asm/io.h>
 #include <asm/dma.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/spi.h>
+#include <ls1b_board.h>
+#include <irq.h>
+#include <spi.h>
 
 #define USE_POLL
 

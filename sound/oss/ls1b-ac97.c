@@ -16,8 +16,8 @@
 #include <linux/platform_device.h>
 
 #include "ls1b-ac97.h"
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <irq.h>
+#include <ls1b_board.h>
 
 #define TIME_OUT 10		//HZ
 

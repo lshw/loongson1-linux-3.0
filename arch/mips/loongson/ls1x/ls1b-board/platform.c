@@ -42,9 +42,9 @@
 #include <video/ls1xfb.h>
 #include <media/gc0308_platform.h>
 
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
-#include <asm/mach-loongson/ls1x/spi.h>
+#include <ls1b_board.h>
+#include <irq.h>
+#include <spi.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
 

@@ -11,17 +11,6 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 
-/*
- * Configuration address and data registers
- */
-#define CNF_ADDR        0x1e0
-#define CNF_DATA        0x1e4
-
-/* LS1B FPGA BOARD Memory control regs */
-#define LS1B_BOARD_SD_BASE		0x1f000000
-#define REG_SD_TIMING			0x0
-#define REG_SD_MOD_SIZE			0x4
-
 /* AHB BUS control regs */
 #define LS1B_BOARD_AHB_MISC_BASE	 0x1f003200
 #define AHB_MISC_CTRL		0x00

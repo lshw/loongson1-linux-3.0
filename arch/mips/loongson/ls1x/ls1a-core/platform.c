@@ -38,16 +38,16 @@
 #include <linux/leds.h>
 #include <linux/leds_pwm.h>
 #include <linux/can/platform/sja1000.h>
+#include <linux/ahci_platform.h>
 
 #include <video/ls1xfb.h>
 #include <media/gc0308_platform.h>
 
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
-#include <asm/mach-loongson/ls1x/spi.h>
+#include <ls1b_board.h>
+#include <irq.h>
+#include <spi.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
-#include <linux/ahci_platform.h>
 
 #ifdef CONFIG_MTD_NAND_LS1X
 struct ls1b_nand_platform_data{
