@@ -44,7 +44,7 @@ static struct fb_videomode video_modes[] = {
 	},*/
 	{	//AT043TN24
 		.name	= "AT043TN24",
-		.pixclock	= 110229,
+		.pixclock	= 82000,
 		.refresh	= 60,
 		.xres		= 480,
 		.yres		= 272,

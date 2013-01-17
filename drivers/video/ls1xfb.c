@@ -242,8 +242,9 @@ static void set_clock_divider_forls1bvga(struct ls1xfb_info *fbi,
 #endif	//#ifdef CONFIG_LS1B_MACH
 
 #ifdef CONFIG_LS1A_MACH
-int caclulatefreq(long xin, long pclk)
+int caclulatefreq(unsigned int sys_clk, unsigned int pclk)
 {
+#if 0
 	long n = 4, no = 4, od = 2, m, frac;
 	int flag = 0;
 	long out;
@@ -251,10 +252,10 @@ int caclulatefreq(long xin, long pclk)
 
 	while (flag == 0) {
 		flag = 1;
-		if ((xin/n) < 5000) {
+		if ((sys_clk/n) < 5000) {
 			n--; flag = 0;
 		}
-		if ((xin/n) > 50000) {
+		if ((sys_clk/n) > 50000) {
 			n++; flag = 0;
 		}
 	}
@@ -268,12 +269,51 @@ int caclulatefreq(long xin, long pclk)
 			no /= 2; od--; flag = 0;
 		}
 	}
-	mf = pclk * n * no * 262144 / xin;
+	mf = pclk * n * no * 262144 / sys_clk;
 	mf %= 262144;
-	m = pclk * n * no / xin;
+	m = pclk * n * no / sys_clk;
 	frac = (int)(mf);
 	out = (frac<<14) + (od<<12) + (n<<8) + m;
 	return out;
+#else
+/* N值和OD值选择不正确会造成系统死机，莫名其妙。OD=2^PIX12 */
+	unsigned int N = 4, PIX12 = 2, OD = 4;
+	unsigned int M = 0, FRAC = 0;
+	unsigned long tmp1, tmp2;
+
+	while (1) {
+		tmp2 = pclk * N * OD;
+		M = tmp2 / sys_clk;
+		if (M <= 1) {
+			N++;
+		} else {
+			tmp1 = sys_clk * M;
+			if (tmp2 < tmp1) {
+				unsigned int tmp3;
+				tmp3 = tmp1; tmp1 = tmp2; tmp2 = tmp3;
+			}
+			if ((tmp2 - tmp1) > 16384) {
+				if (N < 15 ) {
+					N++;
+				} else {
+					N = 15; PIX12++; OD *= 2;
+					if (PIX12 > 3) {
+						printk(KERN_WARNING "Warning: \
+								clock source is out of range.\n");
+						break;
+					}
+				}
+			}
+			else {
+				FRAC = ((tmp2 - tmp1) * 262144) / sys_clk;
+				break;
+			}
+		}
+	}
+//	printk("tmp2-tmp1=%d FRAC=%d\n", tmp2 - tmp1, FRAC);
+//	printk("PIX12=%d N=%d M=%d\n", PIX12, N, M);
+	return ((FRAC<<14) + (PIX12<<12) + (N<<8) + M);
+#endif
 }
 #endif	//#ifdef CONFIG_LS1A_MACH
 
