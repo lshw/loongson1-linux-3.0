@@ -522,10 +522,6 @@ static int ls1xfb_set_par(struct fb_info *info)
 	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF);
 	writel(x | LS1X_FB_PANEL_CONF_DE, fbi->reg_base + LS1X_FB_PANEL_CONF);
 
-#if defined(CONFIG_FB_GC300_ACCEL)
-	gc300_set_par(info);
-#endif
-
 	return 0;
 }
 
@@ -570,18 +566,9 @@ static struct fb_ops ls1xfb_ops = {
 	.fb_setcolreg	= ls1xfb_setcolreg,
 //	.fb_blank	= ls1xfb_blank,
 	.fb_pan_display	= ls1xfb_pan_display,
-#if defined(CONFIG_FB_GC300_ACCEL)
-	.fb_fillrect    = gc300fb_fillrect,
-	.fb_copyarea	= cfb_copyarea,
-	.fb_imageblit	= cfb_imageblit,
-//	.fb_copyarea    = gc300fb_copyarea,
-//	.fb_imageblit   = gc300fb_imageblit,
-//	.fb_sync        = gc300fb_sync,
-#else
 	.fb_fillrect	= cfb_fillrect,
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,
-#endif
 //	.fb_ioctl	= ls1xfb_ioctl,	/* 可用于LCD控制器的Switch Panel位，实现显示单元0和1的相互复制 */
 };
 
@@ -783,10 +770,6 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	 * enable controller clock
 	 */
 	clk_enable(fbi->clk);
-
-#if defined(CONFIG_FB_GC300_ACCEL)
-	gc300_hw_init(info);
-#endif
 
 	/* init ls1x lcd controller */
 	{
