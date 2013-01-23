@@ -956,9 +956,9 @@ static struct platform_device ls1b_spi1_device = {
 
 #ifdef CONFIG_SPI_GPIO
 struct spi_gpio_platform_data spigpio_platform_data = {
-	.sck = 24,	/*gpio24*/
-	.mosi = 26,	/*gpio26*/
-	.miso = 25,	/*gpio25*/
+	.sck = 40,	/*gpio40*/
+	.mosi = 42,	/*gpio42*/
+	.miso = 41,	/*gpio41*/
 	.num_chipselect = 3,
 };
 
@@ -975,7 +975,7 @@ static struct spi_board_info spi_gpio_devices[] = {
 	{	/* DataFlash chip */
 		.modalias	= "w25q64",		//"m25p80",
 		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
-		.controller_data = 27,	/*gpio27*/
+		.controller_data = (void *)43,	/*gpio43*/
 		.chip_select	= 0,
 		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
@@ -986,7 +986,7 @@ static struct spi_board_info spi_gpio_devices[] = {
 		.modalias = "ads7846",
 		.platform_data = &ads_info,
 		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
-		.controller_data = 28,	/*gpio28*/
+		.controller_data = (void *)67,	/*gpio67*/
 		.chip_select 	= 1,
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
@@ -998,7 +998,7 @@ static struct spi_board_info spi_gpio_devices[] = {
 		.modalias	= "jbt6k74",
 		.platform_data	= &jbt6k74_pdata,
 		.bus_num	= 2,		/* 对应spigpio_device的.id=2 */
-		.controller_data = 43,	/*gpio43*/
+		.controller_data = (void *)43,	/*gpio43*/
 		.chip_select = 2,
 		/* irq */
 		.max_speed_hz	= 100 * 1000,
