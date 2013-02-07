@@ -1,4 +1,6 @@
 /*
+ *  Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
+ *
  *  Based partly on pxa168fb.c
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License. See the file COPYING in the main directory of this archive for
@@ -348,7 +350,7 @@ static void set_clock_divider(struct ls1xfb_info *fbi,
 #ifdef CONFIG_LS1A_MACH
 	#define PLL_CTRL(x)		(ioremap((x), 4))
 	divider_int = caclulatefreq(APB_CLK/1000, needed_pixclk/1000);
-	writel(divider_int, PLL_CTRL(LS1X_GPU_PLL_CTRL));
+	writel(divider_int + 2, PLL_CTRL(LS1X_GPU_PLL_CTRL));
 	writel(divider_int, PLL_CTRL(LS1X_PIX1_PLL_CTRL));
 	writel(divider_int, PLL_CTRL(LS1X_PIX2_PLL_CTRL));
 #endif
