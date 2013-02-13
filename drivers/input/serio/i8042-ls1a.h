@@ -7,6 +7,9 @@
  * the Free Software Foundation.
  */
 
+#include <linux/clk.h>
+#include <ls1b_board.h>
+
 /*
  * Names.
  */
@@ -23,36 +26,39 @@
 # define I8042_KBD_IRQ	12
 # define I8042_AUX_IRQ	11
 
-
 /*
  * Register numbers.
  */
+#define LS1X_PS2_REG(x) \
+		((void __iomem *)KSEG1ADDR(LS1X_PS2_BASE + (x)))
 
-#define I8042_COMMAND_REG	0xbfe60004
-#define I8042_STATUS_REG	0xbfe60004
-#define I8042_DATA_REG		0xbfe60000
+#define I8042_COMMAND_REG		LS1X_PS2_REG(0x4)
+#define I8042_STATUS_REG		LS1X_PS2_REG(0x4)
+#define I8042_DATA_REG		LS1X_PS2_REG(0x0)
+
+#define DLL_REG		LS1X_PS2_REG(0x8)
+#define DLH_REG		LS1X_PS2_REG(0x9)
+#define DL_KBD_REG		LS1X_PS2_REG(0xa)
+#define DL_AUX_REG		LS1X_PS2_REG(0xb)
+
 static inline int i8042_read_data(void)
 {
-	return readb(I8042_DATA_REG);
-
+	return __raw_readb(I8042_DATA_REG);
 }
 
 static inline int i8042_read_status(void)
 {
-	int status;
-        status=readb(I8042_STATUS_REG);
-	return status;
+	return __raw_readb(I8042_STATUS_REG);
 }
 
 static inline void i8042_write_data(int val)
 { 
-	writeb(val, I8042_DATA_REG);
-
+	__raw_writeb(val, I8042_DATA_REG);
 }
 
 static inline void i8042_write_command(int val)
 {
-	writeb(val, I8042_COMMAND_REG);
+	__raw_writeb(val, I8042_COMMAND_REG);
 }
 
 static inline int i8042_platform_init(void)
@@ -61,7 +67,20 @@ static inline int i8042_platform_init(void)
  * On some platforms touching the i8042 data register region can do really
  * bad things. Because of this the region is always reserved on such boxes.
  */
+ 	struct clk *clk;
+ 	unsigned int div;
+ 	
+ 	clk = clk_get(NULL, "ddr");
+	if (IS_ERR(clk))
+		panic("unable to get dc clock, err=%ld", PTR_ERR(clk));
+	div = clk_get_rate(clk) / 2 / 150000;
+	__raw_writeb(div & 0xff, DLL_REG);
+	__raw_writeb((div >> 8) & 0xff, DLH_REG);
+	__raw_writeb(0xa, DL_KBD_REG);
+	__raw_writeb(0xa, DL_AUX_REG);
+
 	i8042_reset = 1;
+
 	return 0;
 }
 

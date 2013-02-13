@@ -105,6 +105,8 @@
 
 #define LS1B_UART_SPLIT				0xbfe78038
 
+#define LS1X_PS2_BASE			0x1fe60000
+
 /* watchdog */
 #ifdef	CONFIG_LS1A_MACH
 #define LS1X_WAT_BASE				0x1fe7c060
