@@ -4,16 +4,6 @@
 
 menu "I2C Hardware Bus support"
 
-config LS1B_I2C
-	tristate "I2C bus support for loongson-1b targets"
-	depends on I2C
-	help
-	  This driver supports the I2C IP block master and/or
-	  slave controller
-
-	  This driver can also be built as a module.  If so, the module
-	  will be called i2c-pnx.
-
 comment "PC SMBus host controller drivers"
 	depends on PCI
 
@@ -499,6 +489,14 @@ config I2C_OCORES
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called i2c-ocores.
+
+config I2C_LS1X
+	tristate "Loongson1 I2C Controller"
+	depends on EXPERIMENTAL && (LS1A_MACH || LS1B_MACH)
+	help
+	  This supports the use of the I2C interface on Loongson1
+	  processors.
+
 
 config I2C_OMAP
 	tristate "OMAP I2C adapter"

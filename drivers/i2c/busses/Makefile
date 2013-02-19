@@ -5,7 +5,6 @@
 # ACPI drivers
 obj-$(CONFIG_I2C_SCMI)		+= i2c-scmi.o
 
-obj-$(CONFIG_LS1B_I2C)		+= i2c-ls1b.o
 # PC SMBus host controller drivers
 obj-$(CONFIG_I2C_ALI1535)	+= i2c-ali1535.o
 obj-$(CONFIG_I2C_ALI1563)	+= i2c-ali1563.o
@@ -48,6 +47,7 @@ obj-$(CONFIG_I2C_MXS)		+= i2c-mxs.o
 obj-$(CONFIG_I2C_NOMADIK)	+= i2c-nomadik.o
 obj-$(CONFIG_I2C_NUC900)	+= i2c-nuc900.o
 obj-$(CONFIG_I2C_OCORES)	+= i2c-ocores.o
+obj-$(CONFIG_I2C_LS1X)	+= i2c-ls1x.o
 obj-$(CONFIG_I2C_OMAP)		+= i2c-omap.o
 obj-$(CONFIG_I2C_PASEMI)	+= i2c-pasemi.o
 obj-$(CONFIG_I2C_PCA_PLATFORM)	+= i2c-pca-platform.o

@@ -872,7 +872,7 @@ CONFIG_SERIAL_CORE_CONSOLE=y
 CONFIG_I2C=y
 CONFIG_I2C_BOARDINFO=y
 CONFIG_I2C_COMPAT=y
-# CONFIG_I2C_CHARDEV is not set
+CONFIG_I2C_CHARDEV=y
 # CONFIG_I2C_MUX is not set
 CONFIG_I2C_HELPER_AUTO=y
 CONFIG_I2C_ALGOBIT=y
@@ -880,13 +880,13 @@ CONFIG_I2C_ALGOBIT=y
 #
 # I2C Hardware Bus support
 #
-# CONFIG_LS1B_I2C is not set
 
 #
 # I2C system bus drivers (mostly embedded / system-on-chip)
 #
 # CONFIG_I2C_GPIO is not set
 # CONFIG_I2C_OCORES is not set
+# CONFIG_I2C_LS1X is not set
 # CONFIG_I2C_PCA_PLATFORM is not set
 # CONFIG_I2C_PXA_PCI is not set
 # CONFIG_I2C_SIMTEC is not set

@@ -121,7 +121,9 @@
 #define LS1X_RTC_BASE				0x1fe64000
 
 /* I2C */
-#define LS1B_BOARD_I2C_BASE			0x1fe58000
+#define LS1X_I2C0_BASE			0x1fe58000
+#define LS1X_I2C1_BASE			0x1fe68000
+#define LS1X_I2C2_BASE			0x1fe70000
 
 /*	HPET timer	*/
 #define	LS1A_HPET_BASE			0x1fe6c000

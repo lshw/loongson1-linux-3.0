@@ -473,8 +473,8 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
-#ifdef CONFIG_LS1B_I2C
-static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
+#ifdef CONFIG_I2C_LS1X
+static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 #ifdef CONFIG_TOUCHSCREEN_TSC2007
 	{
 		I2C_BOARD_INFO("tsc2007", 0x48),
@@ -497,28 +497,21 @@ static struct i2c_board_info __initdata ls1b_i2c_devs[] = {
 #endif
 };
 
-static struct resource ls1b_i2c_resource[] = {
+static struct resource ls1x_i2c0_resource[] = {
 	[0]={
-		.start	= LS1B_BOARD_I2C_BASE,
-		.end	= (LS1B_BOARD_I2C_BASE + 0x4),
+		.start	= LS1X_I2C0_BASE,
+		.end	= LS1X_I2C0_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 	},
-/*	
-	[1]={
-		.start	= LS1B_BOARD_I2C0_IRQ,
-		.end	= LS1B_BOARD_I2C0_IRQ,
-		.flags	= IORESOURCE_IRQ,
-	},
-*/
 };
 
-static struct platform_device ls1b_i2c_device = {
-	.name		= "ls1b-i2c",
+static struct platform_device ls1x_i2c0_device = {
+	.name		= "ls1x-i2c",
 	.id			= 0,
-	.num_resources	= ARRAY_SIZE(ls1b_i2c_resource),
-	.resource	= ls1b_i2c_resource,
+	.num_resources	= ARRAY_SIZE(ls1x_i2c0_resource),
+	.resource	= ls1x_i2c0_resource,
 };
-#endif //#ifdef CONFIG_LS1B_I2C
+#endif //#ifdef CONFIG_I2C_LS1X
 
 /*
  * lcd
@@ -1550,8 +1543,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_rtc_device,
 #endif
 
-#ifdef CONFIG_LS1B_I2C
-	&ls1b_i2c_device,
+#ifdef CONFIG_I2C_LS1X
+	&ls1x_i2c0_device,
 #endif
 
 #ifdef CONFIG_SND_LS1B
@@ -1703,8 +1696,8 @@ int __init ls1b_platform_init(void)
 	}
 #endif	//#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
-#ifdef CONFIG_LS1B_I2C
-	i2c_register_board_info(0, ls1b_i2c_devs, ARRAY_SIZE(ls1b_i2c_devs));
+#ifdef CONFIG_I2C_LS1X
+	i2c_register_board_info(0, ls1x_i2c0_devs, ARRAY_SIZE(ls1x_i2c0_devs));
 #endif
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
