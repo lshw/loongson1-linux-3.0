@@ -4,101 +4,109 @@
  *  Free Software Foundation;  either version 2 of the  License, or (at your
  *  option) any later version.
  */
-#include <linux/errno.h>
-#include <linux/init.h>
-#include <linux/kernel_stat.h>
-#include <linux/sched.h>
 #include <linux/interrupt.h>
-#include <linux/slab.h>
-#include <linux/random.h>
 #include <linux/irq.h>
-#include <linux/ptrace.h>
-
-#include <asm/io.h>
-#include <asm/irq.h>
 #include <asm/irq_cpu.h>
-#include <asm/i8259.h>
-#include <asm/mipsregs.h>
-#include <asm/system.h>
+
 #include <ls1b_board.h>
 #include <irq.h>
 
-static struct ls1b_board_intc_regs volatile *ls1b_board_hw0_icregs
-	= (struct ls1b_board_intc_regs volatile *)(KSEG1ADDR(LS1B_BOARD_INTREG_BASE));
+static struct ls1x_intc_regs volatile *ls1x_icregs
+	= (struct ls1x_intc_regs volatile *)(KSEG1ADDR(LS1X_INTREG_BASE));
 
-static void ack_ls1b_board_irq(struct irq_data *irq_data)
+static int ls1x_irq_set_type(struct irq_data *irq_data, unsigned int flow_type);
+
+static void ls1x_irq_ack(struct irq_data *irq_data)
 {
-	(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_clr |= (1 << (irq_data->irq&0x1f));
+	(ls1x_icregs + (irq_data->irq >> 5))->int_clr |= 
+		(1 << (irq_data->irq & 0x1f));
 }
 
-static void disable_ls1b_board_irq(struct irq_data *irq_data)
+static void ls1x_irq_mask(struct irq_data *irq_data)
 {
-	(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_en &= ~(1 << (irq_data->irq&0x1f));
+	(ls1x_icregs + (irq_data->irq >> 5))->int_en &= 
+		~(1 << (irq_data->irq & 0x1f));
 }
 
-static void enable_ls1b_board_irq(struct irq_data *irq_data)
+static void ls1x_irq_mask_ack(struct irq_data *irq_data)
 {
-	(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_en |= (1 << (irq_data->irq&0x1f));
+	(ls1x_icregs + (irq_data->irq >> 5))->int_clr |= 
+		(1 << (irq_data->irq & 0x1f));
+	(ls1x_icregs + (irq_data->irq >> 5))->int_en &= 
+		~(1 << (irq_data->irq & 0x1f));
 }
 
-#if 0
-static void end_ls1b_board_irq(unsigned int irq)
+static void ls1x_irq_unmask(struct irq_data *irq_data)
 {
-	if (!(irq_desc[irq].istate & (IRQ_DISABLED|IRQ_INPROGRESS))){		//lxy
-		(ls1b_board_hw0_icregs+(irq>>5))->int_clr |= 1 << (irq&0x1f); 
-		//if(irq<LS1B_BOARD_GPIO_FIRST_IRQ) 
-		enable_ls1b_board_irq(irq);
-	}
+	(ls1x_icregs + (irq_data->irq >> 5))->int_en |= 
+		(1 << (irq_data->irq & 0x1f));
 }
-#endif
-
-
-static int ls1b_board_irq_set_type(struct irq_data *irq_data, unsigned int flow_type)
+/*
+static void ls1x_irq_disable(struct irq_data *irq_data)
 {
-//	int mode;
+	(ls1x_icregs + (irq_data->irq >> 5))->int_en &= 
+		~(1 << (irq_data->irq & 0x1f));
+}
 
-	if (flow_type & IRQF_TRIGGER_PROBE)
-		return 0;
-	switch (flow_type & IRQF_TRIGGER_MASK) {
-	case IRQF_TRIGGER_RISING:
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol |= (1 << (irq_data->irq&0x1f));
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge |= (1 << (irq_data->irq&0x1f));
+static void ls1x_irq_enable(struct irq_data *irq_data)
+{
+	(ls1x_icregs + (irq_data->irq >> 5))->int_en |= 
+		(1 << (irq_data->irq & 0x1f));
+}
+*/
+
+static struct irq_chip ls1x_irq_chip = {
+	.name 		= "LS1X-INTC",
+	.irq_ack 	= ls1x_irq_ack,
+	.irq_mask 	= ls1x_irq_mask,
+	.irq_unmask 	= ls1x_irq_unmask,
+	.irq_mask_ack	= ls1x_irq_mask_ack,
+	.irq_set_type 	= ls1x_irq_set_type,
+//	.irq_enable		= ls1x_irq_enable,
+//	.irq_disable	= ls1x_irq_disable,
+};
+
+static int ls1x_irq_set_type(struct irq_data *irq_data, unsigned int flow_type)
+{
+	switch (flow_type) {
+	case IRQ_TYPE_EDGE_RISING:
+		(ls1x_icregs + (irq_data->irq >> 5))->int_pol |= (1 << (irq_data->irq & 0x1f));
+		(ls1x_icregs + (irq_data->irq >> 5))->int_edge |= (1 << (irq_data->irq & 0x1f));
 		break;
-	case IRQF_TRIGGER_FALLING:
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol &= ~(1 << (irq_data->irq&0x1f));
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge |= (1 << (irq_data->irq&0x1f));
+	case IRQ_TYPE_EDGE_FALLING:
+		(ls1x_icregs + (irq_data->irq >> 5))->int_pol &= ~(1 << (irq_data->irq & 0x1f));
+		(ls1x_icregs + (irq_data->irq >> 5))->int_edge |= (1 << (irq_data->irq & 0x1f));
 		break;
-	case IRQF_TRIGGER_HIGH:
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol |= (1 << (irq_data->irq&0x1f));
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge &= ~(1 << (irq_data->irq&0x1f));
+	case IRQ_TYPE_LEVEL_HIGH:
+		(ls1x_icregs + (irq_data->irq >> 5))->int_pol |= (1 << (irq_data->irq & 0x1f));
+		(ls1x_icregs + (irq_data->irq >> 5))->int_edge &= ~(1 << (irq_data->irq & 0x1f));
 		break;
-	case IRQF_TRIGGER_LOW:
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_pol &= ~(1 << (irq_data->irq&0x1f));
-		(ls1b_board_hw0_icregs+(irq_data->irq>>5))->int_edge &= ~(1 << (irq_data->irq&0x1f));
+	case IRQ_TYPE_LEVEL_LOW:
+		(ls1x_icregs + (irq_data->irq >> 5))->int_pol &= ~(1 << (irq_data->irq & 0x1f));
+		(ls1x_icregs + (irq_data->irq >> 5))->int_edge &= ~(1 << (irq_data->irq & 0x1f));
+		break;
+	case IRQ_TYPE_EDGE_BOTH:
+//		printk(KERN_WARNING "No edge_both irq type %d", flow_type);
+		/* Loongson1 上升沿和下降沿都会触发？ */
+		(ls1x_icregs + (irq_data->irq >> 5))->int_pol &= ~(1 << (irq_data->irq & 0x1f));
+		(ls1x_icregs + (irq_data->irq >> 5))->int_edge |= (1 << (irq_data->irq & 0x1f));
+		break;
+	case IRQ_TYPE_NONE:
+		printk(KERN_WARNING "No irq type setting!\n");
 		break;
 	default:
 		return -EINVAL;
 	}
-	return 0;
 
+	return 0;
 }
 
-static struct irq_chip ls1b_board_irq_chip = {
-	.name 		= "LS1B BOARD",
-	.irq_ack 	= ack_ls1b_board_irq,
-	.irq_mask 	= disable_ls1b_board_irq,
-	.irq_unmask 	= enable_ls1b_board_irq,
-	.irq_set_type 	= ls1b_board_irq_set_type,
-};
-
-static void ls1b_board_hw_irqdispatch(int n)
+static void ls1x_irq_dispatch(int n)
 {
-	int irq;
-	int intstatus = 0;
+	u32 intstatus, irq;
 
 	/* Receive interrupt signal, compute the irq */
-	intstatus = (ls1b_board_hw0_icregs+n)->int_isr & (ls1b_board_hw0_icregs+n)->int_en;
-
+	intstatus = (ls1x_icregs+n)->int_isr & (ls1x_icregs+n)->int_en;
 	if (intstatus) {
 		irq = ffs(intstatus);
 		do_IRQ((n<<5) + irq - 1);
@@ -115,19 +123,19 @@ asmlinkage void plat_irq_dispatch(struct pt_regs *regs)
 		do_IRQ(MIPS_CPU_IRQ_BASE + cp0_compare_irq);
 	}
 	else if (pending & CAUSEF_IP2) {
-		ls1b_board_hw_irqdispatch(0);
+		ls1x_irq_dispatch(0);
 	}
 	else if (pending & CAUSEF_IP3) {
-		ls1b_board_hw_irqdispatch(1);
+		ls1x_irq_dispatch(1);
 	}
 	else if (pending & CAUSEF_IP4) {
-		ls1b_board_hw_irqdispatch(2);
+		ls1x_irq_dispatch(2);
 	}
 	else if (pending & CAUSEF_IP5) {
-		ls1b_board_hw_irqdispatch(3);
+		ls1x_irq_dispatch(3);
 	}
 	else if (pending & CAUSEF_IP6) {
-		ls1b_board_hw_irqdispatch(4);
+		ls1x_irq_dispatch(4);
 	} else {
 		spurious_interrupt();
 	}
@@ -139,17 +147,17 @@ static struct irqaction cascade_irqaction = {
 	.flags   = IRQF_NO_THREAD,
 };
 
-static void __init ls1b_board_irq_init(void)
+static void __init ls1x_irq_init(void)
 {
 	u32 i;
-	for (i= 0; i<= LS1B_BOARD_LAST_IRQ; i++) {
-		irq_set_chip_and_handler(i, &ls1b_board_irq_chip, handle_level_irq);
+	for (i= 0; i<= LS1X_LAST_IRQ; i++) {
+		irq_set_chip_and_handler(i, &ls1x_irq_chip, handle_level_irq);
 	}
 }
 
 void __init arch_init_irq(void)
 {
-	int i;
+	u32 i;
 
 	clear_c0_status(ST0_IM | ST0_BEV);
 	local_irq_disable();
@@ -157,22 +165,22 @@ void __init arch_init_irq(void)
 	for (i=0; i<5; i++) {
 		/* active level setting */
 		/* uart, keyboard, and mouse are active high */
-		if(i == 2)
-			(ls1b_board_hw0_icregs+i)->int_pol = ~( (INT_PCI_INTA)|(INT_PCI_INTB)|(INT_PCI_INTC)|(INT_PCI_INTD));	//pci active low
+		if (i == 2)
+			(ls1x_icregs+i)->int_pol = ~( (INT_PCI_INTA)|(INT_PCI_INTB)|(INT_PCI_INTC)|(INT_PCI_INTD));	//pci active low
 		else
-			(ls1b_board_hw0_icregs+i)->int_pol = -1;	//high level triggered.
+			(ls1x_icregs+i)->int_pol = -1;	//high level triggered.
 
 		/* make all interrupts level triggered */ 
-		if(i ==  0)
-			(ls1b_board_hw0_icregs+i)->int_edge = 0x0000e000;
+		if (i ==  0)
+			(ls1x_icregs+i)->int_edge = 0x0000e000;
 		else
-			(ls1b_board_hw0_icregs+i)->int_edge = 0x00000000;
+			(ls1x_icregs+i)->int_edge = 0x00000000;
 		/* mask all interrupts */
-		(ls1b_board_hw0_icregs+i)->int_clr = 0xffffffff;
+		(ls1x_icregs+i)->int_clr = 0xffffffff;
 	}
 
-	ls1b_board_irq_init();
-	mips_cpu_irq_init();	
+	ls1x_irq_init();
+	mips_cpu_irq_init();
 	setup_irq(MIPS_CPU_IRQ_BASE + 2, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 3, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 4, &cascade_irqaction);

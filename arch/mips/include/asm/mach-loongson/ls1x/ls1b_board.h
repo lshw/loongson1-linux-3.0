@@ -11,10 +11,6 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 
-/* AHB BUS control regs */
-#define LS1B_BOARD_AHB_MISC_BASE	 0x1f003200
-#define AHB_MISC_CTRL		0x00
-
 /* 定义晶振频率和Early printk UART地址 */
 #ifdef CONFIG_LS1A_CORE_BOARD
 	#define AHB_CLK			25000000
@@ -35,6 +31,7 @@
 #define LS1X_MUX_BASE			0x1fd00420
 
 /* Interrupt register */
+#define LS1X_INTREG_BASE 0x1fd01040
 #define REG_INT_EDGE	0x04
 #define REG_INT_STEER	0x08
 #define REG_INT_POL		0x0c
@@ -42,7 +39,6 @@
 #define REG_INT_CLR		0x14
 #define REG_INT_EN		0x18
 #define REG_INT_ISR		0x1c
-#define LS1B_BOARD_INTC_BASE	LS1B_BOARD_AHB_MISC_BASE + REG_INT_EDGE
 
 #define LS1X_GPIO_BASE	0x1fd010c0
 

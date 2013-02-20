@@ -4,7 +4,7 @@
 #define NR_IRQS 	  256
 #define I8259A_IRQ_BASE 168
 #define MIPS_CPU_IRQ_BASE 160
-
+#define MIPS_CPU_TIMER_IRQ	167
 
 #define LS1B_BOARD_ACPI_IRQ		0
 #define LS1A_BOARD_HPET_IRQ		1
@@ -51,7 +51,7 @@
 #define LS1A_BOARD_SATA_IRQ	36
 #define LS1B_BOARD_GPU_IRQ	37
 #define	LS1A_BOARD_PCI_INTA_IRQ LS1X_GPIO_FIRST_IRQ
-#define	LS1A_BOARD_PCI_INTB_IRQ LS1X_GPIO_FIRST_IRQ+1
+#define	LS1A_BOARD_PCI_INTB_IRQ (LS1X_GPIO_FIRST_IRQ + 1)
 //#define LS1A_BOARD_PCI_INTA_IRQ 38
 //#define LS1A_BOARD_PCI_INTB_IRQ 39
 //#define LS1A_BOARD_PCI_INTC_IRQ 40
@@ -64,7 +64,7 @@
 #elif	CONFIG_LS1B_MACH
 #define LS1X_GPIO_IRQ_COUNT 96
 #endif
-#define LS1X_GPIO_LAST_IRQ  (LS1X_GPIO_FIRST_IRQ + LS1X_GPIO_IRQ_COUNT-1)
+#define LS1X_GPIO_LAST_IRQ  (LS1X_GPIO_FIRST_IRQ + LS1X_GPIO_IRQ_COUNT - 1)
 
 #define INT_PCI_INTA	(1<<0)
 #define INT_PCI_INTB	(1<<1)
@@ -75,11 +75,13 @@
 //#define INT_PCI_INTC	(1<<8)
 //#define INT_PCI_INTD	(1<<9)
 
-#define LS1B_BOARD_LAST_IRQ 159
-#define MIPS_CPU_TIMER_IRQ	167
-#define LS1B_BOARD_INTREG_BASE 0x1fd01040
+#ifdef CONFIG_LS1A_MACH
+#define LS1X_LAST_IRQ 159
+#elif CONFIG_LS1B_MACH
+#define LS1X_LAST_IRQ 127
+#endif
 
-struct ls1b_board_intc_regs
+struct ls1x_intc_regs
 {
 	volatile unsigned int int_isr;
 	volatile unsigned int int_en;
