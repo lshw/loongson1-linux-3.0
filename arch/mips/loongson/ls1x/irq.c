@@ -120,7 +120,7 @@ asmlinkage void plat_irq_dispatch(struct pt_regs *regs)
 	pending = read_c0_cause() & read_c0_status() & ST0_IM;
 
 	if (pending & CAUSEF_IP7) {
-		do_IRQ(MIPS_CPU_IRQ_BASE + cp0_compare_irq);
+		do_IRQ(MIPS_CPU_TIMER_IRQ);
 	}
 	else if (pending & CAUSEF_IP2) {
 		ls1x_irq_dispatch(0);
@@ -147,14 +147,6 @@ static struct irqaction cascade_irqaction = {
 	.flags   = IRQF_NO_THREAD,
 };
 
-static void __init ls1x_irq_init(void)
-{
-	u32 i;
-	for (i= 0; i<= LS1X_LAST_IRQ; i++) {
-		irq_set_chip_and_handler(i, &ls1x_irq_chip, handle_level_irq);
-	}
-}
-
 void __init arch_init_irq(void)
 {
 	u32 i;
@@ -162,25 +154,29 @@ void __init arch_init_irq(void)
 	clear_c0_status(ST0_IM | ST0_BEV);
 	local_irq_disable();
 
-	for (i=0; i<5; i++) {
-		/* active level setting */
-		/* uart, keyboard, and mouse are active high */
+	/* Disable interrupts and clear pending,
+	 * setup all IRQs as high level triggered
+	 */
+	for (i=0; i<INTN; i++) {
+		(ls1x_icregs+i)->int_en = 0x0;
+		(ls1x_icregs+i)->int_clr = 0xffffffff;
 		if (i == 2)
-			(ls1x_icregs+i)->int_pol = ~( (INT_PCI_INTA)|(INT_PCI_INTB)|(INT_PCI_INTC)|(INT_PCI_INTD));	//pci active low
+			(ls1x_icregs+i)->int_pol = ~((INT_PCI_INTA)|(INT_PCI_INTB)|(INT_PCI_INTC)|(INT_PCI_INTD));
 		else
-			(ls1x_icregs+i)->int_pol = -1;	//high level triggered.
-
-		/* make all interrupts level triggered */ 
-		if (i ==  0)
+			(ls1x_icregs+i)->int_pol = 0xffffffff;
+		/* set DMA0, DMA1 and DMA2 to edge trigger */
+		if (i == 0)
 			(ls1x_icregs+i)->int_edge = 0x0000e000;
 		else
 			(ls1x_icregs+i)->int_edge = 0x00000000;
-		/* mask all interrupts */
-		(ls1x_icregs+i)->int_clr = 0xffffffff;
 	}
 
-	ls1x_irq_init();
+	for (i=0; i<=LS1X_LAST_IRQ; i++) {
+		irq_set_chip_and_handler(i, &ls1x_irq_chip, handle_level_irq);
+	}
+
 	mips_cpu_irq_init();
+
 	setup_irq(MIPS_CPU_IRQ_BASE + 2, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 3, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 4, &cascade_irqaction);

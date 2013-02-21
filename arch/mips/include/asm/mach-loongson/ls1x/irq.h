@@ -77,8 +77,10 @@
 
 #ifdef CONFIG_LS1A_MACH
 #define LS1X_LAST_IRQ 159
+#define INTN 5
 #elif CONFIG_LS1B_MACH
 #define LS1X_LAST_IRQ 127
+#define INTN 4
 #endif
 
 struct ls1x_intc_regs
