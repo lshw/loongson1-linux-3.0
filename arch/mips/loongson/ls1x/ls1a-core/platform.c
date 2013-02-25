@@ -628,6 +628,23 @@ static struct platform_device ls1x_lcd_powerdev = {
 };
 #endif //#ifdef CONFIG_LCD_PLATFORM
 
+#ifdef CONFIG_BACKLIGHT_PWM
+#include <linux/pwm_backlight.h>
+static struct platform_pwm_backlight_data ls1x_backlight_data = {
+	.pwm_id		= 2,
+	.max_brightness	= 255,
+	.dft_brightness	= 100,
+	.pwm_period_ns	= 7812500,
+};
+
+static struct platform_device ls1x_pwm_backlight = {
+	.name = "pwm-backlight",
+	.dev = {
+		.platform_data = &ls1x_backlight_data,
+	},
+};
+#endif //#ifdef CONFIG_BACKLIGHT_PWM
+
 //gmac0
 #ifdef CONFIG_LS1B_GMAC0_OPEN
 static struct resource ls1b_mac0_resources[] = {
@@ -1620,6 +1637,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #ifdef CONFIG_LCD_PLATFORM
 	&ls1x_lcd_powerdev,
+#endif
+#ifdef CONFIG_BACKLIGHT_PWM
+	&ls1x_pwm_backlight,
 #endif
 };
 

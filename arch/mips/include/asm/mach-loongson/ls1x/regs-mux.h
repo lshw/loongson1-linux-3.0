@@ -53,8 +53,9 @@
 
 #elif	CONFIG_LS1B_MACH
 #define LS1X_MUX_CTRL1		LS1X_MUX_REG(0x4)
+
 /* MUX_CTRL0 Register Bits */
-#define UART0_UAE_PWM23			(0x1 << 28)
+#define UART0_USE_PWM23			(0x1 << 28)
 #define UART0_USE_PWM01			(0x1 << 27)
 #define UART1_USE_LCD0_5_6_11	(0x1 << 26)
 #define I2C2_USE_CAN1			(0x1 << 25)

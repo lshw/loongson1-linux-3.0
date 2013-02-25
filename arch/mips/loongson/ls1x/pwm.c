@@ -1,4 +1,6 @@
 /*
+ *  Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
+ *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the
  *  Free Software Foundation;  either version 2 of the License, or (at your
@@ -20,7 +22,7 @@
 #include <linux/pwm.h>
 #include <linux/gpio.h>
 
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <ls1b_board.h>
 
 #define REG_PWM_CNTR	0x00
 #define REG_PWM_HRC		0x04
@@ -60,6 +62,7 @@ static struct pwm_device ls1x_pwm_list[] = {
 struct pwm_device *pwm_request(int id, const char *label)
 {
 	int ret = 0;
+	u32 x;
 	struct pwm_device *pwm;
 
 	if (id > 3 || !ls1x_pwm_clk)
@@ -81,20 +84,29 @@ struct pwm_device *pwm_request(int id, const char *label)
 	/* 如果该引脚被设置为gpio需要释放该引脚 */
 	gpio_free(pwm->gpio);
 
+	x = __raw_readl(LS1X_MUX_CTRL0);
 	/* 设备复用模式为pwm */
 #ifdef CONFIG_LS1A_MACH
 	if (id == 0 || id == 1) {
-		*(volatile int *)0xbfd00420 &= ~0x20000100;
+		x = x & (~NAND1_USE_PWM01) & (~GMAC0_USE_PWM01);
+		__raw_writel(x, LS1X_MUX_CTRL0);
 	} else {
-		*(volatile int *)0xbfd00420 &= ~0x10000200;
+		x = x & (~NAND_D45_USE_PWM23) & (~GMAC1_USE_PWM23);
+		__raw_writel(x, LS1X_MUX_CTRL0);
 	}
 #else
 	if (id == 0 || id == 1) {
-		*(volatile int *)0xbfd00420 &= ~0x08041040;
-		*(volatile int *)0xbfd00424 &= ~0x01000001;
+		x = x & (~UART0_USE_PWM01) & (~NAND3_USE_PWM01) & (~NAND2_USE_PWM01) & (~NAND1_USE_PWM01);
+		__raw_writel(x, LS1X_MUX_CTRL0);
+		x = __raw_readl(LS1X_MUX_CTRL1);
+		x = x & (~SPI1_CS_USE_PWM01) & (~GMAC0_USE_PWM01);
+		__raw_writel(x, LS1X_MUX_CTRL1);
 	} else {
-		*(volatile int *)0xbfd00420 &= ~0x10082080;
-		*(volatile int *)0xbfd00424 &= ~0x00000002;
+		x = x & (~UART0_USE_PWM23) & (~NAND3_USE_PWM23) & (~NAND2_USE_PWM23) & (~NAND1_USE_PWM23);
+		__raw_writel(x, LS1X_MUX_CTRL0);
+		x = __raw_readl(LS1X_MUX_CTRL1);
+		x = x & (~GMAC1_USE_PWM23);
+		__raw_writel(x, LS1X_MUX_CTRL1);
 	}
 #endif
 
@@ -137,7 +149,7 @@ int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
 int pwm_enable(struct pwm_device *pwm)
 {
 	unsigned int id = pwm->id;
-	/* 启动 */
+
 	writel(0x00, ls1x_pwm_base + (id << 4) + REG_PWM_CNTR);
 	writeb(0x01, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
 	return 0;
@@ -146,11 +158,8 @@ int pwm_enable(struct pwm_device *pwm)
 void pwm_disable(struct pwm_device *pwm)
 {
 	unsigned int id = pwm->id;
-	/* 停止 */
-	writeb(0x00, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
-	writel(0x00, ls1x_pwm_base + (id << 4) + REG_PWM_CNTR);
-	writeb(0x00, ls1x_pwm_base + (id << 4) + REG_PWM_HRC);
-	writeb(0x00, ls1x_pwm_base + (id << 4) + REG_PWM_LRC);
+
+	writeb(0x09, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
 }
 
 static int __init ls1x_pwm_init(void)
