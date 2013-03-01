@@ -163,6 +163,20 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 3,
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
+	{	// 1920x1080@60Hz
+		.name	= "unknow",
+		.pixclock	= 6734,
+		.refresh	= 60,
+		.xres		= 1920,
+		.yres		= 1080,
+		.hsync_len	= 44,
+		.left_margin	= 148,
+		.right_margin	= 88,
+		.vsync_len	= 5,
+		.upper_margin	= 36,
+		.lower_margin	= 4,
+		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
+	},
 };
 
 #ifdef CONFIG_LS1B_MACH
@@ -213,6 +227,18 @@ struct ls1b_vga ls1b_vga_modes[] = {
 	#else	//AHB_CLK == 33000000
 		.ls1b_pll_freq = 0x3af14,
 		.ls1b_pll_div = 0x8628ea00,
+	#endif
+	},
+	{
+		.xres = 1920,
+		.yres = 1080,
+		.refresh = 60,
+	#if APB_CLK == 25000000
+		.ls1b_pll_freq = 0x3af23,
+		.ls1b_pll_div = 0x86392a00,
+	#else	//APB_CLK == 33000000
+		.ls1b_pll_freq = 0x3af17,
+		.ls1b_pll_div = 0x86392a00,
 	#endif
 	},
 	{},
