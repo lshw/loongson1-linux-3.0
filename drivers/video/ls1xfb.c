@@ -349,8 +349,11 @@ static void set_clock_divider(struct ls1xfb_info *fbi,
 
 #ifdef CONFIG_LS1A_MACH
 	#define PLL_CTRL(x)		(ioremap((x), 4))
+	/* 设置gpu时钟频率为200MHz */
+	divider_int = caclulatefreq(APB_CLK/1000, 200000);
+	writel(divider_int, PLL_CTRL(LS1X_GPU_PLL_CTRL));
+	/* 像素时钟 */
 	divider_int = caclulatefreq(APB_CLK/1000, needed_pixclk/1000);
-	writel(divider_int + 4, PLL_CTRL(LS1X_GPU_PLL_CTRL));
 	writel(divider_int, PLL_CTRL(LS1X_PIX1_PLL_CTRL));
 	writel(divider_int, PLL_CTRL(LS1X_PIX2_PLL_CTRL));
 #endif
