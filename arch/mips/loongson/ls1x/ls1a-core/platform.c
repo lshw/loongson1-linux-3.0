@@ -662,7 +662,7 @@ static struct resource ls1b_mac0_resources[] = {
 
 static struct plat_stmmacenet_data ls1b_mac0_data = {
 	.bus_id = 0,
-	.pbl = 32,
+//	.pbl = 32,
 	.has_gmac = 1,
 	.enh_desc = 0,
 };
