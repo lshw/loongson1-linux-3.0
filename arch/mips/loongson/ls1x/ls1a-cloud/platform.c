@@ -710,10 +710,20 @@ struct platform_device ls1b_gmac1_phy = {
 };
 #endif //#ifdef CONFIG_LS1B_GMAC1_OPEN
 
-#ifdef CONFIG_SND_LS1B
-static struct platform_device ls1b_audio_device = {
-	.name           = "ls1b-audio",
+#ifdef CONFIG_SOUND_LS1X_AC97
+static struct resource ls1x_ac97_resource[] = {
+	[0]={
+		.start	= LS1X_AC97_BASE,
+		.end	= LS1X_AC97_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device ls1x_audio_device = {
+	.name           = "ls1x-audio",
 	.id             = -1,
+	.num_resources	= ARRAY_SIZE(ls1x_ac97_resource),
+	.resource		= ls1x_ac97_resource,
 };
 #endif
 
@@ -1528,8 +1538,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c0_device,
 #endif
 
-#ifdef CONFIG_SND_LS1B
-	&ls1b_audio_device,
+#ifdef CONFIG_SOUND_LS1X_AC97
+	&ls1x_audio_device,
 #endif
 
 #ifdef CONFIG_LS1B_SPI0

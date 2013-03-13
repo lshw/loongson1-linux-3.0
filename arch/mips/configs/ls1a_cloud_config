@@ -801,13 +801,13 @@ CONFIG_I2C_ALGOBIT=y
 #
 # I2C Hardware Bus support
 #
-# CONFIG_LS1B_I2C is not set
 
 #
 # I2C system bus drivers (mostly embedded / system-on-chip)
 #
 # CONFIG_I2C_GPIO is not set
 # CONFIG_I2C_OCORES is not set
+# CONFIG_I2C_LS1X is not set
 # CONFIG_I2C_PCA_PLATFORM is not set
 # CONFIG_I2C_PXA_PCI is not set
 # CONFIG_I2C_SIMTEC is not set
@@ -1005,7 +1005,7 @@ CONFIG_SOUND_OSS_CORE=y
 CONFIG_SOUND_OSS_CORE_PRECLAIM=y
 # CONFIG_SND is not set
 CONFIG_SOUND_PRIME=y
-CONFIG_SND_LS1B=y
+CONFIG_SOUND_LS1X_AC97=y
 CONFIG_HID_SUPPORT=y
 CONFIG_HID=y
 # CONFIG_HIDRAW is not set

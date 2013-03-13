@@ -8,7 +8,6 @@
 obj-$(CONFIG_SOUND_OSS)		+= sound.o
 
 # Please leave it as is, cause the link order is significant !
-obj-y	+=	ac97_codec.o
 
 obj-$(CONFIG_SOUND_AEDSP16)	+= aedsp16.o
 obj-$(CONFIG_SOUND_PSS)		+= pss.o ad1848.o mpu401.o
@@ -27,8 +26,7 @@ obj-$(CONFIG_SOUND_MSNDCLAS)	+= msnd.o msnd_classic.o
 obj-$(CONFIG_SOUND_MSNDPIN)	+= msnd.o msnd_pinnacle.o
 obj-$(CONFIG_SOUND_VWSND)	+= vwsnd.o
 obj-$(CONFIG_SOUND_BCM_CS4297A)	+= swarm_cs4297a.o
-
-obj-y += ls1b-ac97.o 
+obj-$(CONFIG_SOUND_LS1X_AC97)	+= ls1x_ac97.o ac97_codec.o
 
 obj-$(CONFIG_DMASOUND)		+= dmasound/
 

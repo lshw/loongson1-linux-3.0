@@ -48,13 +48,11 @@ int main(int argc, char *argv[])
       }
       break;
     case 1:
-      printf("left record source:");//0 - mic 4 - line in  
-      scanf("%d", &left);
-      printf("right record source:");
-      scanf("%d", &right);
-      level = (left << 8) + right;
+//		level = SOUND_MASK_MIC;
+		level = SOUND_MASK_LINE;
+//		level = SOUND_MASK_LINE1;
 
-      status = ioctl(fd, MIXER_WRITE(SOUND_MIXER_RECSRC), &level);
+      status = ioctl(fd, SOUND_MIXER_WRITE_RECSRC, (unsigned long) &level);
       if (status == -1)
       {
 	perror("MIXER_WRITE ioctl failed\n");

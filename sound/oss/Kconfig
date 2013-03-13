@@ -22,6 +22,10 @@ config SOUND_VWSND
 	  <file:Documentation/sound/oss/vwsnd> for more info on this driver's
 	  capabilities.
 
+config SOUND_LS1X_AC97
+	tristate "Loongson1 AC97 Sound"
+	depends on CPU_LOONGSON1A || CPU_LOONGSON1B
+
 config SOUND_MSNDCLAS
 	tristate "Support for Turtle Beach MultiSound Classic, Tahiti, Monterey"
 	depends on (m || !STANDALONE) && ISA
@@ -540,10 +544,4 @@ config SOUND_KAHLUA
 	depends on SOUND_SB
 
 endif	# SOUND_OSS
-
-
-
-config SND_LS1B
-	tristate "loongson ls1x soundcard"
-	depends on SOUND_PRIME
 
