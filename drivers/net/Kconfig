@@ -221,6 +221,7 @@ menuconfig NET_ETHERNET
 	  the questions about Ethernet network cards. If unsure, say N.
 
 if NET_ETHERNET
+
 config MACB
 	tristate "Atmel MACB support"
 	depends on HAVE_NET_MACB
@@ -2049,37 +2050,6 @@ menuconfig NETDEV_1000
 	  If you say N, all options in this submenu will be skipped and disabled.
 
 if NETDEV_1000
-
-config LS1B_GMAC
-	tristate "Loongson ls1f GMAC support"
-	default y
-	depends on MACH_SB2F || LS1B_MACH || LS1A_MACH
-	
-config LS1B_GMAC0_OPEN
-        bool "enable ls1b gmac0 driver"
-        default y
-        depends on LS1B_GMAC
-        help
-          if you want to use NIC,say Y.
-
-config LS1B_GMAC1_OPEN
-        bool "enable ls1b gmac1 driver"
-        default n
-        depends on LS1B_GMAC
-        help
-          gmac1 can not used with serial port 0, so, if you want to use
-          serial port 0,say N.
-
-config GMAC_COHERENT
-	bool "ls1f gmac coherent"
-	default n
-	depends on LS1B_GMAC
-
-
-config FIX_COHERENT_UNALIGNED
-	bool "fix coherent unaligned"
-	depends on GMAC_COHERENT
-	default n
 
 config ACENIC
 	tristate "Alteon AceNIC/3Com 3C985/NetGear GA620 Gigabit support"

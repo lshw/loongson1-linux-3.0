@@ -579,61 +579,81 @@ struct platform_device ls1x_fb1_device = {
 #endif	//#ifdef CONFIG_LS1X_FB1
 #endif	//#if defined(CONFIG_FB_LOONGSON1)
 
-//gmac0
-#ifdef CONFIG_LS1B_GMAC0_OPEN
-static struct resource ls1b_mac0_resources[] = {
+//gmac
+#ifdef CONFIG_STMMAC_ETH
+void __init ls1x_gmac_setup(void)
+{
+#ifdef CONFIG_LS1X_GMAC0
+{
+	u32 x;
+	x = __raw_readl(LS1X_MUX_CTRL0);
+	#ifdef CONFIG_LS1X_GMAC0_100M
+	x = x | GMAC0_USE_TXCLK | GMAC0_USE_PWM01;
+	#elif CONFIG_LS1X_GMAC0_1000M
+	x = x & (~GMAC0_USE_TXCLK) & (~GMAC0_USE_PWM01);
+	#endif
+	__raw_writel(x & (~GMAC0_SHUT), LS1X_MUX_CTRL0);
+}
+#endif
+#ifdef CONFIG_LS1X_GMAC1
+{
+	u32 x;
+	x = __raw_readl(LS1X_MUX_CTRL0);
+	x = x | GMAC1_USE_UART1 | GMAC1_USE_UART0;	/* 复用UART0&1 */
+	#ifdef CONFIG_LS1X_GMAC1_100M
+	x = x | GMAC1_USE_TXCLK | GMAC1_USE_PWM23;
+	#elif CONFIG_LS1X_GMAC1_1000M
+	x = x & (~GMAC1_USE_TXCLK) & (~GMAC1_USE_PWM23);
+	#endif
+	__raw_writel(x & (~GMAC1_SHUT), LS1X_MUX_CTRL0);
+}
+#endif
+}
+
+#ifdef CONFIG_LS1X_GMAC0
+static struct resource ls1x_mac0_resources[] = {
 	[0] = {
-		.start  = LS1B_BOARD_GMAC1_BASE,
-		.end    = LS1B_BOARD_GMAC1_BASE + SZ_8K - 1,
+		.start  = LS1X_GMAC0_BASE,
+		.end    = LS1X_GMAC0_BASE + SZ_8K - 1,
 		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
 		.name   = "macirq",
-		.start  = LS1B_BOARD_GMAC1_IRQ,
+		.start  = LS1X_GMAC0_IRQ,
 		.flags  = IORESOURCE_IRQ,
 	},
 };
 
-static struct plat_stmmacenet_data ls1b_mac0_data = {
+static struct plat_stmmacenet_data ls1x_mac0_data = {
 	.bus_id = 0,
-//	.pbl = 32,
+	.pbl = 0,
 	.has_gmac = 1,
 	.enh_desc = 0,
 };
 
-struct platform_device ls1b_gmac0_mac = {
+struct platform_device ls1x_gmac0_mac = {
 	.name           = "stmmaceth",
 	.id             = 0,
-	.num_resources  = ARRAY_SIZE(ls1b_mac0_resources),
-	.resource       = ls1b_mac0_resources,
+	.num_resources  = ARRAY_SIZE(ls1x_mac0_resources),
+	.resource       = ls1x_mac0_resources,
 	.dev            = {
-		.platform_data = &ls1b_mac0_data,
+		.platform_data = &ls1x_mac0_data,
 	},
 };
 
 static struct plat_stmmacphy_data  phy0_private_data = {
-#ifdef CONFIG_LS1A_MACH
-#ifdef	CONFIG_LS1A_CORE_BOARD
-	.bus_id = 0,
-	.phy_addr = 0,
-#else
-	.bus_id = 0,
-	.phy_addr = 1,
-#endif
-#else
 	.bus_id = 0,
 #ifdef CONFIG_RTL8305SC
 	.phy_addr = 4,
 #else
 	.phy_addr = 0,
 #endif
-#endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
 	
 };
 
-struct platform_device ls1b_gmac0_phy = {
+struct platform_device ls1x_gmac0_phy = {
 	.name = "stmmacphy",
 	.id = 0,
 	.num_resources = 1,
@@ -649,38 +669,36 @@ struct platform_device ls1b_gmac0_phy = {
 		.platform_data = &phy0_private_data,
 	},
 };
-#endif //#ifdef CONFIG_LS1B_GMAC0_OPEN
+#endif //#ifdef CONFIG_LS1X_GMAC0
 
-//gmac1
-#ifdef CONFIG_LS1B_GMAC1_OPEN
-static struct resource ls1b_mac1_resources[] = {
+#ifdef CONFIG_LS1X_GMAC1
+static struct resource ls1x_mac1_resources[] = {
 	[0] = {
-		.start  = LS1B_BOARD_GMAC2_BASE,
-		.end    = LS1B_BOARD_GMAC2_BASE + SZ_8K - 1,
+		.start  = LS1X_GMAC1_BASE,
+		.end    = LS1X_GMAC1_BASE + SZ_8K - 1,
 		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
 		.name   = "macirq",
-		.start  = LS1B_BOARD_GMAC2_IRQ,
+		.start  = LS1X_GMAC1_IRQ,
 		.flags  = IORESOURCE_IRQ,
 	},
 };
 
-
-static struct plat_stmmacenet_data ls1b_mac1_data = {
+static struct plat_stmmacenet_data ls1x_mac1_data = {
 	.bus_id = 1,
-//	.pbl = 32,
+	.pbl = 0,
 	.has_gmac = 1,
 	.enh_desc = 0,
 };
 
-struct platform_device ls1b_gmac1_mac = {
+struct platform_device ls1x_gmac1_mac = {
 	.name           = "stmmaceth",
 	.id             = 1,
-	.num_resources  = ARRAY_SIZE(ls1b_mac1_resources),
-	.resource       = ls1b_mac1_resources,
+	.num_resources  = ARRAY_SIZE(ls1x_mac1_resources),
+	.resource       = ls1x_mac1_resources,
 	.dev            = {
-		.platform_data = &ls1b_mac1_data,
+		.platform_data = &ls1x_mac1_data,
 	},
 };
 
@@ -692,7 +710,7 @@ static struct plat_stmmacphy_data  phy1_private_data = {
 	
 };
 
-struct platform_device ls1b_gmac1_phy = {
+struct platform_device ls1x_gmac1_phy = {
 	.name = "stmmacphy",
 	.id = 1,
 	.num_resources = 1,
@@ -708,7 +726,8 @@ struct platform_device ls1b_gmac1_phy = {
 		.platform_data = &phy1_private_data,
 	},
 };
-#endif //#ifdef CONFIG_LS1B_GMAC1_OPEN
+#endif //#ifdef CONFIG_LS1X_GMAC1
+#endif //#ifdef CONFIG_STMMAC_ETH
 
 #ifdef CONFIG_SOUND_LS1X_AC97
 static struct resource ls1x_ac97_resource[] = {
@@ -1517,13 +1536,15 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_ehci_device,
 #endif
 
-#ifdef CONFIG_LS1B_GMAC0_OPEN   //lv
-	&ls1b_gmac0_mac,
-	&ls1b_gmac0_phy,
+#ifdef CONFIG_STMMAC_ETH
+#ifdef CONFIG_LS1X_GMAC0
+	&ls1x_gmac0_mac,
+	&ls1x_gmac0_phy,
 #endif
-#ifdef CONFIG_LS1B_GMAC1_OPEN  //lv
-	&ls1b_gmac1_mac,
-	&ls1b_gmac1_phy,
+#ifdef CONFIG_LS1X_GMAC1
+	&ls1x_gmac1_mac,
+	&ls1x_gmac1_phy,
+#endif
 #endif
 
 #ifdef CONFIG_LS1X_WDT
@@ -1608,17 +1629,11 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 };
 
-#define AHCI_PCI_BAR  5
-
 int __init ls1b_platform_init(void)
 {
 	struct clk *clk;
 	struct plat_serial8250_port *p;
 	u32 x;
-
-#ifdef LOONGSON_AHCI
-//	ls1a_ahci_map_table[AHCI_PCI_BAR]=ioremap_nocache(ls1a_ahci_resources[0].start,0x200);
-#endif
 
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
 	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) = 0x1;
@@ -1636,6 +1651,10 @@ int __init ls1b_platform_init(void)
 
 	for (p = uart8250_data; p->flags != 0; ++p)
 		p->uartclk = clk_get_rate(clk) / 2;
+
+#ifdef CONFIG_STMMAC_ETH
+	ls1x_gmac_setup();
+#endif
 
 #ifdef CONFIG_CAN_SJA1000_PLATFORM
 	{
@@ -1725,5 +1744,4 @@ int __init ls1b_platform_init(void)
 }
 
 arch_initcall(ls1b_platform_init);
-
 

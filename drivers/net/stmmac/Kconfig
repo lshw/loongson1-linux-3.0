@@ -10,17 +10,49 @@ config STMMAC_ETH
 	  platforms.
 
 if STMMAC_ETH
+
+config LS1X_GMAC0
+	bool "Loongson1 GMAC0 support"
+	default y
+	depends on LS1A_MACH || LS1B_MACH
+
+choice
+		prompt "ls1x gmac0 config"
+		depends on LS1X_GMAC0
+
+config LS1X_GMAC0_100M
+		bool "100Mb MII mode"
+
+config LS1X_GMAC0_1000M
+		bool "1000Mb MII mode"
+endchoice
+
+config LS1X_GMAC1
+	bool "Loongson1 GMAC1 support"
+	default n
+	depends on LS1A_MACH || LS1B_MACH
+
+choice
+		prompt "ls1x gmac1 config"
+		depends on LS1X_GMAC1
+
+config LS1X_GMAC1_100M
+		bool "100Mb MII mode"
+
+config LS1X_GMAC1_1000M
+		bool "1000Mb MII mode"
+endchoice
+
 config RTL8305SC
 	bool "STMMAC support RTL8305SC"
 	default n
 	help
 	  Selecting this option, stmmac will support switch controller
 	  rtl8305sc.
-	
 
 config STMMAC_DA
 	bool "STMMAC DMA arbitration scheme"
-	default y
+	default n
 	help
 	  Selecting this option, rx has priority over Tx (only for Giga
 	  Ethernet device).

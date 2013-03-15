@@ -80,8 +80,8 @@
 #define LS1B_PWM3_BASE	0x1fe5c030
 
 /* gamc regs */
-#define LS1B_BOARD_GMAC1_BASE		0x1fe10000
-#define LS1B_BOARD_GMAC2_BASE		0x1fe20000
+#define LS1X_GMAC0_BASE		0x1fe10000
+#define LS1X_GMAC1_BASE		0x1fe20000
 
 /* UART regs */
 #define LS1X_UART0_BASE		0x1fe40000

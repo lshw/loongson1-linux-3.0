@@ -578,60 +578,83 @@ static struct platform_device ls1x_pwm_backlight = {
 };
 #endif //#ifdef CONFIG_BACKLIGHT_PWM
 
-//gmac0
-#ifdef CONFIG_LS1B_GMAC0_OPEN
-static struct resource ls1b_mac0_resources[] = {
+//gmac
+#ifdef CONFIG_STMMAC_ETH
+void __init ls1x_gmac_setup(void)
+{
+#ifdef CONFIG_LS1X_GMAC0
+{
+	u32 x;
+	x = __raw_readl(LS1X_MUX_CTRL1);
+	#ifdef CONFIG_LS1X_GMAC0_100M
+	x = x | GMAC0_USE_TXCLK | GMAC0_USE_PWM01;
+	#elif CONFIG_LS1X_GMAC0_1000M
+	x = x & (~GMAC0_USE_TXCLK) & (~GMAC0_USE_PWM01);
+	#endif
+	__raw_writel(x & (~GMAC0_SHUT), LS1X_MUX_CTRL1);
+}
+#endif
+#ifdef CONFIG_LS1X_GMAC1
+{
+	u32 x;
+	x = __raw_readl(LS1X_MUX_CTRL0);
+	x = x | GMAC1_USE_UART1 | GMAC1_USE_UART0;	/* 复用UART0&1 */
+	__raw_writel(x, LS1X_MUX_CTRL0);
+	x = __raw_readl(LS1X_MUX_CTRL1);
+	#ifdef CONFIG_LS1X_GMAC1_100M
+	x = x | GMAC1_USE_TXCLK | GMAC1_USE_PWM23;
+	#elif CONFIG_LS1X_GMAC1_1000M
+	x = x & (~GMAC1_USE_TXCLK) & (~GMAC1_USE_PWM23);
+	#endif
+	__raw_writel(x & (~GMAC1_SHUT), LS1X_MUX_CTRL1);
+}
+#endif
+}
+
+#ifdef CONFIG_LS1X_GMAC0
+static struct resource ls1x_mac0_resources[] = {
 	[0] = {
-		.start  = LS1B_BOARD_GMAC1_BASE,
-		.end    = LS1B_BOARD_GMAC1_BASE + SZ_8K - 1,
+		.start  = LS1X_GMAC0_BASE,
+		.end    = LS1X_GMAC0_BASE + SZ_8K - 1,
 		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
 		.name   = "macirq",
-		.start  = LS1B_BOARD_GMAC1_IRQ,
+		.start  = LS1X_GMAC0_IRQ,
 		.flags  = IORESOURCE_IRQ,
 	},
 };
 
-static struct plat_stmmacenet_data ls1b_mac0_data = {
+static struct plat_stmmacenet_data ls1x_mac0_data = {
 	.bus_id = 0,
+	.pbl = 0,
 	.has_gmac = 1,
 	.enh_desc = 0,
 };
 
-struct platform_device ls1b_gmac0_mac = {
+struct platform_device ls1x_gmac0_mac = {
 	.name           = "stmmaceth",
 	.id             = 0,
-	.num_resources  = ARRAY_SIZE(ls1b_mac0_resources),
-	.resource       = ls1b_mac0_resources,
+	.num_resources  = ARRAY_SIZE(ls1x_mac0_resources),
+	.resource       = ls1x_mac0_resources,
 	.dev            = {
-		.platform_data = &ls1b_mac0_data,
+		.platform_data = &ls1x_mac0_data,
 	},
 };
 
 static struct plat_stmmacphy_data  phy0_private_data = {
-#ifdef CONFIG_LS1A_MACH
-#ifdef	CONFIG_LS1A_CORE_BOARD
-	.bus_id = 0,
-	.phy_addr = 0,
-#else
-	.bus_id = 0,
-	.phy_addr = 1,
-#endif
-#else
 	.bus_id = 0,
 #ifdef CONFIG_RTL8305SC
 	.phy_addr = 4,
 #else
 	.phy_addr = 0,
 #endif
-#endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
 	
 };
 
-struct platform_device ls1b_gmac0_phy = {
+struct platform_device ls1x_gmac0_phy = {
 	.name = "stmmacphy",
 	.id = 0,
 	.num_resources = 1,
@@ -647,37 +670,36 @@ struct platform_device ls1b_gmac0_phy = {
 		.platform_data = &phy0_private_data,
 	},
 };
-#endif //#ifdef CONFIG_LS1B_GMAC0_OPEN
+#endif //#ifdef CONFIG_LS1X_GMAC0
 
-//gmac1
-#ifdef CONFIG_LS1B_GMAC1_OPEN
-static struct resource ls1b_mac1_resources[] = {
+#ifdef CONFIG_LS1X_GMAC1
+static struct resource ls1x_mac1_resources[] = {
 	[0] = {
-		.start  = LS1B_BOARD_GMAC2_BASE,
-		.end    = LS1B_BOARD_GMAC2_BASE + SZ_8K - 1,
+		.start  = LS1X_GMAC1_BASE,
+		.end    = LS1X_GMAC1_BASE + SZ_8K - 1,
 		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
 		.name   = "macirq",
-		.start  = LS1B_BOARD_GMAC2_IRQ,
+		.start  = LS1X_GMAC1_IRQ,
 		.flags  = IORESOURCE_IRQ,
 	},
 };
 
-
-static struct plat_stmmacenet_data ls1b_mac1_data = {
+static struct plat_stmmacenet_data ls1x_mac1_data = {
 	.bus_id = 1,
+	.pbl = 0,
 	.has_gmac = 1,
 	.enh_desc = 0,
 };
 
-struct platform_device ls1b_gmac1_mac = {
+struct platform_device ls1x_gmac1_mac = {
 	.name           = "stmmaceth",
 	.id             = 1,
-	.num_resources  = ARRAY_SIZE(ls1b_mac1_resources),
-	.resource       = ls1b_mac1_resources,
+	.num_resources  = ARRAY_SIZE(ls1x_mac1_resources),
+	.resource       = ls1x_mac1_resources,
 	.dev            = {
-		.platform_data = &ls1b_mac1_data,
+		.platform_data = &ls1x_mac1_data,
 	},
 };
 
@@ -689,7 +711,7 @@ static struct plat_stmmacphy_data  phy1_private_data = {
 	
 };
 
-struct platform_device ls1b_gmac1_phy = {
+struct platform_device ls1x_gmac1_phy = {
 	.name = "stmmacphy",
 	.id = 1,
 	.num_resources = 1,
@@ -705,7 +727,8 @@ struct platform_device ls1b_gmac1_phy = {
 		.platform_data = &phy1_private_data,
 	},
 };
-#endif //#ifdef CONFIG_LS1B_GMAC1_OPEN
+#endif //#ifdef CONFIG_LS1X_GMAC1
+#endif //#ifdef CONFIG_STMMAC_ETH
 
 #ifdef CONFIG_SOUND_LS1X_AC97
 static struct resource ls1x_ac97_resource[] = {
@@ -1501,13 +1524,15 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_ehci_device,
 #endif
 
-#ifdef CONFIG_LS1B_GMAC0_OPEN   //lv
-	&ls1b_gmac0_mac,
-	&ls1b_gmac0_phy,
+#ifdef CONFIG_STMMAC_ETH
+#ifdef CONFIG_LS1X_GMAC0
+	&ls1x_gmac0_mac,
+	&ls1x_gmac0_phy,
 #endif
-#ifdef CONFIG_LS1B_GMAC1_OPEN  //lv
-	&ls1b_gmac1_mac,
-	&ls1b_gmac1_phy,
+#ifdef CONFIG_LS1X_GMAC1
+	&ls1x_gmac1_mac,
+	&ls1x_gmac1_phy,
+#endif
 #endif
 
 #ifdef CONFIG_SOUND_LS1X_AC97
@@ -1627,6 +1652,10 @@ int __init ls1b_platform_init(void)
 	for (p = uart8250_data; p->flags != 0; ++p)
 		p->uartclk = clk_get_rate(clk) / 2;
 
+#ifdef CONFIG_STMMAC_ETH
+	ls1x_gmac_setup();
+#endif
+
 #ifdef CONFIG_CAN_SJA1000_PLATFORM
 	{
 	#ifdef CONFIG_LS1X_CAN0
@@ -1704,37 +1733,6 @@ int __init ls1b_platform_init(void)
 	spi_register_board_info(spi_gpio_devices, ARRAY_SIZE(spi_gpio_devices));
 #endif
 
-//modify by lvling
-#if defined(CONFIG_LS1B_GMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN)//open gmac0 and gmac1  
-	printk("open gmac0 and gmac1.\n");
-	/* 寄存器0xbfd00424有GMAC的使能开关 */
-	(*(volatile unsigned int *)0xbfd00424) &= ~((1<<13) | (1<<12));	/* 使能GMAC0 GMAC1 */
-	(*(volatile unsigned int *)0xbfd00420) |= (1 << 4 | 1 << 3);
-	(*(volatile unsigned int *)0xbfd00424) |= (0xf);
-
-#elif defined(CONFIG_LS1B_GMAC0_OPEN) && !defined(CONFIG_LS1B_GMAC1_OPEN)//open gmac0,close gmac1
-	printk("open gmac0 close gmac1.\n");
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 12);	//使能GMAC0
-	(*(volatile unsigned int *)0xbfd00424) |= (1 << 0 | 1 << 2); //open gmac0
-
-//	(*(volatile unsigned int *)0xbfd00424) |= (1 << 13);	//禁止GMAC1
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 1 | 1 << 3); //close gmac1
-	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4); //open uart0/1
-
-#elif !defined(CONFIG_LS1BGMAC0_OPEN) && defined(CONFIG_LS1B_GMAC1_OPEN) //close gmac0,open gmac 1
-	printk("close gmac0 open gmac1.\n");
-//	(*(volatile unsigned int *)0xbfd00424) |= (1 << 12);	//禁止GMAC0
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 0 | 1 << 2); //close gmac0
-
-	(*(volatile unsigned int *)0xbfd00424) &= ~(1 << 13);	//使能GMAC1
-	(*(volatile unsigned int *)0xbfd00424) |= (1 << 1 | 1 << 3); //open gmac1
-	(*(volatile unsigned int *)0xbfd00420) |= (1 << 3 | 1 <<4); //close uart0/1
-  
-#else
-//	(*(volatile unsigned int *)0xbfd00424) |= ((1<<13) | (1<<12));	/* 禁止GMAC0 GMAC1 */
-	(*(volatile unsigned int *)0xbfd00420) &= ~(1 << 3 | 1 << 4);	//open uart0/1
-#endif
-
 #ifdef CONFIG_BACKLIGHT_GENERIC
 	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
 #endif
@@ -1745,3 +1743,4 @@ int __init ls1b_platform_init(void)
 }
 
 arch_initcall(ls1b_platform_init);
+

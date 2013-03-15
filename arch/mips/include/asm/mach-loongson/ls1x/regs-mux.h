@@ -95,8 +95,8 @@
 #define USB_SHUT				(0x1 << 11)
 #define UART1_3_USE_CAN1		(0x1 << 5)
 #define UART1_2_USE_CAN0		(0x1 << 4)
-#define GMAC1_USE_TX_CLK		(0x1 << 3)
-#define GMAC0_USE_TX_CLK		(0x1 << 2)
+#define GMAC1_USE_TXCLK			(0x1 << 3)
+#define GMAC0_USE_TXCLK			(0x1 << 2)
 #define GMAC1_USE_PWM23			(0x1 << 1)
 #define GMAC0_USE_PWM01			(0x1 << 0)
 #endif	//#ifdef	CONFIG_LS1A_MACH
