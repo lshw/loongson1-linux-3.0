@@ -13,7 +13,7 @@
 
 /* 定义晶振频率和Early printk UART地址 */
 #ifdef CONFIG_LS1A_CORE_BOARD
-	#define AHB_CLK			25000000
+	#define AHB_CLK			33000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1A_CLOUD_TERMIAL)
 	#define AHB_CLK			25000000
