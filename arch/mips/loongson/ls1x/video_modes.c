@@ -23,6 +23,20 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 8,	// 248-240
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
+/*	{	// HX8238-D 国显3.5寸屏
+		.name	= "HX8238-D",
+		.pixclock	= 153979,
+		.refresh	= 60,
+		.xres		= 320,
+		.yres		= 240,
+		.hsync_len	= 2,		// 342-340
+		.left_margin	= 68,	// 410-342
+		.right_margin	= 20,	// 340-320
+		.vsync_len	= 2,		// 264-244
+		.upper_margin	= 18,	// 276-246
+		.lower_margin	= 4,	// 244-240
+		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
+	},*/
 	{	// ILI9341控制器
 		.name	= "ILI9341",
 		.pixclock	= 155555,
@@ -39,7 +53,7 @@ static struct fb_videomode video_modes[] = {
 	},
 /*	{	// NT39016D控制器
 		.name	= "NT39016D",
-		.pixclock	= 4000,
+		.pixclock	= 155328,
 		.refresh	= 60,
 		.xres		= 320,
 		.yres		= 240,
