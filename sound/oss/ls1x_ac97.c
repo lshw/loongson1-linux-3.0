@@ -299,17 +299,17 @@ static void dma_enable_trans(struct audio_stream * s, struct audio_dma_desc *des
 //	struct ls1x_audio_state *state = &ls1x_audio_state;
 	u32 val;
 	int timeout = 20000;
-	unsigned long flags;
+//	unsigned long flags;
 
 	val = desc->snd_dma_handle;
 	val |= s->output ? 0x9 : 0xa;
-	local_irq_save(flags);
+//	local_irq_save(flags);
 	writel(val, order_addr_in);
 //	while(readl(order_addr_in) & 0x8);
 	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
-		udelay(5);
+//		udelay(5);
 	}
-	local_irq_restore(flags);
+//	local_irq_restore(flags);
 //	writel(0xffffffff, state->base + INTM);
 #ifdef CONFIG_SND_SB2F_TIMER
 	mod_timer(&s->timer, jiffies + HZ/20);
@@ -338,15 +338,15 @@ void audio_clear_buf(struct audio_stream *s)
 
 static void inline link_dma_desc(struct audio_stream *s, struct audio_dma_desc *desc)
 {
-	spin_lock_irq(&s->lock);
+//	spin_lock_irq(&s->lock);
 
-	if(!list_empty(&s->run_list)) {
+	if (!list_empty(&s->run_list)) {
 		struct audio_dma_desc *desc0;
 		desc0 = list_entry(s->run_list.prev, struct audio_dma_desc, link);
 		desc0->snd.ordered = desc->snd_dma_handle | DMA_ORDERED_EN;
 		desc0->null.ordered = desc->snd_dma_handle | DMA_ORDERED_EN;
 		list_add_tail(&desc->link, &s->run_list);
-		if(s->state == STOP) {
+		if (s->state == STOP) {
 			s->state = RUN;
 			dma_enable_trans(s, desc0);
 		}
@@ -356,7 +356,7 @@ static void inline link_dma_desc(struct audio_stream *s, struct audio_dma_desc *
 		dma_enable_trans(s, desc);
 	}
 
-	spin_unlock_irq(&s->lock);
+//	spin_unlock_irq(&s->lock);
 }
 
 static void ls1x_init_dmadesc(struct audio_stream *s, struct audio_dma_desc *desc, u32 count)
@@ -381,7 +381,7 @@ static void ls1x_init_dmadesc(struct audio_stream *s, struct audio_dma_desc *des
 	* [29:28]-01 --> half word(two bytes)
 	* [29:28]-10 --> word (four bytes)
 	*/
-	if(s->sample_size == AFMT_S16_LE) {
+	if (s->sample_size == AFMT_S16_LE) {
 		control |= (1 << 28);
 	}
 
@@ -441,7 +441,7 @@ int ls1x_setup_buf(struct audio_stream * s)
 	/* dma desc for ask_valid one per struct audio_stream */
 	s->ask_dma = dma_alloc_coherent(NULL, sizeof(struct dma_desc),
 			&dma_phyaddr, GFP_KERNEL);
-	if(!s->ask_dma) {
+	if (!s->ask_dma) {
 		printk(KERN_ERR "3. alloc dma desc err.\n");
 		goto err;
 	}
@@ -474,16 +474,16 @@ static irqreturn_t ac97_dma_read_intr(int irq, void *private)
 {
 	struct audio_stream *s = (struct audio_stream *)private;
 	struct audio_dma_desc *desc;
-	unsigned long flags;
+//	unsigned long flags;
 
 	if (list_empty(&s->run_list))
 		return IRQ_HANDLED;
 
-	local_irq_save(flags);
+//	local_irq_save(flags);
 	writel(s->ask_dma_handle | 0x6, order_addr_in);
 	while (readl(order_addr_in) & 4) {
 	}
-	local_irq_restore(flags);
+//	local_irq_restore(flags);
 
 	do {
 		desc = list_entry(s->run_list.next, struct audio_dma_desc, link);
@@ -494,7 +494,7 @@ static irqreturn_t ac97_dma_read_intr(int irq, void *private)
 		list_del(&desc->link);
 		list_add_tail(&desc->link, &s->done_list);
 //		spin_unlock(&s->lock);
-	} while(!list_empty(&s->run_list));
+	} while (!list_empty(&s->run_list));
 
 	if (!list_empty(&s->done_list))
 		wake_up(&s->frag_wq);
@@ -505,21 +505,21 @@ static irqreturn_t ac97_dma_write_intr(int irq, void *private)
 {
 	struct audio_stream *s = (struct audio_stream *)private;
 	struct audio_dma_desc *desc;
-	unsigned long flags;
+//	unsigned long flags;
 
 	if (list_empty(&s->run_list))
 		return IRQ_HANDLED;
 
-	local_irq_save(flags);
+//	local_irq_save(flags);
 	writel(s->ask_dma_handle | 0x5, order_addr_in);
 	while (readl(order_addr_in) & 4) {
 	}
-	local_irq_restore(flags);
+//	local_irq_restore(flags);
 
 	do {
 		desc = list_entry(s->run_list.next, struct audio_dma_desc, link);
 		/*first desc's ordered may be null*/
-		if(s->ask_dma->ordered == desc->snd.ordered || s->ask_dma->ordered == 
+		if (s->ask_dma->ordered == desc->snd.ordered || s->ask_dma->ordered == 
 			((desc->snd_dma_handle + sizeof(struct dma_desc)) | DMA_ORDERED_EN))
 			break;
 
@@ -528,7 +528,7 @@ static irqreturn_t ac97_dma_write_intr(int irq, void *private)
 		desc->pos = 0;
 		list_add_tail(&desc->link, &s->free_list);
 //		spin_unlock(&s->lock);
-	} while(!list_empty(&s->run_list));
+	} while (!list_empty(&s->run_list));
 
 	if (!list_empty(&s->free_list))
 		wake_up(&s->frag_wq);
@@ -581,11 +581,11 @@ static int ls1x_audio_write(struct file *file, const char *buffer, size_t count,
 	}
 
 	while (count > 0) {
-		if(list_empty(&s->free_list)) {
-			if(file->f_flags & O_NONBLOCK)
+		if (list_empty(&s->free_list)) {
+			if (file->f_flags & O_NONBLOCK)
 				return -EAGAIN;
 
-			if(wait_event_interruptible(s->frag_wq, !list_empty(&s->free_list))) {
+			if (wait_event_interruptible(s->frag_wq, !list_empty(&s->free_list))) {
 				up(&s->sem);
 				return -ERESTARTSYS;
 			}
@@ -665,7 +665,7 @@ static int ls1x_audio_read(struct file *file, char *buffer, size_t count, loff_t
 				up(&s->sem);
 				return -EAGAIN;
 			}
-			if(wait_event_interruptible(s->frag_wq, !list_empty(&s->done_list))) {
+			if (wait_event_interruptible(s->frag_wq, !list_empty(&s->done_list))) {
 				up(&s->sem);
 				return -ERESTARTSYS;
 			}
@@ -732,9 +732,6 @@ static unsigned int ls1x_audio_poll(struct file *file, struct poll_table_struct 
 	struct audio_stream *is = state->input_stream;
 	struct audio_stream *os = state->output_stream;
 	unsigned int mask = 0;
-
-	poll_wait(file, &is->frag_wq, wait);
-	poll_wait(file, &os->frag_wq, wait);
 
 	if (file->f_mode & FMODE_READ) {
 		if (!is->ask_dma && ls1x_setup_buf(is))
@@ -1153,7 +1150,7 @@ static int ls1x_audio_probe(struct platform_device *pdev)
 	memset(state, 0, sizeof(struct ls1x_audio_state));
 
 	state->codec = ac97_alloc_codec();
-	if(state->codec == NULL) {
+	if (state->codec == NULL) {
 		printk(KERN_ERR "Out of memory\n");
 		return -1;
 	}
@@ -1322,8 +1319,7 @@ module_exit(ls1x_audio_exit);
 
 #ifndef MODULE
 
-static int __init
-ls1x_setup(char *options)
+static int __init ls1x_setup(char *options)
 {
 	char           *this_opt;
 

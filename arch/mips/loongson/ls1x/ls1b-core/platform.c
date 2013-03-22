@@ -802,7 +802,7 @@ static struct mmc_spi_platform_data mmc_spi = {
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
-#define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
+#define ADS7846_GPIO_IRQ 29 /* 开发板触摸屏使用的外部中断 */
 int ads7846_pendown_state(void)
 {
 	return !gpio_get_value(ADS7846_GPIO_IRQ);
