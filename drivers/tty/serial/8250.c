@@ -1747,7 +1747,7 @@ static int serial_link_irq_chain(struct uart_8250_port *up)
 		if (i->irq == up->port.irq)
 			break;
 	}
-	
+
 	if (n == NULL) {
 		i = kzalloc(sizeof(struct irq_info), GFP_KERNEL);
 		if (i == NULL) {
@@ -1777,6 +1777,7 @@ static int serial_link_irq_chain(struct uart_8250_port *up)
 		if (ret < 0)
 			serial_do_unlink(i, up);
 	}
+
 	return ret;
 }
 

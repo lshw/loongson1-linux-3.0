@@ -99,6 +99,9 @@
 #define GMAC0_USE_TXCLK			(0x1 << 2)
 #define GMAC1_USE_PWM23			(0x1 << 1)
 #define GMAC0_USE_PWM01			(0x1 << 0)
+
+#define UART_SPLIT \
+		((void __iomem *)KSEG1ADDR(LS1B_UART_SPLIT))
 #endif	//#ifdef	CONFIG_LS1A_MACH
 
 #endif /* __ASM_MACH_LOONGSON1_REGS_MUX_H */

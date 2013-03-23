@@ -37,7 +37,6 @@
 #include <linux/jbt6k74.h>
 #include <linux/leds.h>
 #include <linux/leds_pwm.h>
-#include <linux/can/platform/sja1000.h>
 
 #include <video/ls1xfb.h>
 #include <media/gc0308_platform.h>
@@ -132,111 +131,75 @@ struct platform_device ls1b_nand_device = {
 };
 #endif //CONFIG_MTD_NAND_LS1X
 
-static struct plat_serial8250_port uart8250_data[] = {
-{
-	.mapbase = LS1X_UART0_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART0_BASE),
-	.irq = LS1X_UART0_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART1_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART1_BASE),
-	.irq = LS1X_UART1_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART2_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART2_BASE),
-	.irq = LS1X_UART2_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART3_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART3_BASE),
-	.irq = LS1X_UART3_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},
-#ifdef	CONFIG_LS1B_MACH
-{
-	.mapbase = LS1X_UART4_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART4_BASE),
-	.irq = LS1X_UART4_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART5_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART5_BASE),
-	.irq = LS1X_UART5_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},
+#define LS1X_UART(_id)						\
+	{							\
+		.mapbase	= LS1X_UART ## _id ## _BASE,	\
+		.irq		= LS1X_UART ## _id ## _IRQ,	\
+		.iotype		= UPIO_MEM,			\
+		.flags		= UPF_IOREMAP | UPF_FIXED_TYPE,	\
+		.type		= PORT_16550A,			\
+	}
+
+#define LS1X_UART_SHARE(_id, _irq)						\
+	{							\
+		.mapbase	= LS1X_UART ## _id ## _BASE,	\
+		.irq		= LS1X_UART ## _irq ## _IRQ,	\
+		.iotype		= UPIO_MEM,			\
+		.flags		= UPF_IOREMAP | UPF_FIXED_TYPE | UPF_SHARE_IRQ,	\
+		.type		= PORT_16550A,			\
+	}
+
+static struct plat_serial8250_port ls1x_serial8250_port[] = {
+	LS1X_UART(0),
+	LS1X_UART(1),
+	LS1X_UART(2),
+	LS1X_UART(3),
+#ifdef CONFIG_LS1B_MACH
+	LS1X_UART(4),
+	LS1X_UART(5),
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-{
-	.mapbase = LS1X_UART6_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART6_BASE),
-	.irq = LS1X_UART0_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART7_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART7_BASE),
-	.irq = LS1X_UART0_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART8_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART8_BASE),
-	.irq = LS1X_UART0_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},
+	LS1X_UART_SHARE(6, 0),
+	LS1X_UART_SHARE(7, 0),
+	LS1X_UART_SHARE(8, 0),
 #endif
 #ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-{
-	.mapbase = LS1X_UART9_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART9_BASE),
-	.irq = LS1X_UART1_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART10_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART10_BASE),
-	.irq = LS1X_UART1_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},{
-	.mapbase = LS1X_UART11_BASE,
-	.membase = (void __iomem*)KSEG1ADDR(LS1X_UART11_BASE),
-	.irq = LS1X_UART1_IRQ,
-	.flags = UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_SHARE_IRQ,
-	.iotype = UPIO_MEM,
-	.regshift = 0,
-},
+	LS1X_UART_SHARE(9, 1),
+	LS1X_UART_SHARE(10, 1),
+	LS1X_UART_SHARE(11, 1),
 #endif
-#endif //#ifdef	CONFIG_LS1B_MACH
-{.flags = 0,}
+#endif
+	{},
 };
 
-static struct platform_device uart8250_device = {
-	.name = "serial8250",
-	.id = PLAT8250_DEV_PLATFORM,
-	.dev = {
-		.platform_data = uart8250_data,
-	}
+struct platform_device ls1x_uart_device = {
+	.name		= "serial8250",
+	.id		= PLAT8250_DEV_PLATFORM,
+	.dev		= {
+		.platform_data = ls1x_serial8250_port,
+	},
 };
+
+void __init ls1x_serial_setup(void)
+{
+	struct clk *clk;
+	struct plat_serial8250_port *p;
+
+#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
+	__raw_writeb(__raw_readb(UART_SPLIT) | 0x01, UART_SPLIT);
+#endif
+#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
+	__raw_writeb(__raw_readb(UART_SPLIT) | 0x02, UART_SPLIT);
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL1) | UART1_3_USE_CAN1 | UART1_2_USE_CAN0, 
+				LS1X_MUX_CTRL1);
+#endif
+
+	clk = clk_get(NULL, "ddr");
+	if (IS_ERR(clk))
+		panic("unable to get dc clock, err=%ld", PTR_ERR(clk));
+
+	for (p = ls1x_serial8250_port; p->flags != 0; ++p)
+		p->uartclk = clk_get_rate(clk) / 2;
+}
 
 /*
  * ohci
@@ -1445,6 +1408,7 @@ static struct platform_device ls1x_leds_pwm = {
 #endif //#ifdef CONFIG_LEDS_PWM
 
 #ifdef CONFIG_CAN_SJA1000_PLATFORM
+#include <linux/can/platform/sja1000.h>
 #ifdef CONFIG_LS1X_CAN0
 static struct resource ls1x_sja1000_resources_0[] = {
 	{
@@ -1508,7 +1472,7 @@ static struct platform_device ls1x_sja1000_1 = {
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
-	&uart8250_device,
+	&ls1x_uart_device,
 
 #ifdef CONFIG_LS1X_FB0
 	&ls1x_fb0_device,
@@ -1633,25 +1597,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 int __init ls1b_platform_init(void)
 {
-	struct clk *clk;
-	struct plat_serial8250_port *p;
-
-#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) = 0x1;
-#endif
-#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-	(*(volatile unsigned char *)(LS1B_UART_SPLIT)) |= 0x2;
-
-	(*(volatile unsigned int *)(LS1B_GPIO_MUX_CTRL1)) |= 0x30;
-#endif
-
-	/* uart clock */
-	clk = clk_get(NULL, "ddr");
-	if (IS_ERR(clk))
-		panic("unable to get dc clock, err=%ld", PTR_ERR(clk));
-
-	for (p = uart8250_data; p->flags != 0; ++p)
-		p->uartclk = clk_get_rate(clk) / 2;
+	ls1x_serial_setup();
 
 #ifdef CONFIG_STMMAC_ETH
 	ls1x_gmac_setup();

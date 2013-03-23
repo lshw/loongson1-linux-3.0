@@ -169,7 +169,7 @@ config SERIAL_8250_MANY_PORTS
 
 config MULTIFUNC_CONFIG_SERAIL0
 	bool "multifunction serail 0 for loongson 1b"
-	depends on SERIAL_8250 && LOONGSON_UART_BASE
+	depends on SERIAL_8250 && LOONGSON_UART_BASE && LS1B_MACH
 	default n
 	help
 	  Say Y here To enable multifunction on loongson 1B uart0 port.
@@ -177,7 +177,7 @@ config MULTIFUNC_CONFIG_SERAIL0
 
 config MULTIFUNC_CONFIG_SERAIL1
 	bool "multifunction serail 1 for loongson 1b"
-	depends on SERIAL_8250 && LOONGSON_UART_BASE
+	depends on SERIAL_8250 && LOONGSON_UART_BASE && LS1B_MACH
 	default n
 	help
 	  Say Y here To enable multifunction on loongson 1B uart1 port.
