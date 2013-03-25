@@ -729,15 +729,14 @@ static struct flash_platform_data flash = {
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
-#define DETECT_GPIO  41
-//#define DETECT_GPIO  56
+#define DETECT_GPIO  3
+#if 0
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
 {
 	return !gpio_get_value(DETECT_GPIO);
 }
-
-#if 0
+#else
 #define MMC_SPI_CARD_DETECT_INT  (LS1X_GPIO_FIRST_IRQ + DETECT_GPIO)
 /* 中断方式方式探测card的插拔 */
 static int ls1b_mmc_spi_init(struct device *dev,
@@ -755,12 +754,12 @@ static void ls1b_mmc_spi_exit(struct device *dev, void *data)
 
 static struct mmc_spi_platform_data mmc_spi = {
 	/* 中断方式方式探测card的插拔 */
-//	.init = ls1b_mmc_spi_init,
-//	.exit = ls1b_mmc_spi_exit,
+	.init = ls1b_mmc_spi_init,
+	.exit = ls1b_mmc_spi_exit,
 	.detect_delay = 1200,	/* msecs */
 	/* 轮询方式方式探测card的插拔 */
-	.get_cd = mmc_spi_get_cd,
-	.caps = MMC_CAP_NEEDS_POLL,
+//	.get_cd = mmc_spi_get_cd,
+//	.caps = MMC_CAP_NEEDS_POLL,
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
@@ -836,15 +835,6 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
 		.irq				= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
-	},
-#endif
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	{	/* mmc/sd card */
-		.modalias		= "mmc_spi",		//mmc spi,
-		.bus_num 		= 0,
-		.chip_select	= SPI0_CS2,
-		.max_speed_hz	= 25000000,
-		.platform_data	= &mmc_spi,
 	},
 #endif
 };
@@ -1648,9 +1638,8 @@ int __init ls1b_platform_init(void)
 #endif
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	/* 轮询方式探测card的插拔 */
+	/* 轮询方式或中断方式探测card的插拔 */
 	ls1b_gpio_direction_input(NULL, DETECT_GPIO);		/* 输入使能 */
-	/* 中断方式探测card的插拔 */
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
