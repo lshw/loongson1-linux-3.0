@@ -783,7 +783,7 @@ static struct flash_platform_data flash = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
 #define DETECT_GPIO  69
-#if 0
+#if 1
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
 {
@@ -807,12 +807,12 @@ static void ls1b_mmc_spi_exit(struct device *dev, void *data)
 
 static struct mmc_spi_platform_data mmc_spi = {
 	/* 中断方式方式探测card的插拔 */
-	.init = ls1b_mmc_spi_init,
-	.exit = ls1b_mmc_spi_exit,
-	.detect_delay = 1200,	/* msecs */
+//	.init = ls1b_mmc_spi_init,
+//	.exit = ls1b_mmc_spi_exit,
+//	.detect_delay = 1200,	/* msecs */
 	/* 轮询方式方式探测card的插拔 */
-//	.get_cd = mmc_spi_get_cd,
-//	.caps = MMC_CAP_NEEDS_POLL,
+	.get_cd = mmc_spi_get_cd,
+	.caps = MMC_CAP_NEEDS_POLL,
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
@@ -841,9 +841,10 @@ static struct ads7846_platform_data ads_info = {
 	.model				= 7846,
 	.vref_delay_usecs	= 1,
 	.keep_vref_on		= 0,
-	.x_plate_ohms		= 800,
+	.settle_delay_usecs	= 10,
+//	.x_plate_ohms		= 800,
 	.pressure_min		= 0,
-	.pressure_max		= 15000,
+	.pressure_max		= 1024,
 	.debounce_rep		= 3,
 	.debounce_max		= 10,
 	.debounce_tol		= 50,
