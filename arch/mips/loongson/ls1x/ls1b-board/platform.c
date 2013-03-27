@@ -740,7 +740,7 @@ static int mmc_spi_get_cd(struct device *dev)
 }
 #else
 #define MMC_SPI_CARD_DETECT_INT  (LS1X_GPIO_FIRST_IRQ + DETECT_GPIO)
-/* 中断方式方式探测card的插拔 */
+/* 中断方式方式探测card的插拔，由于loongson1 CPU不支持双边沿触发 所以不建议使用中断方式 */
 static int ls1b_mmc_spi_init(struct device *dev,
 	irqreturn_t (*detect_int)(int, void *), void *data)
 {
@@ -772,22 +772,19 @@ int ads7846_pendown_state(void)
 	return !gpio_get_value(ADS7846_GPIO_IRQ);
 }
 	
-int ads7846_detect_penirq(void)
+static void ads7846_detect_penirq(void)
 {
-	//配置GPIO0
-	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);		/* 输入使能 */
-
-	return (LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ);
+	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);
 }
 	
 static struct ads7846_platform_data ads_info = {
 	.model				= 7846,
 	.vref_delay_usecs	= 1,
 	.keep_vref_on		= 0,
-	.settle_delay_usecs	= 10,
+	.settle_delay_usecs	= 20,
 //	.x_plate_ohms		= 800,
 	.pressure_min		= 0,
-	.pressure_max		= 1024,
+	.pressure_max		= 2048,
 	.debounce_rep		= 3,
 	.debounce_max		= 10,
 	.debounce_tol		= 50,
@@ -813,8 +810,8 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 #ifdef CONFIG_LS1B_SPI0
 static struct spi_board_info ls1b_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
-	{	/* DataFlash chip */
-		.modalias	= "w25q64",		//"m25p80",
+	{
+		.modalias	= "w25q64",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 80000000,
@@ -822,7 +819,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 	},
 #endif
 #ifdef CONFIG_SPI_MCP3201
-	{	/* ADC chip */
+	{
 		.modalias	= "mcp3201-1",
 		.bus_num 	= 0,
 		.chip_select	= SPI0_CS3,
@@ -841,12 +838,13 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 	},
 #endif
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	{	/* mmc/sd card */
-		.modalias		= "mmc_spi",		//mmc spi,
+	{
+		.modalias		= "mmc_spi",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS2,
 		.max_speed_hz	= 25000000,
 		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_3,
 	},
 #endif
 };
@@ -885,8 +883,8 @@ static struct platform_device ls1b_spi0_device = {
 #ifdef CONFIG_LS1B_SPI1 /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	{	/* mmc/sd card */
-		.modalias		= "mmc_spi",		//mmc spi,
+	{
+		.modalias		= "mmc_spi",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS0,
 		.max_speed_hz	= 25000000,
@@ -953,8 +951,8 @@ static struct platform_device spigpio_device = {
 
 static struct spi_board_info spi_gpio_devices[] = {
 #ifdef CONFIG_MTD_M25P80
-	{	/* DataFlash chip */
-		.modalias	= "w25q64",		//"m25p80",
+	{
+		.modalias	= "w25q64",
 		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
 		.controller_data = (void *)27,	/*gpio27*/
 		.chip_select	= 0,
@@ -983,6 +981,17 @@ static struct spi_board_info spi_gpio_devices[] = {
 		.chip_select = 2,
 		/* irq */
 		.max_speed_hz	= 100 * 1000,
+	},
+#endif
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
+	{
+		.modalias		= "mmc_spi",
+		.bus_num 		= 2,
+		.controller_data = (void *)29,	/*gpio29*/
+		.chip_select	= 2,
+		.max_speed_hz	= 25000000,
+		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_3,
 	},
 #endif
 };
@@ -1286,6 +1295,36 @@ struct platform_device ssd1305fb_device = {
 };
 #endif //#ifdef CONFIG_FB_SSD1305
 
+#ifdef CONFIG_FB_ST7565
+#include <linux/st7565.h>
+static struct st7565_platform_data st7565_pdata = {
+	.gpio_outpu = REG_GPIO_OUT0,
+	.gpios_res = 17,
+	.gpios_cs = 16,
+	.gpios_dc = 18,
+	.gpios_rd = 20,
+	.gpios_wr = 19,
+	
+	.gpios_d0 = 8,
+	.gpios_d1 = 9,
+	.gpios_d2 = 10,
+	.gpios_d3 = 11,
+	.gpios_d4 = 12,
+	.gpios_d5 = 13,
+	.gpios_d6 = 14,
+	.gpios_d7 = 15,
+	.datas_offset = 8,
+};
+
+struct platform_device st7565fb_device = {
+	.name	= "st7565fb",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &st7565_pdata,
+	},
+};
+#endif //#ifdef CONFIG_FB_ST7565
+
 #ifdef CONFIG_FB_ST7920
 static struct st7920_platform_data st7920_pdata = {
 	.gpio_outpu = REG_GPIO_OUT0,
@@ -1560,7 +1599,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_FB_SSD1305
 	&ssd1305fb_device,
 #endif
-
+#ifdef CONFIG_FB_ST7565
+	&st7565fb_device,
+#endif
 #ifdef CONFIG_FB_ST7920
 	&st7920fb_device,
 #endif

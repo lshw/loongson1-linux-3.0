@@ -523,6 +523,39 @@ config SSD1305_I2C
 	bool "I2C bus interface mode"
 endchoice
 
+config FB_ST7565
+	tristate "Sitronix ST7565 framebuffer support"
+	depends on FB
+	depends on GENERIC_GPIO
+	select FB_SYS_FOPS
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_DEFERRED_IO
+	help
+	  This driver implements support for the Sitronix ST7565 controller.
+
+choice
+	prompt  "ST7565 bus interface mode"
+	depends on FB_ST7565
+	default ST7565_8080
+
+config ST7565_8080
+	bool "8080 bus interface mode"
+
+config ST7565_6800
+	bool "6800 bus interface mode"
+
+config ST7565_SPI3
+	bool "3-wire SPI bus interface mode"
+
+config ST7565_SPI4
+	bool "4-wire SPI bus interface mode"
+
+config ST7565_I2C
+	bool "I2C bus interface mode"
+endchoice
+
 config FB_ST7920
 	tristate "ST7920 Monochrome display module support"
 	depends on FB

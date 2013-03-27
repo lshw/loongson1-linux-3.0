@@ -20,30 +20,12 @@ menuconfig MISC_DEVICES
 
 if MISC_DEVICES
 
-config ST7565R
-	tristate "ST7565R Sitronix 65x132 Dot Matrix LCD Controller/Driver"
-	default n
-	help
-	  Sitronix 65 x 132 Dot Matrix LCD Controller/Driver.
-	  Say Y here if you have ST7565R.
-
-	  If unsure, say N .
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called st7565r.
-
 config EASY_DAB_AUDIO
 	tristate "easynetting spi dab autio supported"
 	depends on SPI
 	default n
 	help
 	  loongson-gz for easynetting network radio project
-
-config	SSD1305
-	tristate "SSD1305 OLED Controller"
-	default n
-	help
-	  132 x 64 Dot Matrix OLED/PLED Segment/Common Driver with Controller.
 
 config ILI9341
 	tristate "ili9341 a-Si TFT LCD Single Chip Driver"
