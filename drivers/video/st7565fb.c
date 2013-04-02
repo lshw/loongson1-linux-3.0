@@ -15,7 +15,7 @@
 #include <linux/delay.h>
 #include <linux/st7565.h>
 
-#define X_OFFSET		0
+#define X_OFFSET		4
 #define ST7565FB_WIDTH			128
 #define ST7565FB_HEIGHT		64
 
@@ -26,8 +26,8 @@
 #define SSD1307FB_ADC_NOR		0xa0
 #define SSD1307FB_ADC_REV		0xa1
 #define SSD1307FB_RESET			0xe2
-#define ST7565FB_LCD_19BIAS	0xa2
-#define ST7565FB_LCD_17BIAS	0xa3
+#define ST7565FB_LCD_19BIAS		0xa2
+#define ST7565FB_LCD_17BIAS		0xa3
 #define ST7565FB_DISPLAY_ALL_NOR		0xa4
 #define ST7565FB_DISPLAY_ALL_REV		0xa5
 #define ST7565FB_DISPLAY_NOR		0xa6
@@ -369,19 +369,21 @@ static void st7565fb_hw_init(struct st7565fb_par *par)
 
 	/* 设置ADC和SCAN的模式可以对显示进行旋转 */
 	/* Sets the display RAM address SEG output correspondence */
-	st7565fb_write_cmd(par, SSD1307FB_ADC_NOR);
+	st7565fb_write_cmd(par, SSD1307FB_ADC_REV);
 	/* Common output mode select */
-	st7565fb_write_cmd(par, ST7565FB_SCAN_REV);
+	st7565fb_write_cmd(par, ST7565FB_SCAN_NOR);
 
+	/* Sets the LCD drive voltage bias ratio */
+	st7565fb_write_cmd(par, ST7565FB_LCD_19BIAS);
 	/* Select internal resistor ratio(Rb/Ra) mode */
-	st7565fb_write_cmd(par, 0x27);
+	st7565fb_write_cmd(par, 0x24);
 	/* Select internal power supply operating mode */
 	st7565fb_write_cmd(par, 0x2f);
 	/* Set the V0 output voltage electronic volume register */
 	st7565fb_write_cmd(par, 0x81);
 	st7565fb_write_cmd(par, 0x3f);
-	/* Display start line set */
-	st7565fb_write_cmd(par, 0x60);
+	/* Display start line set st7565r */
+//	st7565fb_write_cmd(par, 0x60);
 	/* Booster ratio set */
 	st7565fb_write_cmd(par, 0xf8);
 	st7565fb_write_cmd(par, 0x03);
