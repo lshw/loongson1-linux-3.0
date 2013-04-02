@@ -8,62 +8,49 @@
 #include <linux/fs.h>
 #include <linux/time.h>
 #include <linux/errno.h>
+#include <linux/gpio.h>
 
 #include <ls1b_board.h>
 #include <irq.h>
-#include <asm/segment.h>
-#include <asm/ioctl.h>
-#include <asm/uaccess.h>
 
-#include "ls1b_ir.h"
+#define LS1B_DEBUG 1
 
-#define LS1B_DEBUG
+#define GPIO_IR 61
 
-static inline unsigned int ls1b_ir_pinstate(void)
-{
-	unsigned int ret;
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_IN1)); 
-	ret = ((ret >> (GPIO_IR - 32)) & 0x01);
-	return ret;
-}
+#define SYSTEMCODE_BIT_NUM 16
 
-static void ls1b_ir_irq_enable(void)
-{
-	unsigned int ret;
-	unsigned long flag;
-	
-	spin_lock(&ls1b_ir_lock);
-	local_irq_save(flag);
-	
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)); 
-	ret |= (1 << (GPIO_IR - 32)); 
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_CFG1)) = ret;
-	
-	ret = *(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1));
-	ret |= (1 << (GPIO_IR - 32));
-	*(volatile unsigned int *)(KSEG1ADDR(REG_GPIO_OE1)) = ret;
+#define LS1B_IR_STATE_IDLE					0
+#define LS1B_IR_STATE_RECEIVESTARTCODE		1
+#define LS1B_IR_STATE_RECEIVESYSTEMCODE		2
+#define LS1B_IR_STATE_RECEIVEDATACODE		3
 
-	(ls1b_board_int0_regs + 3) -> int_edge	|= (1 << (GPIO_IR - 32));
-	(ls1b_board_int0_regs + 3) -> int_pol	&= ~(1 << (GPIO_IR - 32));
-	(ls1b_board_int0_regs + 3) -> int_clr	|= (1 << (GPIO_IR - 32));
-	(ls1b_board_int0_regs + 3) -> int_set	&= ~(1 << (GPIO_IR - 32));
-	(ls1b_board_int0_regs + 3) -> int_en	|= (1 << (GPIO_IR - 32));
-	
-	local_irq_restore(flag);
-	spin_unlock(&ls1b_ir_lock);
-}
+static unsigned int ls1b_ir_irq = 0;
+static unsigned int ls1b_ir_state = LS1B_IR_STATE_IDLE;
+//static spinlock_t ls1b_ir_lock = SPIN_LOCK_UNLOCKED;
+static DEFINE_SPINLOCK(ls1b_ir_lock);
+static struct timeval ls1b_ir_current_tv = {0, 0};
+static struct timeval ls1b_ir_last_tv = {0, 0};
+static unsigned int ls1b_ir_interval = 0;
+static unsigned int ls1b_ir_systembit_count = 0;
+static unsigned int ls1b_ir_databit_count = 0;
+static unsigned int ls1b_ir_key_code_tmp = 0;
+static unsigned int ls1b_ir_key_code = 0;
+
+DECLARE_WAIT_QUEUE_HEAD(ls1b_wate_queue);
 
 static irqreturn_t ls1b_ir_irq_handler(int i, void *blah)
-{	
+{
+	ls1b_ir_key_code = 0;
 	udelay(50);
-	if (ls1b_ir_pinstate() != 0)		
+	if (gpio_get_value(GPIO_IR))
 		return IRQ_HANDLED;
 	
 	do_gettimeofday(&ls1b_ir_current_tv);
 	if (ls1b_ir_current_tv.tv_sec == ls1b_ir_last_tv.tv_sec) {
 		ls1b_ir_interval = ls1b_ir_current_tv.tv_usec - ls1b_ir_last_tv.tv_usec;
-	} else  
-	ls1b_ir_interval = 1000000 - ls1b_ir_last_tv.tv_usec + ls1b_ir_current_tv.tv_usec;
+	} else {
+		ls1b_ir_interval = 1000000 - ls1b_ir_last_tv.tv_usec + ls1b_ir_current_tv.tv_usec;
+	}
 	ls1b_ir_last_tv = ls1b_ir_current_tv;
 	
 	if (ls1b_ir_interval > 800 && ls1b_ir_interval < 15000) {
@@ -72,22 +59,31 @@ static irqreturn_t ls1b_ir_irq_handler(int i, void *blah)
 				ls1b_ir_key_code_tmp = 0;
 				ls1b_ir_databit_count = 0;
 				ls1b_ir_systembit_count =0;				
-		} else if (ls1b_ir_state == LS1B_IR_STATE_RECEIVESTARTCODE) {
+		}
+		else if (ls1b_ir_state == LS1B_IR_STATE_RECEIVESTARTCODE) {
 			if (ls1b_ir_systembit_count >= SYSTEMCODE_BIT_NUM - 1) {
 				ls1b_ir_state = LS1B_IR_STATE_RECEIVESYSTEMCODE;
 				ls1b_ir_systembit_count = 0;
-			} else if ((ls1b_ir_interval > 800 && ls1b_ir_interval < 1300) || (ls1b_ir_interval > 1900 && ls1b_ir_interval < 2400)) {
+			}
+			else if ((ls1b_ir_interval > 800 && ls1b_ir_interval < 1300) || (ls1b_ir_interval > 1900 && ls1b_ir_interval < 2400)) {
 				ls1b_ir_systembit_count ++;
-			} else goto receive_errerbit;
-		} else if (ls1b_ir_state == LS1B_IR_STATE_RECEIVESYSTEMCODE) {
+			}
+			else
+				goto receive_errerbit;
+		}
+		else if (ls1b_ir_state == LS1B_IR_STATE_RECEIVESYSTEMCODE) {
 			if (ls1b_ir_databit_count < 8) {
 				if (ls1b_ir_interval > 1900 && ls1b_ir_interval < 2400) {
 					ls1b_ir_key_code_tmp |= (1 << ls1b_ir_databit_count);
 					ls1b_ir_databit_count++;
-				} else if (ls1b_ir_interval > 800 && ls1b_ir_interval < 1300) {
+				}
+				else if (ls1b_ir_interval > 800 && ls1b_ir_interval < 1300) {
 					ls1b_ir_databit_count++;
-				} else goto receive_errerbit;
-			} else if ((ls1b_ir_interval > 800 && ls1b_ir_interval < 1300) || (ls1b_ir_interval > 1900 && ls1b_ir_interval < 2400)) {
+				}
+				else
+					goto receive_errerbit;
+			}
+			else if ((ls1b_ir_interval > 800 && ls1b_ir_interval < 1300) || (ls1b_ir_interval > 1900 && ls1b_ir_interval < 2400)) {
 				ls1b_ir_state = LS1B_IR_STATE_IDLE;
 				ls1b_ir_key_code = ls1b_ir_key_code_tmp;
 				ls1b_ir_key_code_tmp = 0;
@@ -97,10 +93,11 @@ static irqreturn_t ls1b_ir_irq_handler(int i, void *blah)
 #ifdef LS1B_DEBUG
 				printk("IR:Receive key code:%d.\n",ls1b_ir_key_code);
 #endif
-			} else goto receive_errerbit;	
+			}
+			else
+				goto receive_errerbit;
 		}
 		ls1b_ir_interval = 0;
-		(ls1b_board_int0_regs + 3) -> int_clr |= (1 << (GPIO_IR - 32));
 		return IRQ_HANDLED;	
 	}
 	
@@ -111,7 +108,6 @@ receive_errerbit:
 	ls1b_ir_databit_count = 0;
 	ls1b_ir_systembit_count =0;
 	ls1b_ir_interval = 0;
-	(ls1b_board_int0_regs + 3) -> int_clr	|= (1 << (GPIO_IR - 32));
 	return IRQ_HANDLED;
 }
 
@@ -136,8 +132,11 @@ static ssize_t ls1b_ir_write(struct file *filp, const char __user *buf, size_t c
 static int ls1b_ir_open(struct inode *inode, struct file *filep)
 {
 	int ret;
-	ls1b_ir_irq_enable();	
-	ret = request_irq(ls1b_ir_irq, ls1b_ir_irq_handler, IRQF_DISABLED, "ls1b_ir", NULL);
+	ret = gpio_request(GPIO_IR, "ls1x_ir");
+	if (ret < 0)
+		return ret;
+	gpio_direction_input(GPIO_IR);
+	ret = request_irq(gpio_to_irq(GPIO_IR), ls1b_ir_irq_handler, IRQF_TRIGGER_FALLING, "ls1b_ir", NULL);
 	if (ret) {
 		printk("IR:ir_irq_handler resigered Error:%d\n", ret);
 		return ret;
@@ -147,7 +146,8 @@ static int ls1b_ir_open(struct inode *inode, struct file *filep)
 
 static int ls1b_ir_close(struct inode *inode, struct file *filp)
 {
-	free_irq(ls1b_ir_irq, NULL);
+	free_irq(gpio_to_irq(GPIO_IR), NULL);
+	gpio_free(GPIO_IR);
 	return 0;
 }
 
@@ -157,32 +157,30 @@ static int ls1b_ir_ioctl(struct inode *inode, struct file *filp, unsigned int cm
 }
 
 static const struct file_operations ls1b_ir_ops = {
-		.owner = THIS_MODULE,
-		.open = ls1b_ir_open,
-		.release = ls1b_ir_close,
-		.read = ls1b_ir_read,
-		.write = ls1b_ir_write,
-//		.ioctl = ls1b_ir_ioctl,
+	.owner = THIS_MODULE,
+	.open = ls1b_ir_open,
+	.release = ls1b_ir_close,
+	.read = ls1b_ir_read,
+	.write = ls1b_ir_write,
+//	.ioctl = ls1b_ir_ioctl,
 };
 
 static struct miscdevice ls1b_ir_miscdev = {
-		MISC_DYNAMIC_MINOR,
-		"ls1b_ir",
-		&ls1b_ir_ops,
+	MISC_DYNAMIC_MINOR,
+	"ls1b_ir",
+	&ls1b_ir_ops,
 };
 
 static int __devinit ls1b_ir_probe(struct platform_device *pdev)
 {
-	ls1b_ir_res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	ls1b_ir_irq = ls1b_ir_res->start;
 	return 0;
 }
 
 static struct platform_driver ls1b_ir_driver = {
-		.probe = ls1b_ir_probe,
-		.driver = {
-			.name = "ls1b_ir",
-		},
+	.probe = ls1b_ir_probe,
+	.driver = {
+		.name = "ls1b_ir",
+	},
 };
 
 static int __init ls1b_ir_init(void)
@@ -201,9 +199,11 @@ static void __exit ls1b_ir_exit(void)
 	misc_deregister(&ls1b_ir_miscdev);
 	platform_driver_unregister(&ls1b_ir_driver);	
 }
+//module_init(ls1b_ir_init);
+//module_exit(ls1b_ir_exit);
 
 MODULE_AUTHOR("zhuangweilin-gz@loongson.cn");
 MODULE_DESCRIPTION("Infrared remote receiver driver for the ls1b.");
-module_init(ls1b_ir_init);
-module_exit(ls1b_ir_exit);
 MODULE_LICENSE("GPL");
+
+__initcall(ls1b_ir_init);

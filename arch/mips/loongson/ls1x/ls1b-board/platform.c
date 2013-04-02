@@ -1071,24 +1071,6 @@ static struct platform_device ls1b_gpio_buzzer_device = {
 };
 #endif //#ifdef CONFIG_LS1B_BUZZER
 
-#ifdef CONFIG_LS1B_IR
-#define GPIO_IR 61
-static struct resource ls1b_ir_resource[] = {
-	[0] = {
-		.start	= (LS1X_GPIO_FIRST_IRQ + GPIO_IR),
-		.end	= (LS1X_GPIO_FIRST_IRQ + GPIO_IR),
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device ls1b_ir_device = {
-	.name	= "ls1b_ir",
-	.id	= -1,
-	.num_resources	= ARRAY_SIZE(ls1b_ir_resource),
-	.resource	= ls1b_ir_resource,
-};
-#endif //#ifdef CONFIG_LS1B_IR
-
 //xhm
 #ifdef CONFIG_LS1B_BBDIO
 static struct gpio_keys_button ls1b_bobodogio_button[] = {
@@ -1578,10 +1560,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_LS1B_PWM_DRIVER
 	&ls1b_pwm_device,
-#endif
-
-#ifdef CONFIG_LS1B_IR
-	&ls1b_ir_device,//zwl
 #endif
 
 #ifdef CONFIG_LS1B_BBDIO

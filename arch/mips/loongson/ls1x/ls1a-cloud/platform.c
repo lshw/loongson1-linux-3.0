@@ -1035,62 +1035,6 @@ static struct platform_device ls1b_gpio_buzzer_device = {
 };
 #endif //#ifdef CONFIG_LS1B_BUZZER
 
-#ifdef CONFIG_LS1B_IR
-#define GPIO_IR 61
-static struct resource ls1b_ir_resource[] = {
-	[0] = {
-		.start	= (LS1X_GPIO_FIRST_IRQ + GPIO_IR),
-		.end	= (LS1X_GPIO_FIRST_IRQ + GPIO_IR),
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device ls1b_ir_device = {
-	.name	= "ls1b_ir",
-	.id	= -1,
-	.num_resources	= ARRAY_SIZE(ls1b_ir_resource),
-	.resource	= ls1b_ir_resource,
-};
-#endif //#ifdef CONFIG_LS1B_IR
-
-//xhm
-#ifdef CONFIG_LS1B_BBDIO
-static struct gpio_keys_button ls1b_bobodogio_button[] = {
-#if 0
-	[0]  = { .gpio = 4, .type = EV_LED},	
-	[1]  = { .gpio = 5, .type = EV_LED},
-	[2]  = { .gpio = 6, .type = EV_LED},
-	[3]  = { .gpio = 7, .type = EV_LED},
-	[4]  = { .gpio = 8, .type = EV_LED},
-	[5]  = { .gpio = 9, .type = EV_LED},
-	[6]  = { .gpio = 10, .type = EV_LED},
-	[7]  = { .gpio = 11, .type = EV_LED},
-	[8]  = { .gpio = 12, .type = EV_LED},
-	[9]  = { .gpio = 13, .type = EV_LED},
-	[10] = { .gpio = 14, .type = EV_LED},
-	[11] = { .gpio = 15, .type = EV_LED},
-	[12] = { .gpio = 16, .type = EV_LED},
-	[13] = { .gpio = 17, .type = EV_LED},
-	[14] = { .gpio = 18, .type = EV_LED},
-#endif
-	[0] = { .gpio = 48, .type = EV_KEY},
-	[1] = { .gpio = 49, .type = EV_LED},
-};
-
-static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
-	.buttons	= ls1b_bobodogio_button,
-	.nbuttons	= 15,
-};
-
-static struct platform_device ls1b_bobodogio_dog = {
-	.name	= "bobodog_io_control",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_bobodogio_dog_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BBDIO
-
 #ifdef CONFIG_LS1B_PWM_DRIVER
 static struct resource ls1b_pwm0_resource[] = {
 	[0]={
@@ -1517,14 +1461,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_LS1B_PWM_DRIVER
 	&ls1b_pwm_device,
-#endif
-
-#ifdef CONFIG_LS1B_IR
-	&ls1b_ir_device,//zwl
-#endif
-
-#ifdef CONFIG_LS1B_BBDIO
-	&ls1b_bobodogio_dog,
 #endif
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
