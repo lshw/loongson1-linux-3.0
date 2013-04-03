@@ -26,15 +26,14 @@
 
 static unsigned int ls1b_ir_irq = 0;
 static unsigned int ls1b_ir_state = LS1B_IR_STATE_IDLE;
-//static spinlock_t ls1b_ir_lock = SPIN_LOCK_UNLOCKED;
-static DEFINE_SPINLOCK(ls1b_ir_lock);
-static struct timeval ls1b_ir_current_tv = {0, 0};
-static struct timeval ls1b_ir_last_tv = {0, 0};
 static unsigned int ls1b_ir_interval = 0;
 static unsigned int ls1b_ir_systembit_count = 0;
 static unsigned int ls1b_ir_databit_count = 0;
 static unsigned int ls1b_ir_key_code_tmp = 0;
 static unsigned int ls1b_ir_key_code = 0;
+
+static struct timeval ls1b_ir_current_tv = {0, 0};
+static struct timeval ls1b_ir_last_tv = {0, 0};
 
 DECLARE_WAIT_QUEUE_HEAD(ls1b_wate_queue);
 
@@ -100,7 +99,6 @@ static irqreturn_t ls1b_ir_irq_handler(int i, void *blah)
 		ls1b_ir_interval = 0;
 		return IRQ_HANDLED;	
 	}
-	
 
 receive_errerbit:
 	ls1b_ir_state = LS1B_IR_STATE_IDLE;
@@ -113,20 +111,19 @@ receive_errerbit:
 
 static ssize_t ls1b_ir_read(struct file *filp, char __user *buf, size_t count, loff_t *offp)
 {
+	ls1b_ir_key_code = 0;
+
+	if (filp->f_flags & O_NONBLOCK) {
+		return -EAGAIN;
+	}
+
+	wait_event_interruptible(ls1b_wate_queue, ls1b_ir_key_code);
+
 	if (copy_to_user(buf, &ls1b_ir_key_code, sizeof(unsigned int))) {
 		printk("IR:ls1b_ir_read error!\n");
 		return -EFAULT;
 	}
-	return sizeof(unsigned int);
-}
-
-static ssize_t ls1b_ir_write(struct file *filp, const char __user *buf, size_t count, loff_t *offp)
-{
-	if (copy_from_user(&ls1b_ir_key_code, buf, sizeof(unsigned int))) {
-		printk("IR:ls1b_ir_write error!\n");
-		return -EFAULT;
-	}
-	return sizeof(unsigned int);
+	return count;
 }
 
 static int ls1b_ir_open(struct inode *inode, struct file *filep)
@@ -151,18 +148,11 @@ static int ls1b_ir_close(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static int ls1b_ir_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
-{
-	return 0;
-}
-
 static const struct file_operations ls1b_ir_ops = {
 	.owner = THIS_MODULE,
 	.open = ls1b_ir_open,
 	.release = ls1b_ir_close,
 	.read = ls1b_ir_read,
-	.write = ls1b_ir_write,
-//	.ioctl = ls1b_ir_ioctl,
 };
 
 static struct miscdevice ls1b_ir_miscdev = {
