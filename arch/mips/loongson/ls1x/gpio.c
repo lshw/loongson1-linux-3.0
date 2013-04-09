@@ -15,9 +15,9 @@
 #include <asm/types.h>
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 #define STLS1B_N_GPIO		88
-#elif CONFIG_LS1B_MACH
+#elif defined(CONFIG_LS1B_MACH)
 #define STLS1B_N_GPIO		64
 #endif
 

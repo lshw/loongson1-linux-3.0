@@ -518,9 +518,9 @@ void __init ls1x_gmac_setup(void)
 {
 	u32 x;
 	x = __raw_readl(LS1X_MUX_CTRL0);
-	#ifdef CONFIG_LS1X_GMAC0_100M
+	#if defined(CONFIG_LS1X_GMAC0_100M)
 	x = x | GMAC0_USE_TXCLK | GMAC0_USE_PWM01;
-	#elif CONFIG_LS1X_GMAC0_1000M
+	#elif defined(CONFIG_LS1X_GMAC0_1000M)
 	x = x & (~GMAC0_USE_TXCLK) & (~GMAC0_USE_PWM01);
 	#endif
 	__raw_writel(x & (~GMAC0_SHUT), LS1X_MUX_CTRL0);
@@ -531,9 +531,9 @@ void __init ls1x_gmac_setup(void)
 	u32 x;
 	x = __raw_readl(LS1X_MUX_CTRL0);
 	x = x | GMAC1_USE_UART1 | GMAC1_USE_UART0;	/* 复用UART0&1 */
-	#ifdef CONFIG_LS1X_GMAC1_100M
+	#if defined(CONFIG_LS1X_GMAC1_100M)
 	x = x | GMAC1_USE_TXCLK | GMAC1_USE_PWM23;
-	#elif CONFIG_LS1X_GMAC1_1000M
+	#elif defined(CONFIG_LS1X_GMAC1_1000M)
 	x = x & (~GMAC1_USE_TXCLK) & (~GMAC1_USE_PWM23);
 	#endif
 	__raw_writel(x & (~GMAC1_SHUT), LS1X_MUX_CTRL0);

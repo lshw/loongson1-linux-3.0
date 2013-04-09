@@ -98,10 +98,10 @@ void __init prom_init(void)
 #endif
 
 	/* 需要复位一次USB控制器，且复位时间要足够长，否则启动时莫名其妙的死机 */
-	#ifdef CONFIG_LS1A_MACH
+	#if defined(CONFIG_LS1A_MACH)
 	#define MUX_CTRL0 LS1X_MUX_CTRL0
 	#define MUX_CTRL1 LS1X_MUX_CTRL1
-	#elif CONFIG_LS1B_MACH
+	#elif defined(CONFIG_LS1B_MACH)
 	#define MUX_CTRL0 LS1X_MUX_CTRL1
 	#define MUX_CTRL1 LS1X_MUX_CTRL1
 	#endif
