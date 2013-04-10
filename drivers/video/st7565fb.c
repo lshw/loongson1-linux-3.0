@@ -1,7 +1,7 @@
 /*
  * Driver for the Sitronix ST7565 Dot Matrix LCD controler
  *
- * Copyright 2013 Free Electrons
+ * Copyright (c) 2013 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
  *
  * Licensed under the GPLv2 or later.
  */

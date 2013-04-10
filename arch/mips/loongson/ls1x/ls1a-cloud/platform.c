@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
  * Platform device support for GS232 SoCs.
  *
  * This file is licensed under the terms of the GNU General Public

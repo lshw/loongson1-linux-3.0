@@ -1,5 +1,5 @@
 /*
- *
+ * Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
  * Loongson 1 MUX Register Definitions.
  *
  * This program is free software; you can redistribute  it and/or modify it
@@ -16,7 +16,7 @@
 
 #define LS1X_MUX_CTRL0		LS1X_MUX_REG(0x0)
 
-#ifdef	CONFIG_LS1A_MACH
+#if	defined(CONFIG_LS1A_MACH)
 /* MUX_CTRL0 Register Bits */
 #define NAND3_USE_CAN1			(0x1 << 31)
 #define NAND2_USE_MS			(0x1 << 30)
@@ -51,7 +51,7 @@
 #define LS1X_MUX_CTRL1		((void __iomem *)KSEG1ADDR(0x1ff10204))
 #define USB_RESET			(0x1 << 30)
 
-#elif	CONFIG_LS1B_MACH
+#elif	defined(CONFIG_LS1B_MACH)
 #define LS1X_MUX_CTRL1		LS1X_MUX_REG(0x4)
 
 /* MUX_CTRL0 Register Bits */

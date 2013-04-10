@@ -59,9 +59,9 @@
 
 #define LS1X_GPIO_IRQ 64
 #define LS1X_GPIO_FIRST_IRQ 64
-#ifdef	CONFIG_LS1A_MACH
+#if	defined(CONFIG_LS1A_MACH)
 #define LS1X_GPIO_IRQ_COUNT 128
-#elif	CONFIG_LS1B_MACH
+#elif	defined(CONFIG_LS1B_MACH)
 #define LS1X_GPIO_IRQ_COUNT 96
 #endif
 #define LS1X_GPIO_LAST_IRQ  (LS1X_GPIO_FIRST_IRQ + LS1X_GPIO_IRQ_COUNT - 1)
@@ -75,10 +75,10 @@
 //#define INT_PCI_INTC	(1<<8)
 //#define INT_PCI_INTD	(1<<9)
 
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 #define LS1X_LAST_IRQ 159
 #define INTN 5
-#elif CONFIG_LS1B_MACH
+#elif defined(CONFIG_LS1B_MACH)
 #define LS1X_LAST_IRQ 127
 #define INTN 4
 #endif

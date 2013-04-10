@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
+ *  Copyright (c) 2013 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

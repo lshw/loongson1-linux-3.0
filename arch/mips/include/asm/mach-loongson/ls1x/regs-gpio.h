@@ -1,5 +1,5 @@
 /*
- *
+ * Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
  * Loongson 1 GPIO Register Definitions.
  *
  * This program is free software; you can redistribute  it and/or modify it
@@ -20,14 +20,14 @@
 #define LS1X_GPIO_IN0		LS1X_GPIO_REG(0x20)	/* 输入寄存器 */
 #define LS1X_GPIO_OUT0		LS1X_GPIO_REG(0x30)	/* 输出寄存器 */
 /* 复用PAD */
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 	#define INIT0_OFFSET	(0)
 	#define INIT1_OFFSET	(1)
 	#define LCD_OFFSET	(2)
 	#define INIT0_MASK	(0x1)
 	#define INIT1_MASK	(0x1)
 	#define LCD_MASK	(0x3fffffff)
-#elif	CONFIG_LS1B_MACH
+#elif	defined(CONFIG_LS1B_MACH)
 
 #endif
 
@@ -37,7 +37,7 @@
 #define LS1X_GPIO_IN1		LS1X_GPIO_REG(0x24)
 #define LS1X_GPIO_OUT1		LS1X_GPIO_REG(0x34)
 /* 复用PAD */
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 	#define KB_OFFSET	(0)
 	#define MB_OFFSET	(2)
 	#define AC97_OFFSET	(4)
@@ -56,7 +56,7 @@
 	#define UART1_MASK	(0xf)
 	#define UART2_MASK	(0x3)
 	#define UART3_MASK	(0x3)
-#elif	CONFIG_LS1B_MACH
+#elif	defined(CONFIG_LS1B_MACH)
 
 #endif
 

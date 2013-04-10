@@ -12,7 +12,7 @@
 #include <asm/types.h>
 
 /* 定义晶振频率和Early printk UART地址 */
-#ifdef CONFIG_LS1A_CORE_BOARD
+#if defined(CONFIG_LS1A_CORE_BOARD)
 	#define AHB_CLK			33000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1A_CLOUD_TERMIAL)
@@ -104,9 +104,9 @@
 #define LS1X_PS2_BASE			0x1fe60000
 
 /* watchdog */
-#ifdef	CONFIG_LS1A_MACH
+#if	defined(CONFIG_LS1A_MACH)
 #define LS1X_WAT_BASE				0x1fe7c060
-#elif	CONFIG_LS1B_MACH
+#elif	defined(CONFIG_LS1B_MACH)
 #define LS1X_WAT_BASE				0x1fe5c060
 #endif
 #define WDT_EN						0x00
