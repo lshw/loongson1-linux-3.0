@@ -43,7 +43,7 @@ void error(char *x)
 /* activate the code for pre-boot environment */
 #define STATIC static
 
-#ifdef CONFIG_KERNEL_GZIP
+#if defined(CONFIG_KERNEL_GZIP) || defined(CONFIG_KERNEL_LZO)
 void *memcpy(void *dest, const void *src, size_t n)
 {
 	int i;

@@ -26,6 +26,7 @@
 
 #define GZIP_IOBUF_SIZE (16*1024)
 
+#ifndef CONFIG_KERNEL_LZO
 static int INIT nofill(void *buffer, unsigned int len)
 {
 	return -1;
@@ -181,3 +182,5 @@ gunzip_nomem1:
 }
 
 #define decompress gunzip
+#endif
+
