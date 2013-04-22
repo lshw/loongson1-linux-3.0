@@ -1548,7 +1548,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 int __init ls1b_platform_init(void)
 {
-	u32 x;
+	u32 x __maybe_unused;
 
 	ls1x_serial_setup();
 

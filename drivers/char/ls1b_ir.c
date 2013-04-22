@@ -13,7 +13,7 @@
 #include <ls1b_board.h>
 #include <irq.h>
 
-#define LS1B_DEBUG 1
+#define LS1B_DEBUG 0
 
 #define GPIO_IR 61
 
@@ -39,7 +39,7 @@ DECLARE_WAIT_QUEUE_HEAD(ls1b_wate_queue);
 
 static irqreturn_t ls1b_ir_irq_handler(int i, void *blah)
 {
-	ls1b_ir_key_code = 0;
+//	ls1b_ir_key_code = 0;
 	udelay(50);
 	if (gpio_get_value(GPIO_IR))
 		return IRQ_HANDLED;
