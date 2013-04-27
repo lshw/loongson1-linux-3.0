@@ -102,6 +102,56 @@
 
 #define UART_SPLIT \
 		((void __iomem *)KSEG1ADDR(LS1B_UART_SPLIT))
+
+#elif	defined(CONFIG_LS1C_MACH)
+#define LS1X_MUX_CTRL1		LS1X_MUX_REG(0x4)
+/* MUX_CTRL0 Register Bits */
+#define UART_SPLIT	(0x3 << 30)
+#define OUTPUT_CLK	(0xf << 26)
+#define ADC_SHUT	(0x1 << 25)
+#define SDIO_SHUT	(0x1 << 24)
+#define DMA2_SHUT	(0x1 << 23)
+#define DMA1_SHUT	(0x1 << 22)
+#define DMA0_SHUT	(0x1 << 21)
+#define SPI1_SHUT	(0x1 << 20)
+#define SPI0_SHUT	(0x1 << 19)
+#define I2C2_SHUT	(0x1 << 18)
+#define I2C1_SHUT	(0x1 << 17)
+#define I2C0_SHUT	(0x1 << 16)
+#define AC97_SHUT	(0x1 << 15)
+#define I2S_SHUT	(0x1 << 14)
+#define UART3_SHUT	(0x1 << 13)
+#define UART2_SHUT	(0x1 << 12)
+#define UART1_SHUT	(0x1 << 11)
+#define UART0_SHUT	(0x1 << 10)
+#define CAN1_SHUT	(0x1 << 9)
+#define CAN0_SHUT	(0x1 << 8)
+#define ECC_SHUT	(0x1 << 7)
+#define GMAC_SHUT	(0x1 << 6)
+#define USBHOST_SHUT	(0x1 << 5)
+#define USBOTG_SHUT	(0x1 << 4)
+#define SDRAM_SHUT	(0x1 << 3)
+#define SRAM_SHUT	(0x1 << 2)
+#define CAM_SHUT	(0x1 << 1)
+#define LCD_SHUT	(0x1 << 0)
+
+#define UART_SPLIT_SHIFT			30
+#define OUTPUT_CLK_SHIFT			26
+
+/* MUX_CTRL1 Register Bits */
+#define USBHOST_RSTN	(0x1 << 31)
+#define PHY_INTF_SELI	(0x7 << 28)
+#define AC97_EN	(0x1 << 25)
+#define SDIO_DMA_EN	(0x3 << 23)
+#define ADC_DMA_EN	(0x1 << 22)
+#define SDIO_USE_SPI1	(0x1 << 17)
+#define SDIO_USE_SPI0	(0x1 << 16)
+#define SRAM_CTRL	(0xffff << 0)
+
+#define PHY_INTF_SELI_SHIFT			28
+#define SDIO_DMA_EN_SHIFT			23
+#define SRAM_CTRL_SHIFT			0
+
 #endif	//#ifdef	CONFIG_LS1A_MACH
 
 #endif /* __ASM_MACH_LOONGSON1_REGS_MUX_H */

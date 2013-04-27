@@ -16,9 +16,11 @@
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
 
 #if defined(CONFIG_LS1A_MACH)
-#define STLS1B_N_GPIO		88
+#define LS1X_N_GPIO		88
 #elif defined(CONFIG_LS1B_MACH)
-#define STLS1B_N_GPIO		64
+#define LS1X_N_GPIO		64
+#elif defined(CONFIG_LS1C_MACH)
+#define LS1X_N_GPIO		128
 #endif
 
 static DEFINE_SPINLOCK(gpio_lock);
@@ -28,7 +30,7 @@ int gpio_get_value(unsigned gpio)
 	u32 val;
 	u32 mask;
 
-//	if (gpio >= STLS1B_N_GPIO)
+//	if (gpio >= LS1X_N_GPIO)
 //		return __gpio_get_value(gpio);
 
 	spin_lock(&gpio_lock);
@@ -58,7 +60,7 @@ void gpio_set_value(unsigned gpio, int state)
 	u32 val;
 	u32 mask;
 
-//	if (gpio >= STLS1B_N_GPIO) {
+//	if (gpio >= LS1X_N_GPIO) {
 //		__gpio_set_value(gpio, state);
 //		return ;
 //	}
@@ -100,7 +102,7 @@ EXPORT_SYMBOL(gpio_set_value);
 
 int gpio_cansleep(unsigned gpio)
 {
-	if (gpio < STLS1B_N_GPIO)
+	if (gpio < LS1X_N_GPIO)
 		return 0;
 	else
 		return __gpio_cansleep(gpio);
@@ -112,7 +114,7 @@ int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 	u32 temp;
 	u32 mask;
 
-//	if (gpio >= STLS1B_N_GPIO)
+//	if (gpio >= LS1X_N_GPIO)
 //		return -EINVAL;
 
 	spin_lock(&gpio_lock);
@@ -157,7 +159,7 @@ int ls1b_gpio_direction_output(struct gpio_chip *chip,
 	u32 temp;
 	u32 mask;
 
-//	if (gpio >= STLS1B_N_GPIO)
+//	if (gpio >= LS1X_N_GPIO)
 //		return -EINVAL;
 
 	gpio_set_value(gpio, level);
@@ -245,7 +247,7 @@ static struct gpio_chip ls1b_chip = {
 	.set                    = ls1b_gpio_set_value,
 	.free					= ls1b_gpio_free,
 	.base                   = 0,
-	.ngpio                  = STLS1B_N_GPIO,
+	.ngpio                  = LS1X_N_GPIO,
 };
 
 static int __init ls1b_gpio_setup(void)

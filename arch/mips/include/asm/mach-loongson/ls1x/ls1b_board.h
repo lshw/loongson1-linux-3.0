@@ -24,6 +24,9 @@
 #elif defined(CONFIG_LS1B_CORE_BOARD)
 	#define AHB_CLK			25000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART5_BASE + offset))
+#elif defined(CONFIG_LS1C_MACH)
+	#define AHB_CLK			24000000
+	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART3_BASE + offset))
 #endif	//#ifdef	CONFIG_LS1A_CORE_BOARD
 
 #define APB_CLK			AHB_CLK
@@ -106,7 +109,7 @@
 /* watchdog */
 #if	defined(CONFIG_LS1A_MACH)
 #define LS1X_WAT_BASE				0x1fe7c060
-#elif	defined(CONFIG_LS1B_MACH)
+#elif	defined(CONFIG_LS1B_MACH) || defined(CONFIG_LS1C_MACH)
 #define LS1X_WAT_BASE				0x1fe5c060
 #endif
 #define WDT_EN						0x00
@@ -148,8 +151,13 @@ struct ls1b_usbh_data {
     u8      vbus_pin[]; /* port power-control pin */
 }; 
 
-#define LS1B_USB_OHCI_BASE 	0x1fe08000
-#define LS1B_USB_EHCI_BASE 	0x1fe00000
+#if defined(CONFIG_LS1C_MACH)
+#define LS1X_EHCI_BASE			0x1fe20000
+#define LS1X_OHCI_BASE			0x1fe28000
+#else
+#define LS1X_EHCI_BASE 	0x1fe00000
+#define LS1X_OHCI_BASE 	0x1fe08000
+#endif
 
 /* LCD */
 #define LS1X_DC0_BASE	0x1c301240

@@ -141,34 +141,11 @@ struct platform_device ls1b_nand_device = {
 		.type		= PORT_16550A,			\
 	}
 
-#define LS1X_UART_SHARE(_id, _irq)						\
-	{							\
-		.mapbase	= LS1X_UART ## _id ## _BASE,	\
-		.irq		= LS1X_UART ## _irq ## _IRQ,	\
-		.iotype		= UPIO_MEM,			\
-		.flags		= UPF_IOREMAP | UPF_FIXED_TYPE | UPF_SHARE_IRQ,	\
-		.type		= PORT_16550A,			\
-	}
-
 static struct plat_serial8250_port ls1x_serial8250_port[] = {
 	LS1X_UART(0),
 	LS1X_UART(1),
 	LS1X_UART(2),
 	LS1X_UART(3),
-#ifdef CONFIG_LS1B_MACH
-	LS1X_UART(4),
-	LS1X_UART(5),
-#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-	LS1X_UART_SHARE(6, 0),
-	LS1X_UART_SHARE(7, 0),
-	LS1X_UART_SHARE(8, 0),
-#endif
-#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-	LS1X_UART_SHARE(9, 1),
-	LS1X_UART_SHARE(10, 1),
-	LS1X_UART_SHARE(11, 1),
-#endif
-#endif
 	{},
 };
 
@@ -184,15 +161,6 @@ void __init ls1x_serial_setup(void)
 {
 	struct clk *clk;
 	struct plat_serial8250_port *p;
-
-#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL0
-	__raw_writeb(__raw_readb(UART_SPLIT) | 0x01, UART_SPLIT);
-#endif
-#ifdef CONFIG_MULTIFUNC_CONFIG_SERAIL1
-	__raw_writeb(__raw_readb(UART_SPLIT) | 0x02, UART_SPLIT);
-	__raw_writel(__raw_readl(LS1X_MUX_CTRL1) | UART1_3_USE_CAN1 | UART1_2_USE_CAN0, 
-				LS1X_MUX_CTRL1);
-#endif
 
 	clk = clk_get(NULL, "ddr");
 	if (IS_ERR(clk))
@@ -275,6 +243,7 @@ static struct platform_device ls1x_ehci_device = {
 	.resource       = ls1x_ehci_resources,
 };
 #endif //#ifdef CONFIG_USB_EHCI_HCD_LS1X
+
 
 /*
 * watchdog
@@ -1499,11 +1468,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1b_nand_device,
 #endif
 
-#ifdef CONFIG_USB_OHCI_HCD_LS1X
-	&ls1x_ohci_device,
-#endif
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
 	&ls1x_ehci_device,
+#endif
+
+#ifdef CONFIG_USB_OHCI_HCD_LS1X
+	&ls1x_ohci_device,
 #endif
 
 #ifdef CONFIG_STMMAC_ETH
@@ -1607,8 +1577,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_pwm_backlight,
 #endif
 };
-
-#define AHCI_PCI_BAR  5
 
 int __init ls1b_platform_init(void)
 {

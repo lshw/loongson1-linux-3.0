@@ -1062,7 +1062,7 @@ config RTC_DRV_PUV3
 
 config RTC_DRV_LOONGSON1
 	tristate "loongson1 RTC support"
-	depends on MACH_LOONGSON1 || LS1B_MACH || LS1A_MACH
+	depends on MACH_LOONGSON1 || LS1A_MACH || LS1B_MACH || LS1C_MACH
 	help
 	  This is a driver for the loongson1 on-chip Counter0 (Time-Of-Year
 	  counter) to be used as a RTC.

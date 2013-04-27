@@ -10,13 +10,13 @@ extern int usb_disabled(void);
 
 static void ls1x_start_ehc(void)
 {
-#ifndef CONFIG_USB_OHCI_HCD_LS1B
-#ifdef CONFIG_LS1A_MACH
+#ifndef CONFIG_USB_OHCI_HCD_LS1X
+#if defined(CONFIG_LS1A_MACH)
 	*(volatile int *)0xbfd00420 &= ~0x200000;/* enable USB */
 	*(volatile int *)0xbff10204 = 0;
 	mdelay(105);
 	*(volatile int *)0xbff10204 |= 0x40000000;/* ls1a usb reset stop */
-#elif defined(CONFIG_USB_EHCI_HCD_LS1B) || defined(CONFIG_USB_OHCI_HCD_LS1B)
+#elif defined(CONFIG_LS1B_MACH)
 	*(volatile int *)0xbfd00424 &= ~0x800;/* enable USB */
 	*(volatile int *)0xbfd00424 &= ~0x80000000;/* ls1g usb reset */
 	mdelay(105);
@@ -44,7 +44,7 @@ static int ls1x_ehci_setup(struct usb_hcd *hcd)
 
 static const struct hc_driver ehci_ls1x_hc_driver = {
 	.description	= hcd_name,
-	.product_desc	= "loongson2f southbridge EHCI Host Controller",
+	.product_desc	= "Loongson1 EHCI Host Controller",
 	.hcd_priv_size	= sizeof(struct ehci_hcd),
 
 	/*
@@ -256,7 +256,7 @@ static int ehci_hcd_ls1x_drv_resume(struct device *dev)
 
 static const struct dev_pm_ops ls1x_ehci_pmops = {
 	.suspend	= ehci_hcd_ls1x_drv_suspend,
-	.resume		= ehci_hcd_ls1x_drv_resume,
+	.resume	= ehci_hcd_ls1x_drv_resume,
 };
 
 #define LS1X_EHCI_PMOPS &ls1x_ehci_pmops
@@ -270,7 +270,7 @@ static struct platform_driver ehci_hcd_ls1x_driver = {
 	.remove   = ehci_hcd_ls1x_drv_remove,
 	.shutdown = usb_hcd_platform_shutdown,
 	.driver   = {
-		.name  = "ls1b-ehci",
+		.name  = "ls1x-ehci",
 		.owner = THIS_MODULE,
 		.pm    = LS1X_EHCI_PMOPS,
 	},

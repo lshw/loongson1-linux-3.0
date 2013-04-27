@@ -237,25 +237,23 @@ static struct platform_device ls1a_ahci_device = {
 #endif
 #endif //#ifdef LOONGSON_AHCI
 
-/*
- * ohci
- */
-#ifdef CONFIG_USB_OHCI_HCD_LS1B
-static u64 ls1b_ohci_dma_mask = DMA_BIT_MASK(32);
-static struct resource ls1b_ohci_resources[] = {
+/* OHCI */
+#ifdef CONFIG_USB_OHCI_HCD_LS1X
+static u64 ls1x_ohci_dma_mask = DMA_BIT_MASK(32);
+static struct resource ls1x_ohci_resources[] = {
 	[0] = {
-		.start          = LS1B_USB_OHCI_BASE,
-		.end            = (LS1B_USB_OHCI_BASE + 0x100 - 1),
+		.start          = LS1X_OHCI_BASE,
+		.end            = LS1X_OHCI_BASE + SZ_32K - 1,
 		.flags          = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start          = LS1B_BOARD_OHCI_IRQ,
-		.end            = LS1B_BOARD_OHCI_IRQ,
+		.start          = LS1X_OHCI_IRQ,
+		.end            = LS1X_OHCI_IRQ,
 		.flags          = IORESOURCE_IRQ,
 	},
 };
 /*
-static struct ls1b_usbh_data  ls1b_ohci_platform_data={
+static struct ls1x_usbh_data  ls1x_ohci_platform_data={
 #ifdef CONFIG_LS1A_MACH
 	.ports=4,
 #else
@@ -263,38 +261,36 @@ static struct ls1b_usbh_data  ls1b_ohci_platform_data={
 #endif
 };
 */
-static struct platform_device ls1b_ohci_device = {
-	.name           = "ls1b-ohci",
+static struct platform_device ls1x_ohci_device = {
+	.name           = "ls1x-ohci",
 	.id             = 0,
 	.dev = {
-//		.platform_data = &ls1b_ohci_platform_data,
-		.dma_mask = &ls1b_ohci_dma_mask,
+//		.platform_data = &ls1x_ohci_platform_data,
+		.dma_mask = &ls1x_ohci_dma_mask,
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	},
-	.num_resources  = ARRAY_SIZE(ls1b_ohci_resources),
-	.resource       = ls1b_ohci_resources,
+	.num_resources  = ARRAY_SIZE(ls1x_ohci_resources),
+	.resource       = ls1x_ohci_resources,
 };
-#endif //#ifdef CONFIG_USB_OHCI_HCD_LS1B
+#endif //#ifdef CONFIG_USB_OHCI_HCD_LS1X
 
-/*
- * ehci
- */
-#ifdef CONFIG_USB_EHCI_HCD_LS1B
-static u64 ls1b_ehci_dma_mask = DMA_BIT_MASK(32);
-static struct resource ls1b_ehci_resources[] = { 
+/* EHCI */
+#ifdef CONFIG_USB_EHCI_HCD_LS1X
+static u64 ls1x_ehci_dma_mask = DMA_BIT_MASK(32);
+static struct resource ls1x_ehci_resources[] = { 
 	[0] = {
-		.start          = LS1B_USB_EHCI_BASE,
-		.end            = (LS1B_USB_EHCI_BASE + 0x100 - 1),
+		.start          = LS1X_EHCI_BASE,
+		.end            = LS1X_EHCI_BASE + SZ_32K - 1,
 		.flags          = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start          = LS1B_BOARD_EHCI_IRQ,
-		.end            = LS1B_BOARD_EHCI_IRQ,
+		.start          = LS1X_EHCI_IRQ,
+		.end            = LS1X_EHCI_IRQ,
 		.flags          = IORESOURCE_IRQ,
 	},
 };
 /*
-static struct ls1b_usbh_data  ls1b_ehci_platform_data={
+static struct ls1x_usbh_data  ls1x_ehci_platform_data={
 #ifdef CONFIG_LS1A_MACH
 	.ports=4,
 #else
@@ -302,19 +298,18 @@ static struct ls1b_usbh_data  ls1b_ehci_platform_data={
 #endif
 };
 */
-static struct platform_device ls1b_ehci_device = {
-	.name           = "ls1b-ehci",
+static struct platform_device ls1x_ehci_device = {
+	.name           = "ls1x-ehci",
 	.id             = 0,
 	.dev = {
-//		.platform_data = &ls1b_ehci_platform_data,
-		.dma_mask = &ls1b_ehci_dma_mask,
+//		.platform_data = &ls1x_ehci_platform_data,
+		.dma_mask = &ls1x_ehci_dma_mask,
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	},
-	.num_resources  = ARRAY_SIZE(ls1b_ehci_resources),
-	.resource       = ls1b_ehci_resources,
+	.num_resources  = ARRAY_SIZE(ls1x_ehci_resources),
+	.resource       = ls1x_ehci_resources,
 };
-#endif //#ifdef CONFIG_USB_EHCI_HCD_LS1B
-
+#endif //#ifdef CONFIG_USB_EHCI_HCD_LS1X
 
 /*
 * watchdog
@@ -1407,11 +1402,11 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1a_ahci_device,
 #endif
 
-#ifdef CONFIG_USB_OHCI_HCD_LS1B
-	&ls1b_ohci_device,
+#ifdef CONFIG_USB_OHCI_HCD_LS1X
+	&ls1x_ohci_device,
 #endif
-#ifdef CONFIG_USB_EHCI_HCD_LS1B
-	&ls1b_ehci_device,
+#ifdef CONFIG_USB_EHCI_HCD_LS1X
+	&ls1x_ehci_device,
 #endif
 
 #ifdef CONFIG_STMMAC_ETH

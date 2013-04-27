@@ -80,6 +80,14 @@
 	#define PWM_MASK	(0xf)
 #endif
 
+#ifdef CONFIG_LS1C_MACH
+/* GPIO 63-87 */
+#define LS1X_GPIO_CFG3		LS1X_GPIO_REG(0x8)
+#define LS1X_GPIO_OE3		LS1X_GPIO_REG(0x18)
+#define LS1X_GPIO_IN3		LS1X_GPIO_REG(0x28)
+#define LS1X_GPIO_OUT3		LS1X_GPIO_REG(0x38)
+#endif
+
 #define LOONGSON_REG(x)	\
 	(*(volatile u32 *)((char *)CKSEG1ADDR(x)))
 

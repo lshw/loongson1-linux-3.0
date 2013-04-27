@@ -11,12 +11,12 @@ extern int usb_disabled(void);
 
 static void ls1x_start_ohc(void)
 {
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 	*(volatile int *)0xbfd00420 &= ~0x200000;/* enable USB */
 	*(volatile int *)0xbff10204 = 0;
 	mdelay(105);
 	*(volatile int *)0xbff10204 |= 0x40000000;/* ls1a usb reset stop */
-#elif defined(CONFIG_USB_EHCI_HCD_LS1B) || defined(CONFIG_USB_OHCI_HCD_LS1B)
+#elif defined(CONFIG_LS1B_MACH)
 	*(volatile int *)0xbfd00424 &= ~0x800;/* enable USB */
 	*(volatile int *)0xbfd00424 &= ~0x80000000;/* ls1g usb reset */
 	mdelay(105);
@@ -60,7 +60,7 @@ static int __devinit ohci_ls1x_start(struct usb_hcd *hcd)
 
 static const struct hc_driver ohci_ls1x_hc_driver = {
 	.description =		hcd_name,
-	.product_desc =		"loongson 1b OHCI",
+	.product_desc =		"loongson1 OHCI",
 	.hcd_priv_size =	sizeof(struct ohci_hcd),
 
 	/*
@@ -229,7 +229,7 @@ static struct platform_driver ohci_hcd_ls1x_driver = {
 	.remove		= ohci_hcd_ls1x_drv_remove,
 	.shutdown	= usb_hcd_platform_shutdown,
 	.driver		= {
-		.name	= "ls1b-ohci",
+		.name	= "ls1x-ohci",
 		.owner	= THIS_MODULE,
 		.pm	= LS1X_OHCI_PMOPS,
 	},

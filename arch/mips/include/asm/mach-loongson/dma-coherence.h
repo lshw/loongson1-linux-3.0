@@ -69,7 +69,7 @@ static inline int plat_device_is_coherent(struct device *dev)
 {
 	return 0;
 }
-#elif	defined(CONFIG_LS1B_MACH)
+#elif	defined(CONFIG_LS1B_MACH) || defined(CONFIG_LS1C_MACH)
 #include <asm/mach-generic/dma-coherence.h>
 
 #elif	defined(CONFIG_LS1A_MACH)

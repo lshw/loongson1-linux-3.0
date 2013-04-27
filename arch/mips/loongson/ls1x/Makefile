@@ -16,4 +16,6 @@ obj-$(CONFIG_LS1A_CLOUD_TERMIAL) += ls1a-cloud/
 obj-$(CONFIG_LS1B_BOARD) += ls1b-board/
 obj-$(CONFIG_LS1B_CORE_BOARD) += ls1b-core/
 
+obj-$(CONFIG_LS1C_MACH) += ls1c/
+
 EXTRA_AFLAGS := $(CFLAGS)

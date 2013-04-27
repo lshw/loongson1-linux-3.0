@@ -11,7 +11,11 @@
 #define LS1X_UART0_IRQ	2
 #define LS1X_UART1_IRQ	3
 #define LS1X_UART2_IRQ	4
+#if defined(CONFIG_LS1C_MACH)
+#define LS1X_UART3_IRQ	29
+#else
 #define LS1X_UART3_IRQ	5
+#endif
 #define LS1X_BOARD_CAN0_IRQ	6
 #define LS1X_BOARD_CAN1_IRQ	7
 #define LS1B_BOARD_SPI0_IRQ	8
@@ -44,8 +48,8 @@
 #define LS1X_UART5_IRQ	30
 #endif
 
-#define LS1B_BOARD_EHCI_IRQ	32
-#define LS1B_BOARD_OHCI_IRQ	33
+#define LS1X_EHCI_IRQ	32
+#define LS1X_OHCI_IRQ	33
 #define LS1X_GMAC0_IRQ	34
 #define LS1X_GMAC1_IRQ	35
 #define LS1A_BOARD_SATA_IRQ	36
@@ -63,6 +67,8 @@
 #define LS1X_GPIO_IRQ_COUNT 128
 #elif	defined(CONFIG_LS1B_MACH)
 #define LS1X_GPIO_IRQ_COUNT 96
+#elif	defined(CONFIG_LS1C_MACH)
+#define LS1X_GPIO_IRQ_COUNT 128
 #endif
 #define LS1X_GPIO_LAST_IRQ  (LS1X_GPIO_FIRST_IRQ + LS1X_GPIO_IRQ_COUNT - 1)
 
@@ -81,6 +87,9 @@
 #elif defined(CONFIG_LS1B_MACH)
 #define LS1X_LAST_IRQ 127
 #define INTN 4
+#elif defined(CONFIG_LS1C_MACH)
+#define LS1X_LAST_IRQ 159
+#define INTN 5
 #endif
 
 struct ls1x_intc_regs

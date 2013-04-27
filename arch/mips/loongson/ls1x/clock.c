@@ -111,7 +111,7 @@ EXPORT_SYMBOL_GPL(clk_set_rate);
 int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 {
 	int ret = 0;
-	int regval;
+	int regval __maybe_unused;
 	int i;
 
 	if (likely(clk->ops && clk->ops->set_rate)) {
@@ -138,7 +138,7 @@ int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 
 	clk->rate = rate;
 
-#ifdef CONFIG_LS1B_MACH
+#if defined(CONFIG_LS1B_MACH)
 	regval = __raw_readl(LS1X_CLK_PLL_DIV);
 	regval |= 0x00000300;	//cpu_bypass 置1
 	regval &= ~0x0000003;	//cpu_rst 置0
@@ -147,7 +147,7 @@ int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
 	regval &= ~0x00000100;	//cpu_bypass 置0
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
-#else
+#elif defined(CONFIG_LS1A_MACH)
 	regval = (ls1x_bus_clock / APB_CLK - 3) << 8;
 	regval |= 0x8888;
 	regval |= (loongson1_clockmod_table[i].index + 2);
@@ -198,8 +198,12 @@ static void pll_clk_init(struct clk *clk)
 	u32 pll;
 
 	pll = __raw_readl(LS1X_CLK_PLL_FREQ);
+#if defined(CONFIG_LS1C_MACH)
+	clk->rate = (((pll >> 8) & 0x7f) + ((pll >> 16) & 0xff)) * APB_CLK / 4;
+#else
 	clk->rate = (12 + (pll & 0x3f)) * APB_CLK / 2
 			+ ((pll >> 8) & 0x3ff) * APB_CLK / 1024 / 2;
+#endif
 }
 
 static void cpu_clk_init(struct clk *clk)
@@ -207,11 +211,23 @@ static void cpu_clk_init(struct clk *clk)
 	u32 pll, ctrl;
 
 	pll = clk_get_rate(clk->parent);
-	ctrl = __raw_readl(LS1X_CLK_PLL_DIV) & DIV_CPU;
-#ifdef	CONFIG_LS1A_MACH
-	clk->rate = cpu_clock_freq;
+	ctrl = __raw_readl(LS1X_CLK_PLL_DIV);
+#if defined(CONFIG_LS1A_MACH)
+	/* 由于目前loongson 1A CPU读取0xbfe78030 PLL寄存器有问题，
+	   所以CPU的频率是通过PMON传进来的 */
+	clk->rate = ls1x_cpu_clock;
+#elif defined(CONFIG_LS1B_MACH)
+	clk->rate = pll / ((ctrl & DIV_CPU) >> DIV_CPU_SHIFT);
 #else
-	clk->rate = pll / (ctrl >> DIV_CPU_SHIFT);
+	if (ctrl & DIV_CPU_SEL) {
+		if(ctrl & DIV_CPU_EN) {
+			clk->rate = pll / ((ctrl & DIV_CPU) >> DIV_CPU_SHIFT);
+		} else {
+			clk->rate = pll / 2;
+		}
+	} else {
+		clk->rate = APB_CLK;
+	}
 #endif
 	pr_info("cpuclock=%ldHz\n", clk->rate);
 }
@@ -221,13 +237,29 @@ static void ddr_clk_init(struct clk *clk)
 	u32 pll, ctrl;
 
 	pll = clk_get_rate(clk->parent);
-	ctrl = __raw_readl(LS1X_CLK_PLL_DIV) & DIV_DDR;
-#ifdef	CONFIG_LS1A_MACH
+	ctrl = __raw_readl(LS1X_CLK_PLL_DIV);
+#if defined(CONFIG_LS1A_MACH)
+	/* 由于目前loongson 1A CPU读取0xbfe78030 PLL寄存器有问题，
+	   所以BUS(DDR)的频率是通过PMON传进来的 */
 	clk->rate = ls1x_bus_clock;
+#elif defined(CONFIG_LS1B_MACH)
+	clk->rate = pll / ((ctrl & DIV_DDR) >> DIV_DDR_SHIFT);
 #else
-	clk->rate = pll / (ctrl >> DIV_DDR_SHIFT);
+	ctrl = __raw_readl(LS1X_CLK_PLL_FREQ) & 0x3;
+	switch	 (ctrl) {
+		case 0:
+			clk->rate = pll;	/* pll / 2 */
+		break;
+		case 1:
+			clk->rate = pll / 2;	/* pll / 4 */
+		break;
+		case 2:
+		case 3:
+			clk->rate = (pll / 3) * 2;	/* pll / 3 */
+		break;
+	}
 #endif
-	pr_info("busclock=%ldHz\n", clk->rate);
+	pr_info("busclock=%ldHz\n", clk->rate / 2);
 }
 
 static void dc_clk_init(struct clk *clk)
@@ -269,7 +301,11 @@ static struct clk cpu_clk = {
 
 static struct clk ddr_clk = {
 	.name	= "ddr",
+#if defined(CONFIG_LS1C_MACH)
+	.parent = &cpu_clk,
+#else
 	.parent = &pll_clk,
+#endif
 	.ops	= &ddr_clk_ops,
 };
 

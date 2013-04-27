@@ -153,8 +153,7 @@ void __init arch_init_irq(void)
 {
 	u32 i;
 
-	clear_c0_status(ST0_IM | ST0_BEV);
-	local_irq_disable();
+	mips_cpu_irq_init();
 
 	/* Disable interrupts and clear pending,
 	 * setup all IRQs as high level triggered
@@ -176,8 +175,6 @@ void __init arch_init_irq(void)
 	for (i=0; i<=LS1X_LAST_IRQ; i++) {
 		irq_set_chip_and_handler(i, &ls1x_irq_chip, handle_level_irq);
 	}
-
-	mips_cpu_irq_init();
 
 	setup_irq(MIPS_CPU_IRQ_BASE + 2, &cascade_irqaction);
 	setup_irq(MIPS_CPU_IRQ_BASE + 3, &cascade_irqaction);

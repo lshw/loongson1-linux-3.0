@@ -99,6 +99,7 @@ void __init prom_init(void)
 		cpu_clock_freq = 200 * 1000000;
 #endif
 
+#ifndef CONFIG_LS1C_MACH
 	/* 需要复位一次USB控制器，且复位时间要足够长，否则启动时莫名其妙的死机 */
 	#if defined(CONFIG_LS1A_MACH)
 	#define MUX_CTRL0 LS1X_MUX_CTRL0
@@ -118,6 +119,7 @@ void __init prom_init(void)
 	/* reset stop */
 	__raw_writel(__raw_readl(MUX_CTRL1) | USB_RESET, MUX_CTRL1);
 //	#endif
+#endif
 
 #ifdef CONFIG_STMMAC_ETH
 	tmp = prom_getenv("ethaddr");
