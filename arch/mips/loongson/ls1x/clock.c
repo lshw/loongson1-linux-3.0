@@ -248,18 +248,18 @@ static void ddr_clk_init(struct clk *clk)
 	ctrl = __raw_readl(LS1X_CLK_PLL_FREQ) & 0x3;
 	switch	 (ctrl) {
 		case 0:
-			clk->rate = pll;	/* pll / 2 */
+			clk->rate = pll / 2;
 		break;
 		case 1:
-			clk->rate = pll / 2;	/* pll / 4 */
+			clk->rate = pll / 4;
 		break;
 		case 2:
 		case 3:
-			clk->rate = (pll / 3) * 2;	/* pll / 3 */
+			clk->rate = pll / 3;
 		break;
 	}
 #endif
-	pr_info("busclock=%ldHz\n", clk->rate / 2);
+	pr_info("busclock=%ldHz\n", clk->rate);
 }
 
 static void dc_clk_init(struct clk *clk)
