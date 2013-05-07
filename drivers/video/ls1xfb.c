@@ -246,38 +246,6 @@ static void set_clock_divider_forls1bvga(struct ls1xfb_info *fbi,
 #ifdef CONFIG_LS1A_MACH
 int caclulatefreq(unsigned int sys_clk, unsigned int pclk)
 {
-#if 0
-	long n = 4, no = 4, od = 2, m, frac;
-	int flag = 0;
-	long out;
-	long mf;
-
-	while (flag == 0) {
-		flag = 1;
-		if ((sys_clk/n) < 5000) {
-			n--; flag = 0;
-		}
-		if ((sys_clk/n) > 50000) {
-			n++; flag = 0;
-		}
-	}
-	flag = 0;
-	while (flag == 0) {
-		flag = 1;
-		if ((pclk * no) < 5000) {
-			no *= 2; od++; flag = 0;
-		}
-		if ((pclk * no) > 700000) {
-			no /= 2; od--; flag = 0;
-		}
-	}
-	mf = pclk * n * no * 262144 / sys_clk;
-	mf %= 262144;
-	m = pclk * n * no / sys_clk;
-	frac = (int)(mf);
-	out = (frac<<14) + (od<<12) + (n<<8) + m;
-	return out;
-#else
 /* N值和OD值选择不正确会造成系统死机，莫名其妙。OD=2^PIX12 */
 	unsigned int N = 4, PIX12 = 2, OD = 4;
 	unsigned int M = 0, FRAC = 0;
@@ -315,7 +283,6 @@ int caclulatefreq(unsigned int sys_clk, unsigned int pclk)
 //	printk("tmp2-tmp1=%d FRAC=%d\n", tmp2 - tmp1, FRAC);
 //	printk("PIX12=%d N=%d M=%d\n", PIX12, N, M);
 	return ((FRAC<<14) + (PIX12<<12) + (N<<8) + M);
-#endif
 }
 #endif	//#ifdef CONFIG_LS1A_MACH
 
@@ -347,7 +314,7 @@ static void set_clock_divider(struct ls1xfb_info *fbi,
 	do_div(div_result, m->pixclock);
 	needed_pixclk = (u32)div_result;
 
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 	#define PLL_CTRL(x)		(ioremap((x), 4))
 	/* 设置gpu时钟频率为200MHz */
 	divider_int = caclulatefreq(APB_CLK/1000, 200000);
@@ -356,9 +323,7 @@ static void set_clock_divider(struct ls1xfb_info *fbi,
 	divider_int = caclulatefreq(APB_CLK/1000, needed_pixclk/1000);
 	writel(divider_int, PLL_CTRL(LS1X_PIX1_PLL_CTRL));
 	writel(divider_int, PLL_CTRL(LS1X_PIX2_PLL_CTRL));
-#endif
-
-#ifdef CONFIG_LS1B_MACH
+#elif defined(CONFIG_LS1B_MACH)
 	divider_int = clk_get_rate(fbi->clk) / needed_pixclk / 4;
 	/* check whether divisor is too small. */
 	if (divider_int < 1) {
@@ -384,6 +349,33 @@ static void set_clock_divider(struct ls1xfb_info *fbi,
 		regval |= divider_int << 26;
 		writel(regval, LS1X_CLK_PLL_DIV);
 		regval &= ~0x00001000;	//dc_bypass 置0
+		writel(regval, LS1X_CLK_PLL_DIV);
+	}
+#elif defined(CONFIG_LS1C_MACH)
+	divider_int = clk_get_rate(fbi->clk) / needed_pixclk;
+	/* check whether divisor is too small. */
+	if (divider_int < 2) {
+		dev_warn(fbi->dev, "Warning: clock source is too slow."
+				"Try smaller resolution\n");
+		divider_int = 1;
+	}
+	else if(divider_int > 127) {
+		dev_warn(fbi->dev, "Warning: clock source is too fast."
+				"Try smaller resolution\n");
+		divider_int = 0x7f;
+	}
+
+	/*
+	 * Set setting to reg.
+	 */
+	{
+		u32 regval = 0;
+		regval = readl(LS1X_CLK_PLL_DIV);
+		/* 注意：首先需要把分频使能位清零 */
+		writel(regval & ~DIV_DC_EN, LS1X_CLK_PLL_DIV);
+		regval |= DIV_DC_EN | DIV_DC_SEL_EN | DIV_DC_SEL;
+		regval &= ~DIV_DC;
+		regval |= divider_int << DIV_DC_SHIFT;
 		writel(regval, LS1X_CLK_PLL_DIV);
 	}
 #endif
@@ -583,18 +575,18 @@ static void ls1x_update_var(struct fb_var_screeninfo *var,
 {
 	var->xres = var->xres_virtual = modedb->xres;
 	var->yres = modedb->yres;
-        if (var->yres_virtual < var->yres)
-	    var->yres_virtual = var->yres;
-        var->xoffset = var->yoffset = 0;
-        var->pixclock = modedb->pixclock;
-        var->left_margin = modedb->left_margin;
-        var->right_margin = modedb->right_margin;
-        var->upper_margin = modedb->upper_margin;
-        var->lower_margin = modedb->lower_margin;
-        var->hsync_len = modedb->hsync_len;
-        var->vsync_len = modedb->vsync_len;
-        var->sync = modedb->sync;
-        var->vmode = modedb->vmode;
+	if (var->yres_virtual < var->yres)
+		var->yres_virtual = var->yres;
+	var->xoffset = var->yoffset = 0;
+	var->pixclock = modedb->pixclock;
+	var->left_margin = modedb->left_margin;
+	var->right_margin = modedb->right_margin;
+	var->upper_margin = modedb->upper_margin;
+	var->lower_margin = modedb->lower_margin;
+	var->hsync_len = modedb->hsync_len;
+	var->vsync_len = modedb->vsync_len;
+	var->sync = modedb->sync;
+	var->vmode = modedb->vmode;
 }
 #endif
 

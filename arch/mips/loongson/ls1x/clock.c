@@ -199,7 +199,7 @@ static void pll_clk_init(struct clk *clk)
 
 	pll = __raw_readl(LS1X_CLK_PLL_FREQ);
 #if defined(CONFIG_LS1C_MACH)
-	clk->rate = (((pll >> 8) & 0x7f) + ((pll >> 16) & 0xff)) * APB_CLK / 4;
+	clk->rate = (((pll >> 8) & 0xff) + ((pll >> 16) & 0xff)) * APB_CLK / 4;
 #else
 	clk->rate = (12 + (pll & 0x3f)) * APB_CLK / 2
 			+ ((pll >> 8) & 0x3ff) * APB_CLK / 1024 / 2;

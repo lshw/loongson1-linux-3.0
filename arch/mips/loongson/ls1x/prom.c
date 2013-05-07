@@ -99,7 +99,13 @@ void __init prom_init(void)
 		cpu_clock_freq = 200 * 1000000;
 #endif
 
-#ifndef CONFIG_LS1C_MACH
+#if defined(CONFIG_LS1C_MACH)
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) & (~USBHOST_SHUT), LS1X_MUX_CTRL0);
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL1) & (~USBHOST_RSTN), LS1X_MUX_CTRL1);
+	mdelay(60);
+	/* reset stop */
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL1) | USBHOST_RSTN, LS1X_MUX_CTRL1);
+#else
 	/* 需要复位一次USB控制器，且复位时间要足够长，否则启动时莫名其妙的死机 */
 	#if defined(CONFIG_LS1A_MACH)
 	#define MUX_CTRL0 LS1X_MUX_CTRL0

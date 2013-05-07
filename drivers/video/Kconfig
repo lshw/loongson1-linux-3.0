@@ -1980,7 +1980,7 @@ config FB_68328
 config FB_LOONGSON1
 	tristate "Loongson1 framebuffer support"
 	depends on FB
-	depends on LS1A_MACH || LS1B_MACH
+	depends on LS1A_MACH || LS1B_MACH || LS1C_MACH
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
