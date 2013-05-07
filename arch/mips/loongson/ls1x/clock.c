@@ -215,7 +215,7 @@ static void cpu_clk_init(struct clk *clk)
 #if defined(CONFIG_LS1A_MACH)
 	/* 由于目前loongson 1A CPU读取0xbfe78030 PLL寄存器有问题，
 	   所以CPU的频率是通过PMON传进来的 */
-	clk->rate = ls1x_cpu_clock;
+	clk->rate = cpu_clock_freq;
 #elif defined(CONFIG_LS1B_MACH)
 	clk->rate = pll / ((ctrl & DIV_CPU) >> DIV_CPU_SHIFT);
 #else
