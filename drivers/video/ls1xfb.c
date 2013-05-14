@@ -510,7 +510,11 @@ static int ls1xfb_set_par(struct fb_info *info)
 		writel(x | LS1X_FB_CONF_RESET | fbi->pix_fmt, fbi->reg_base + LS1X_FB_CONF);
 	}
 
+#if defined(CONFIG_LS1C_MACH)
+	writel((info->fix.line_length + 0x7f) & ~0x7f, fbi->reg_base + LS1X_FB_STRIDE);
+#else
 	writel((info->fix.line_length + 0xff) & ~0xff, fbi->reg_base + LS1X_FB_STRIDE);
+#endif
 	writel(0, fbi->reg_base + LS1X_FB_ORIGIN);
 
 	/*
