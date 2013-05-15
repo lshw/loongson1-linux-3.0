@@ -14,7 +14,7 @@ if STMMAC_ETH
 config LS1X_GMAC0
 	bool "Loongson1 GMAC0 support"
 	default y
-	depends on LS1A_MACH || LS1B_MACH
+	depends on LS1A_MACH || LS1B_MACH || LS1C_MACH
 
 choice
 		prompt "ls1x gmac0 config"
@@ -25,6 +25,10 @@ config LS1X_GMAC0_100M
 
 config LS1X_GMAC0_1000M
 		bool "1000Mb MII mode"
+
+config LS1X_GMAC0_RMII
+		bool "100Mb RMII mode"
+		depends on LS1C_MACH
 endchoice
 
 config LS1X_GMAC1

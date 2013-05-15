@@ -504,33 +504,21 @@ static struct platform_device ls1x_pwm_backlight = {
 #ifdef CONFIG_STMMAC_ETH
 void __init ls1x_gmac_setup(void)
 {
-#ifdef CONFIG_LS1X_GMAC0
-{
 	u32 x;
 	x = __raw_readl(LS1X_MUX_CTRL1);
-	#if defined(CONFIG_LS1X_GMAC0_100M)
-	x = x | GMAC0_USE_TXCLK | GMAC0_USE_PWM01;
-	#elif defined(CONFIG_LS1X_GMAC0_1000M)
-	x = x & (~GMAC0_USE_TXCLK) & (~GMAC0_USE_PWM01);
+	x &= ~PHY_INTF_SELI;
+	#if defined(CONFIG_LS1X_GMAC0_RMII)
+	x |= 0x4 << PHY_INTF_SELI_SHIFT;
 	#endif
-	__raw_writel(x & (~GMAC0_SHUT), LS1X_MUX_CTRL1);
-}
-#endif
-#ifdef CONFIG_LS1X_GMAC1
-{
-	u32 x;
+	__raw_writel(x, LS1X_MUX_CTRL1);
+
 	x = __raw_readl(LS1X_MUX_CTRL0);
-	x = x | GMAC1_USE_UART1 | GMAC1_USE_UART0;	/* 复用UART0&1 */
-	__raw_writel(x, LS1X_MUX_CTRL0);
-	x = __raw_readl(LS1X_MUX_CTRL1);
-	#if defined(CONFIG_LS1X_GMAC1_100M)
-	x = x | GMAC1_USE_TXCLK | GMAC1_USE_PWM23;
-	#elif defined(CONFIG_LS1X_GMAC1_1000M)
-	x = x & (~GMAC1_USE_TXCLK) & (~GMAC1_USE_PWM23);
-	#endif
-	__raw_writel(x & (~GMAC1_SHUT), LS1X_MUX_CTRL1);
-}
+	__raw_writel(x & (~GMAC_SHUT), LS1X_MUX_CTRL0);
+
+#if defined(CONFIG_LS1X_GMAC0_RMII)
+	__raw_writel(0x400, (void __iomem *)KSEG1ADDR(LS1X_GMAC0_BASE + 0x14));
 #endif
+	__raw_writel(0xe4b, (void __iomem *)KSEG1ADDR(LS1X_GMAC0_BASE + 0x10));
 }
 
 #ifdef CONFIG_LS1X_GMAC0
@@ -572,7 +560,7 @@ static struct plat_stmmacphy_data  phy0_private_data = {
 	.phy_addr = 0,
 #endif
 	.phy_mask = 0,
-	.interface = PHY_INTERFACE_MODE_MII,
+	.interface = PHY_INTERFACE_MODE_RMII,
 	
 };
 
@@ -593,63 +581,6 @@ struct platform_device ls1x_gmac0_phy = {
 	},
 };
 #endif //#ifdef CONFIG_LS1X_GMAC0
-
-#ifdef CONFIG_LS1X_GMAC1
-static struct resource ls1x_mac1_resources[] = {
-	[0] = {
-		.start  = LS1X_GMAC1_BASE,
-		.end    = LS1X_GMAC1_BASE + SZ_8K - 1,
-		.flags  = IORESOURCE_MEM,
-	},
-	[1] = {
-		.name   = "macirq",
-		.start  = LS1X_GMAC1_IRQ,
-		.flags  = IORESOURCE_IRQ,
-	},
-};
-
-static struct plat_stmmacenet_data ls1x_mac1_data = {
-	.bus_id = 1,
-	.pbl = 0,
-	.has_gmac = 1,
-	.enh_desc = 0,
-};
-
-struct platform_device ls1x_gmac1_mac = {
-	.name           = "stmmaceth",
-	.id             = 1,
-	.num_resources  = ARRAY_SIZE(ls1x_mac1_resources),
-	.resource       = ls1x_mac1_resources,
-	.dev            = {
-		.platform_data = &ls1x_mac1_data,
-	},
-};
-
-static struct plat_stmmacphy_data  phy1_private_data = {
-	.bus_id = 1,
-	.phy_addr = 1,
-	.phy_mask = 0,
-	.interface = PHY_INTERFACE_MODE_MII,
-	
-};
-
-struct platform_device ls1x_gmac1_phy = {
-	.name = "stmmacphy",
-	.id = 1,
-	.num_resources = 1,
-	.resource = (struct resource[]){
-		{
-			.name = "phyirq",
-			.start = PHY_POLL,
-			.end = PHY_POLL,
-			.flags = IORESOURCE_IRQ,
-		},
-	},
-	.dev = {
-		.platform_data = &phy1_private_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1X_GMAC1
 #endif //#ifdef CONFIG_STMMAC_ETH
 
 #ifdef CONFIG_SOUND_LS1X_AC97
@@ -1473,10 +1404,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_LS1X_GMAC0
 	&ls1x_gmac0_mac,
 	&ls1x_gmac0_phy,
-#endif
-#ifdef CONFIG_LS1X_GMAC1
-	&ls1x_gmac1_mac,
-	&ls1x_gmac1_phy,
 #endif
 #endif
 
