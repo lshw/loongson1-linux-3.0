@@ -122,7 +122,7 @@ asmlinkage void plat_irq_dispatch(struct pt_regs *regs)
 	pending = read_c0_cause() & read_c0_status() & ST0_IM;
 
 	if (pending & CAUSEF_IP7) {
-		do_IRQ(MIPS_CPU_TIMER_IRQ);
+		do_IRQ(TIMER_IRQ);
 	}
 	else if (pending & CAUSEF_IP2) {
 		ls1x_irq_dispatch(0);
@@ -176,12 +176,12 @@ void __init arch_init_irq(void)
 		irq_set_chip_and_handler(i, &ls1x_irq_chip, handle_level_irq);
 	}
 
-	setup_irq(MIPS_CPU_IRQ_BASE + 2, &cascade_irqaction);
-	setup_irq(MIPS_CPU_IRQ_BASE + 3, &cascade_irqaction);
-	setup_irq(MIPS_CPU_IRQ_BASE + 4, &cascade_irqaction);
-	setup_irq(MIPS_CPU_IRQ_BASE + 5, &cascade_irqaction);
+	setup_irq(INT0_IRQ, &cascade_irqaction);
+	setup_irq(INT1_IRQ, &cascade_irqaction);
+	setup_irq(INT2_IRQ, &cascade_irqaction);
+	setup_irq(INT3_IRQ, &cascade_irqaction);
 #ifdef CONFIG_LS1A_MACH
-	setup_irq(MIPS_CPU_IRQ_BASE + 6, &cascade_irqaction);
+	setup_irq(INT4_IRQ, &cascade_irqaction);
 #endif
 }
 

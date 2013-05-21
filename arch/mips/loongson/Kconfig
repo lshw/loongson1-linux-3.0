@@ -12,7 +12,6 @@ config LS1A_MACH
 	select CPU_HAS_WB
 	select DMA_NONCOHERENT
 	select HW_HAS_PCI
-	select I8259
 	select IRQ_CPU
 	select SYS_HAS_EARLY_PRINTK
 	select SYS_SUPPORTS_32BIT_KERNEL

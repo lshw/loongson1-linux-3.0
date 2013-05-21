@@ -1,11 +1,6 @@
 #ifndef __LS1B_IRQ_H
 #define __LS1B_IRQ_H
 
-#define NR_IRQS 	  256
-#define I8259A_IRQ_BASE 168
-#define MIPS_CPU_IRQ_BASE 160
-#define MIPS_CPU_TIMER_IRQ	167
-
 #define LS1B_BOARD_ACPI_IRQ		0
 #define LS1A_BOARD_HPET_IRQ		1
 #define LS1X_UART0_IRQ	2
@@ -69,17 +64,6 @@
 //#define LS1A_BOARD_PCI_INTC_IRQ 40
 //#define LS1A_BOARD_PCI_INTD_IRQ 41
 
-#define LS1X_GPIO_IRQ 64
-#define LS1X_GPIO_FIRST_IRQ 64
-#if	defined(CONFIG_LS1A_MACH)
-#define LS1X_GPIO_IRQ_COUNT 128
-#elif	defined(CONFIG_LS1B_MACH)
-#define LS1X_GPIO_IRQ_COUNT 96
-#elif	defined(CONFIG_LS1C_MACH)
-#define LS1X_GPIO_IRQ_COUNT 128
-#endif
-#define LS1X_GPIO_LAST_IRQ  (LS1X_GPIO_FIRST_IRQ + LS1X_GPIO_IRQ_COUNT - 1)
-
 #define INT_PCI_INTA	(1<<0)
 #define INT_PCI_INTB	(1<<1)
 #define INT_PCI_INTC	(1<<2)
@@ -88,6 +72,8 @@
 //#define INT_PCI_INTB	(1<<7)
 //#define INT_PCI_INTC	(1<<8)
 //#define INT_PCI_INTD	(1<<9)
+
+#define LS1X_GPIO_FIRST_IRQ 64
 
 #if defined(CONFIG_LS1A_MACH)
 #define LS1X_LAST_IRQ 159
@@ -99,6 +85,23 @@
 #define LS1X_LAST_IRQ 159
 #define INTN 5
 #endif
+
+/*
+ * CPU core Interrupt Numbers
+ */
+#define MIPS_CPU_IRQ_BASE		(LS1X_LAST_IRQ + 1)
+#define MIPS_CPU_IRQ(x)			(MIPS_CPU_IRQ_BASE + (x))
+
+#define SOFTINT0_IRQ			MIPS_CPU_IRQ(0)
+#define SOFTINT1_IRQ			MIPS_CPU_IRQ(1)
+#define INT0_IRQ			MIPS_CPU_IRQ(2)
+#define INT1_IRQ			MIPS_CPU_IRQ(3)
+#define INT2_IRQ			MIPS_CPU_IRQ(4)
+#define INT3_IRQ			MIPS_CPU_IRQ(5)
+#define INT4_IRQ			MIPS_CPU_IRQ(6)
+#define TIMER_IRQ			MIPS_CPU_IRQ(7)		/* cpu timer */
+
+#define NR_IRQS 	  256
 
 struct ls1x_intc_regs
 {
