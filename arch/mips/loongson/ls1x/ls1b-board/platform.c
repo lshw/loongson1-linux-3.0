@@ -319,7 +319,8 @@ static int ts_get_pendown_state(void)
 
 int ts_init(void)
 {
-	ls1b_gpio_direction_input(NULL, TSC2007_GPIO_IRQ);		/* 输入使能 */
+	gpio_request(TSC2007_GPIO_IRQ, "tsc2007 gpio irq");
+	gpio_direction_input(TSC2007_GPIO_IRQ);
 	return 0;
 }
 
@@ -336,13 +337,14 @@ static struct tsc2007_platform_data tsc2007_info = {
 #define FT5X0X_GPIO_WAUP	39
 int ft5x0x_irq_init(void)
 {
-	ls1b_gpio_direction_input(NULL, FT5X0X_GPIO_IRQ);		/* 输入使能 */
+	gpio_request(FT5X0X_GPIO_IRQ, "ft5x0x gpio irq");
+	gpio_direction_input(FT5X0X_GPIO_IRQ);		/* 输入使能 */
 	return 0;
 }
 
 int ft5x0x_wake_up(void)
 {
-	ls1b_gpio_direction_output(NULL, FT5X0X_GPIO_WAUP, 0);		/* 输出使能 */
+	gpio_direction_output(FT5X0X_GPIO_WAUP, 0);		/* 输出使能 */
 	msleep(10);
 	gpio_set_value(FT5X0X_GPIO_WAUP, 1);
 	msleep(10);
@@ -770,7 +772,8 @@ int ads7846_pendown_state(void)
 	
 static void ads7846_detect_penirq(void)
 {
-	ls1b_gpio_direction_input(NULL, ADS7846_GPIO_IRQ);
+	gpio_request(ADS7846_GPIO_IRQ, "ads7846 gpio irq");
+	gpio_direction_input(ADS7846_GPIO_IRQ);
 }
 	
 static struct ads7846_platform_data ads_info = {
@@ -1632,29 +1635,29 @@ int __init ls1b_platform_init(void)
 #ifdef	CONFIG_LS1A_MACH
 	#ifdef CONFIG_LS1X_CAN0
 	/* CAN0复用设置 */
-	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
-	ls1b_gpio_free(NULL, 67);
+//	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 67);
 	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
 	#endif
 	#ifdef CONFIG_LS1X_CAN1
 	/* CAN1复用设置 */
-	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
-	ls1b_gpio_free(NULL, 69);
+//	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 69);
 	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
 	#endif
 #elif	CONFIG_LS1B_MACH
 	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
 	#ifdef CONFIG_LS1X_CAN0
 	/* CAN0复用设置 */
-	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
-	ls1b_gpio_free(NULL, 39);
+//	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 39);
 	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
 	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
 	#endif
 	#ifdef CONFIG_LS1X_CAN1
 	/* CAN1复用设置 */
-	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
-	ls1b_gpio_free(NULL, 41);
+//	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 41);
 	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
 	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
 	#endif
@@ -1668,7 +1671,8 @@ int __init ls1b_platform_init(void)
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	/* 轮询方式或中断方式探测card的插拔 */
-	ls1b_gpio_direction_input(NULL, DETECT_GPIO);		/* 输入使能 */
+	gpio_request(DETECT_GPIO, "MMC_SPI GPIO detect");
+	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846

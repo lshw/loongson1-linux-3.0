@@ -43,15 +43,15 @@ int __init pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
 //	return dev->irq;
 //	return ((pin-1)+LS1A_BOARD_PCI_INTA_IRQ);
 //	return LS1A_BOARD_PCI_INTA_IRQ;
-	
-	if (slot == 5)			//lxy: slot = IDSEL - 11;
-	{
-		ls1b_gpio_direction_input(NULL, LS1A_BOARD_PCI_INTA_IRQ-64);
+	//lxy: slot = IDSEL - 11;
+	if (slot == 5) {
+		gpio_request(LS1A_BOARD_PCI_INTA_IRQ-64, "pci inta irq");
+		gpio_direction_input(LS1A_BOARD_PCI_INTA_IRQ-64);
 		return LS1A_BOARD_PCI_INTA_IRQ;
 	}
-	else
-	{
-		ls1b_gpio_direction_input(NULL, LS1A_BOARD_PCI_INTB_IRQ-64);
+	else {
+		gpio_request(LS1A_BOARD_PCI_INTB_IRQ-64, "pci intb irq");
+		gpio_direction_input(LS1A_BOARD_PCI_INTB_IRQ-64);
 		return LS1A_BOARD_PCI_INTB_IRQ;
 	}
 }
