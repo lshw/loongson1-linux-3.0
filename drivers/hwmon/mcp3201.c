@@ -1,8 +1,4 @@
 /*
- * mcp3201.c
- *
- * The mcp3201 is an AD converter family from National Semiconductor (NS).
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -31,50 +27,75 @@
 #include <linux/mod_devicetable.h>
 #include <linux/spi/spi.h>
 
-#define DRVNAME		"mcp3201"
-#define	REFERENCE	5000
+#define DRVNAME "mcp3201"
+#define REFERENCE	5000
 
 struct mcp3201 {
 	struct device *hwmon_dev;
 	struct mutex lock;
 	u32 channels;
 	u32 reference; /* in millivolts */
+	const char *name;
 };
 
 /* sysfs hook function */
 static ssize_t mcp3201_read(struct device *dev,
-		struct device_attribute *devattr, char *buf)
+		struct device_attribute *devattr, char *buf, int differential)
 {
 	struct spi_device *spi = to_spi_device(dev);
 	struct sensor_device_attribute *attr = to_sensor_dev_attr(devattr);
 	struct mcp3201 *adc = spi_get_drvdata(spi);
-	u8 tx_buf[2];
+	u8 tx_buf[1];
 	u8 rx_buf[2];
-	int status;
-	u32 value;
+	int status = -1;
+	u32 value = 0;
 
 	if (mutex_lock_interruptible(&adc->lock))
 		return -ERESTARTSYS;
 
-	if (adc->channels == 1) {
-		status = spi_read(spi, rx_buf, sizeof(rx_buf));
-	} else {
-		tx_buf[0] = attr->index << 3; /* other bits are don't care */
-		status = spi_write_then_read(spi, tx_buf, sizeof(tx_buf),
-						rx_buf, sizeof(rx_buf));
+	switch (adc->channels) {
+		case 1:	/* mcp3201 */
+			status = spi_read(spi, rx_buf, sizeof(rx_buf));
+			break;
+		case 2:	/* mcp3202 */
+			if (differential)
+				tx_buf[0] = 0x04 | attr->index;
+			else
+				tx_buf[0] = 0x06 | attr->index;
+			status = spi_write_then_read(spi, tx_buf, sizeof(tx_buf),
+								rx_buf, sizeof(rx_buf));
+			break;
+		case 4:	/* mcp3204 */
+		case 8:	/* mcp3208 */
+			if (differential)
+				tx_buf[0] = 0x10 | attr->index;
+			else
+				tx_buf[0] = 0x18 | attr->index;
+			status = spi_write_then_read(spi, tx_buf, sizeof(tx_buf),
+							rx_buf, sizeof(rx_buf));
+			break;
 	}
+
 	if (status < 0) {
 		dev_warn(dev, "SPI synch. transfer failed with status %d\n",
 				status);
 		goto out;
 	}
 
-	value = (rx_buf[0] << 8);
-	value = value & 0x1f00;
-	value += rx_buf[1] ;
-	value >>= 1;
+	switch (adc->channels) {
+		case 1:	/* mcp3201 */
+			value = (rx_buf[0] << 8);
+			value = value & 0x1f00;
+			value += rx_buf[1] ;
+			value >>= 1;
+			break;
+		case 2:	/* mcp3202 */
+		case 4:	/* mcp3204 */
+		case 8:	/* mcp3208 */
+			value = (rx_buf[0] & 0x3f) << 6 | (rx_buf[1] >> 2);
+			break;
+	}
 
-//	value = (rx_buf[0] << 8) + rx_buf[1];
 	dev_dbg(dev, "raw value = 0x%x\n", value);
 
 	value = value * adc->reference >> 12;
@@ -82,6 +103,18 @@ static ssize_t mcp3201_read(struct device *dev,
 out:
 	mutex_unlock(&adc->lock);
 	return status;
+}
+
+static ssize_t mcp3201_read_single(struct device *dev,
+		struct device_attribute *devattr, char *buf)
+{
+	return mcp3201_read(dev, devattr, buf, 0);
+}
+
+static ssize_t mcp3201_read_diff(struct device *dev,
+		struct device_attribute *devattr, char *buf)
+{
+	return mcp3201_read(dev, devattr, buf, 1);
 }
 
 static ssize_t mcp3201_show_min(struct device *dev,
@@ -134,22 +167,30 @@ static ssize_t mcp3201_show_name(struct device *dev, struct device_attribute
 	struct spi_device *spi = to_spi_device(dev);
 	struct mcp3201 *adc = spi_get_drvdata(spi);
 
-	return sprintf(buf, "mcp3201-%ds\n", adc->channels);
+	return sprintf(buf, "mcp320%d\n", adc->channels);
 }
 
 static struct sensor_device_attribute ad_input[] = {
 	SENSOR_ATTR(name, S_IRUGO, mcp3201_show_name, NULL, 0),
-	SENSOR_ATTR(in_min, S_IRUGO, mcp3201_show_min, NULL, 0),
-	SENSOR_ATTR(in_max, S_IWUSR | S_IRUGO, mcp3201_show_max,
+	SENSOR_ATTR(Vin_min, S_IRUGO, mcp3201_show_min, NULL, 0),
+	SENSOR_ATTR(Vin_max, S_IWUSR | S_IRUGO, mcp3201_show_max,
 					mcp3201_set_max, 0),
-	SENSOR_ATTR(in0_input, S_IRUGO, mcp3201_read, NULL, 0),
-	SENSOR_ATTR(in1_input, S_IRUGO, mcp3201_read, NULL, 1),
-	SENSOR_ATTR(in2_input, S_IRUGO, mcp3201_read, NULL, 2),
-	SENSOR_ATTR(in3_input, S_IRUGO, mcp3201_read, NULL, 3),
-	SENSOR_ATTR(in4_input, S_IRUGO, mcp3201_read, NULL, 4),
-	SENSOR_ATTR(in5_input, S_IRUGO, mcp3201_read, NULL, 5),
-	SENSOR_ATTR(in6_input, S_IRUGO, mcp3201_read, NULL, 6),
-	SENSOR_ATTR(in7_input, S_IRUGO, mcp3201_read, NULL, 7),
+	SENSOR_ATTR(single_ch0, S_IRUGO, mcp3201_read_single, NULL, 0),
+	SENSOR_ATTR(diff_ch0+ch1-, S_IRUGO, mcp3201_read_diff, NULL, 0),
+	SENSOR_ATTR(single_ch1, S_IRUGO, mcp3201_read_single, NULL, 1),
+	SENSOR_ATTR(diff_ch1+ch0-, S_IRUGO, mcp3201_read_diff, NULL, 1),
+	SENSOR_ATTR(single_ch2, S_IRUGO, mcp3201_read_single, NULL, 2),
+	SENSOR_ATTR(diff_ch2+ch3-, S_IRUGO, mcp3201_read_diff, NULL, 2),
+	SENSOR_ATTR(single_ch3, S_IRUGO, mcp3201_read_single, NULL, 3),
+	SENSOR_ATTR(diff_ch3+ch2-, S_IRUGO, mcp3201_read_diff, NULL, 3),
+	SENSOR_ATTR(single_ch4, S_IRUGO, mcp3201_read_single, NULL, 4),
+	SENSOR_ATTR(diff_ch4+ch5-, S_IRUGO, mcp3201_read_diff, NULL, 4),
+	SENSOR_ATTR(single_ch5, S_IRUGO, mcp3201_read_single, NULL, 5),
+	SENSOR_ATTR(diff_ch5+ch4-, S_IRUGO, mcp3201_read_diff, NULL, 5),
+	SENSOR_ATTR(single_ch6, S_IRUGO, mcp3201_read_single, NULL, 6),
+	SENSOR_ATTR(diff_ch6+ch7-, S_IRUGO, mcp3201_read_diff, NULL, 6),
+	SENSOR_ATTR(single_ch7, S_IRUGO, mcp3201_read_single, NULL, 7),
+	SENSOR_ATTR(diff_ch7+ch6-, S_IRUGO, mcp3201_read_diff, NULL, 7),
 };
 
 /*----------------------------------------------------------------------*/
@@ -166,16 +207,17 @@ static int __devinit mcp3201_probe(struct spi_device *spi)
 		return -ENOMEM;
 
 	/* set a default value for the reference */
-//	adc->reference = 3300;
 	adc->reference = REFERENCE;
 	adc->channels = channels;
+	adc->name = spi_get_device_id(spi)->name;
 	mutex_init(&adc->lock);
 
 	mutex_lock(&adc->lock);
 
 	spi_set_drvdata(spi, adc);
 
-	for (i = 0; i < 3 + adc->channels; i++) {
+	channels = 3 + (adc->channels << 1);
+	for (i = 0; i < channels; i++) {
 		status = device_create_file(&spi->dev, &ad_input[i].dev_attr);
 		if (status) {
 			dev_err(&spi->dev, "device_create_file failed.\n");
@@ -205,12 +247,14 @@ out_err:
 
 static int __devexit mcp3201_remove(struct spi_device *spi)
 {
+	int channels = spi_get_device_id(spi)->driver_data;
 	struct mcp3201 *adc = spi_get_drvdata(spi);
 	int i;
 
 	mutex_lock(&adc->lock);
 	hwmon_device_unregister(adc->hwmon_dev);
-	for (i = 0; i < 3 + adc->channels; i++)
+	channels = 3 + (adc->channels << 1);
+	for (i = 0; i < channels; i++)
 		device_remove_file(&spi->dev, &ad_input[i].dev_attr);
 
 	spi_set_drvdata(spi, NULL);
@@ -221,10 +265,10 @@ static int __devexit mcp3201_remove(struct spi_device *spi)
 }
 
 static const struct spi_device_id mcp3201_ids[] = {
-	{ "mcp3201-1", 1 },
-	{ "mcp3201-2", 2 },
-	{ "mcp3201-4", 4 },
-	{ "mcp3201-8", 8 },
+	{ "mcp3201", 1 },
+	{ "mcp3202", 2 },
+	{ "mcp3204", 4 },
+	{ "mcp3208", 8 },
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, mcp3201_ids);
@@ -252,6 +296,6 @@ static void __exit exit_mcp3201(void)
 module_init(init_mcp3201);
 module_exit(exit_mcp3201);
 
-MODULE_AUTHOR("linxiyuan");
+MODULE_AUTHOR("loongson");
 MODULE_DESCRIPTION("mcp3201 Linux driver");
 MODULE_LICENSE("GPL");

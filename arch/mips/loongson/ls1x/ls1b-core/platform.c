@@ -821,7 +821,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.modalias	= "mcp3201",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS3,
-		.max_speed_hz	= 80000000,
+		.max_speed_hz	= 10000000,
 	},
 #endif
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
