@@ -419,6 +419,14 @@ config GPIO_74X164
 	  8-outputs shift registers. This driver can be used to provide access
 	  to more gpio outputs.
 
+config GPIO_74X165
+	tristate "74x165 parallel-in/serial-out 8-bits shift register"
+	depends on SPI_MASTER
+	help
+	  Platform driver for 74x165 compatible parallel-in/serial-out
+	  8-inputs shift registers. This driver can be used to provide access
+	  to more gpio inputs.
+
 comment "AC97 GPIO expanders:"
 
 config GPIO_UCB1400
