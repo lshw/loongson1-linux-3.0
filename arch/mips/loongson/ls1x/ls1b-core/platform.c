@@ -1116,6 +1116,19 @@ static struct spi_board_info ls1b_spi1_devices[] = {
 		.platform_data	= &mmc_spi,
 	},
 #endif
+	{
+		.modalias		= "spidev",
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS1,
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	}, {
+		.modalias		= "spidev",
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS2,
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	},
 };
 
 static struct resource ls1b_spi1_resource[] = {
@@ -1175,6 +1188,21 @@ static struct spi_board_info spi1_gpio_devices[] = {
 		.mode = SPI_MODE_3,
 	},
 #endif
+	{
+		.modalias		= "spidev",
+		.bus_num 		= 3,
+		.controller_data = (void *)0,	/*gpio0*/
+		.chip_select	= 1,	/* SPI1_CS1 */
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	}, {
+		.modalias		= "spidev",
+		.bus_num 		= 3,
+		.controller_data = (void *)1,	/*gpio1*/
+		.chip_select	= 2,	/* SPI1_CS2 */
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	},
 };
 #endif	//#ifdef CONFIG_LS1B_SPI1
 

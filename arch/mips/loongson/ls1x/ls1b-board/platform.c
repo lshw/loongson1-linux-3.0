@@ -1128,24 +1128,35 @@ static struct spi_board_info spi0_gpio_devices[] = {
 
 #if defined(CONFIG_LS1B_SPI1) /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
-		.modalias		= "mmc_spi",
+		.modalias		= "spidev",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS0,
 		.max_speed_hz	= 25000000,
-		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_0,
 	},
-#endif
-
-#if defined(CONFIG_EASY_DAB_AUDIO)
+	{
+		.modalias		= "spidev",
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS1,
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	},
+	{
+		.modalias		= "spidev",
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS2,
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	},
+/*#if defined(CONFIG_EASY_DAB_AUDIO)
 	{	
 		.modalias		= "easy_dab",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS1,
 		.max_speed_hz	= 10000000,
 	},
-#endif
+#endif*/
 };
 
 static struct resource ls1b_spi1_resource[] = {
@@ -1194,17 +1205,28 @@ static struct platform_device spi1_gpio_device = {
 };
 
 static struct spi_board_info spi1_gpio_devices[] = {
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
-		.modalias		= "mmc_spi",
+		.modalias		= "spidev",
 		.bus_num 		= 3,
 		.controller_data = (void *)38,	/*gpio38*/
 		.chip_select	= 0,	/* SPI1_CS0 */
 		.max_speed_hz	= 25000000,
-		.platform_data	= &mmc_spi,
-		.mode = SPI_MODE_3,
+		.mode = SPI_MODE_0,
+	}, {
+		.modalias		= "spidev",
+		.bus_num 		= 3,
+		.controller_data = (void *)0,	/*gpio0*/
+		.chip_select	= 1,	/* SPI1_CS1 */
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
+	}, {
+		.modalias		= "spidev",
+		.bus_num 		= 3,
+		.controller_data = (void *)1,	/*gpio1*/
+		.chip_select	= 2,	/* SPI1_CS2 */
+		.max_speed_hz	= 25000000,
+		.mode = SPI_MODE_0,
 	},
-#endif
 };
 #endif	//#ifdef CONFIG_LS1B_SPI1
 
