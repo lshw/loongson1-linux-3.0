@@ -276,7 +276,6 @@ static struct platform_device ls1x_ehci_device = {
 };
 #endif //#ifdef CONFIG_USB_EHCI_HCD_LS1X
 
-
 /*
 * watchdog
 */
@@ -339,13 +338,13 @@ static struct tsc2007_platform_data tsc2007_info = {
 int ft5x0x_irq_init(void)
 {
 	gpio_request(FT5X0X_GPIO_IRQ, "ft5x0x gpio irq");
-	gpio_direction_input(FT5X0X_GPIO_IRQ);
+	gpio_direction_input(FT5X0X_GPIO_IRQ);		/* 输入使能 */
 	return 0;
 }
 
 int ft5x0x_wake_up(void)
 {
-	gpio_direction_output(FT5X0X_GPIO_WAUP, 0);
+	gpio_direction_output(FT5X0X_GPIO_WAUP, 0);		/* 输出使能 */
 	msleep(10);
 	gpio_set_value(FT5X0X_GPIO_WAUP, 1);
 	msleep(10);
@@ -368,6 +367,183 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
+#ifdef CONFIG_GPIO_PCA953X
+#include <linux/i2c/pca953x.h>
+#define PCA9555_GPIO_BASE 170
+#define PCA9555_IRQ_BASE 170
+#define PCA9555_GPIO_IRQ 8
+
+#define PCA9555_DO0 (PCA9555_GPIO_BASE+0)
+#define PCA9555_DO1 (PCA9555_GPIO_BASE+1)
+#define PCA9555_DO2 (PCA9555_GPIO_BASE+2)
+#define PCA9555_DO3 (PCA9555_GPIO_BASE+3)
+#define PCA9555_DO4 (PCA9555_GPIO_BASE+4)
+#define PCA9555_DO5 (PCA9555_GPIO_BASE+5)
+#define PCA9555_DO6 (PCA9555_GPIO_BASE+6)
+#define PCA9555_DO7 (PCA9555_GPIO_BASE+7)
+
+#define PCA9555_EMERG_OFF (PCA9555_GPIO_BASE+10)
+#define PCA9555_PWRKEY (PCA9555_GPIO_BASE+11)
+
+#define PCA9555_LED0 (PCA9555_GPIO_BASE+8)
+#define PCA9555_LED1 (PCA9555_GPIO_BASE+12)
+#define PCA9555_LED2 (PCA9555_GPIO_BASE+13)
+#define PCA9555_LED3 (PCA9555_GPIO_BASE+14)
+#define PCA9555_LED4 (PCA9555_GPIO_BASE+15)
+
+static int ls1x_pca9555_setup(struct i2c_client *client,
+			       unsigned gpio_base, unsigned ngpio,
+			       void *context)
+{
+#if 0
+	static int ls1x_gpio_value[] = {
+		1, 1, 1, 1, 1, 1, 1, 1, 0, -1, -1, 0, 0, 0, 0, 0
+	};
+	int n;
+
+	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
+	gpio_direction_input(PCA9555_GPIO_IRQ);		/* 输入使能 */
+
+	for (n = 0; n < ARRAY_SIZE(ls1x_gpio_value); ++n) {
+		gpio_request(gpio_base + n, "ACS-5000 GPIO Expander");
+		if (ls1x_gpio_value[n] < 0)
+			gpio_direction_input(gpio_base + n);
+		else
+			gpio_direction_output(gpio_base + n,
+					      ls1x_gpio_value[n]);
+		gpio_export(gpio_base + n, 0); /* Export, direction locked down */
+	}
+#endif
+	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
+	gpio_direction_input(PCA9555_GPIO_IRQ);
+	return 0;
+}
+
+static struct pca953x_platform_data ls1x_i2c_pca9555_platdata = {
+	.gpio_base	= PCA9555_GPIO_BASE, /* Start directly after the CPU's GPIO */
+	.irq_base = PCA9555_IRQ_BASE,
+//	.invert		= 0, /* Do not invert */
+	.setup		= ls1x_pca9555_setup,
+};
+
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#include <linux/leds.h>
+struct gpio_led pca9555_gpio_leds[] = {
+	/* gpio for 7 relay purposes */
+	{
+		.name			= "DO0",
+		.gpio			= PCA9555_DO0,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO1",
+		.gpio			= PCA9555_DO1,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO2",
+		.gpio			= PCA9555_DO2,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO3",
+		.gpio			= PCA9555_DO3,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO4",
+		.gpio			= PCA9555_DO4,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "DO5",
+		.gpio			= PCA9555_DO5,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO6",
+		.gpio			= PCA9555_DO6,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO7",
+		.gpio			= PCA9555_DO7,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+
+	/* ctrl GPRS */
+	{
+		.name			= "emerg_off",
+		.gpio			= PCA9555_EMERG_OFF,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "pwrkey",
+		.gpio			= PCA9555_PWRKEY,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+
+	/* 5 leds */
+	{
+		.name			= "green:run",
+		.gpio			= PCA9555_LED0,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	}, {
+		.name			= "red:channel1",
+		.gpio			= PCA9555_LED1,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "red:channel2",
+		.gpio			= PCA9555_LED2,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "red:channel3",
+		.gpio			= PCA9555_LED3,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "red:channel4",
+		.gpio			= PCA9555_LED4,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+};
+
+static struct gpio_led_platform_data pca9555_gpio_led_info = {
+	.leds		= pca9555_gpio_leds,
+	.num_leds	= ARRAY_SIZE(pca9555_gpio_leds),
+};
+
+static struct platform_device pca9555_leds = {
+	.name	= "leds-gpio",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &pca9555_gpio_led_info,
+	}
+};
+#endif //#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#endif //#ifdef CONFIG_GPIO_PCA953X
+
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 #ifdef CONFIG_TOUCHSCREEN_TSC2007
@@ -388,6 +564,13 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
 		.platform_data = &gc0308_plat,
+	},
+#endif
+#ifdef CONFIG_GPIO_PCA953X
+	{
+		I2C_BOARD_INFO("pca9555", 0x27),
+		.irq = LS1X_GPIO_FIRST_IRQ + PCA9555_GPIO_IRQ,
+		.platform_data = &ls1x_i2c_pca9555_platdata,
 	},
 #endif
 };
@@ -458,6 +641,7 @@ struct ls1xfb_mach_info ls1x_lcd0_info = {
 	.num_modes		= ARRAY_SIZE(video_modes),
 	.pix_fmt		= PIX_FMT_RGB565,
 	.active			= 1,
+	/* 根据lcd屏修改invert_pixclock和invert_pixde参数(0或1)，部分lcd可能显示不正常 */
 	.invert_pixclock	= 0,
 	.invert_pixde	= 0,
 };
@@ -715,10 +899,11 @@ static struct mtd_partition partitions[] = {
 		.name		= "pmon_spi",
 		.offset		= 0,
 		.size		= 512 * 1024,	//512KB
-	}, 
+	//	.mask_flags	= MTD_WRITEABLE,
+	},
 };
 
-static struct flash_platform_data flash = {
+static struct flash_platform_data flash __maybe_unused = {
 	.name		= "ls1b_norflash",
 	.parts		= partitions,
 	.nr_parts	= ARRAY_SIZE(partitions),
@@ -728,7 +913,7 @@ static struct flash_platform_data flash = {
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
-#define DETECT_GPIO  3
+#define DETECT_GPIO	3
 #if 1
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
@@ -737,7 +922,7 @@ static int mmc_spi_get_cd(struct device *dev)
 }
 #else
 #define MMC_SPI_CARD_DETECT_INT  (LS1X_GPIO_FIRST_IRQ + DETECT_GPIO)
-/* 中断方式方式探测card的插拔 */
+/* 中断方式方式探测card的插拔，由于loongson1 CPU不支持双边沿触发 所以不建议使用中断方式 */
 static int ls1b_mmc_spi_init(struct device *dev,
 	irqreturn_t (*detect_int)(int, void *), void *data)
 {
@@ -751,7 +936,7 @@ static void ls1b_mmc_spi_exit(struct device *dev, void *data)
 }
 #endif
 
-static struct mmc_spi_platform_data mmc_spi = {
+static struct mmc_spi_platform_data mmc_spi __maybe_unused = {
 	/* 中断方式方式探测card的插拔 */
 //	.init = ls1b_mmc_spi_init,
 //	.exit = ls1b_mmc_spi_exit,
@@ -775,14 +960,14 @@ static void ads7846_detect_penirq(void)
 	gpio_direction_input(ADS7846_GPIO_IRQ);
 }
 	
-static struct ads7846_platform_data ads_info = {
+static struct ads7846_platform_data ads_info __maybe_unused = {
 	.model				= 7846,
 	.vref_delay_usecs	= 1,
 	.keep_vref_on		= 0,
-	.settle_delay_usecs	= 10,
+	.settle_delay_usecs	= 20,
 //	.x_plate_ohms		= 800,
 	.pressure_min		= 0,
-	.pressure_max		= 1024,
+	.pressure_max		= 2048,
 	.debounce_rep		= 3,
 	.debounce_max		= 10,
 	.debounce_tol		= 50,
@@ -805,11 +990,11 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 };
 #endif
 
-#ifdef CONFIG_LS1B_SPI0
+#if defined(CONFIG_LS1B_SPI0)
 static struct spi_board_info ls1b_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
-	{	/* DataFlash chip */
-		.modalias	= "w25q64",		//"m25p80",
+	{
+		.modalias	= "w25q64",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 80000000,
@@ -817,11 +1002,11 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 	},
 #endif
 #ifdef CONFIG_SPI_MCP3201
-	{	/* ADC chip */
+	{
 		.modalias	= "mcp3201",
-		.bus_num 		= 0,
+		.bus_num 	= 0,
 		.chip_select	= SPI0_CS3,
-		.max_speed_hz	= 10000000,
+		.max_speed_hz	= 1000000,
 	},
 #endif
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
@@ -866,26 +1051,69 @@ static struct platform_device ls1b_spi0_device = {
 		.platform_data	= &ls1b_spi0_platdata,//&ls1b_spi_devices,
 	},
 };
+
+#elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
+struct spi_gpio_platform_data spi0_gpio_platform_data = {
+	.sck = 24,	/*gpio24*/
+	.mosi = 26,	/*gpio26*/
+	.miso = 25,	/*gpio25*/
+	.num_chipselect = 3,
+};
+
+static struct platform_device spi0_gpio_device = {
+	.name = "spi_gpio",
+	.id   = 2,	/* 用于区分spi0和spi1 */
+	.dev = {
+		.platform_data = &spi0_gpio_platform_data,
+	},
+};
+
+static struct spi_board_info spi0_gpio_devices[] = {
+#ifdef CONFIG_MTD_M25P80
+	{
+		.modalias	= "w25q64",
+		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
+		.controller_data = (void *)27,	/*gpio27*/
+		.chip_select	= 0,
+		.max_speed_hz	= 80000000,
+		.platform_data	= &flash,
+	},
+#endif
+#ifdef CONFIG_TOUCHSCREEN_ADS7846
+	{
+		.modalias = "ads7846",
+		.platform_data = &ads_info,
+		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
+		.controller_data = (void *)28,	/*gpio28*/
+		.chip_select 	= 1,
+		.max_speed_hz 	= 2500000,
+		.mode 			= SPI_MODE_1,
+		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+	},
+#endif
+#ifdef CONFIG_LCD_JBT6K74
+	{
+		.modalias	= "jbt6k74",
+		.platform_data	= &jbt6k74_pdata,
+		.bus_num	= 2,		/* 对应spigpio_device的.id=2 */
+		.controller_data = (void *)43,	/*gpio43*/
+		.chip_select = 2,
+		/* irq */
+		.max_speed_hz	= 100 * 1000,
+	},
+#endif
+};
 #endif //#ifdef CONFIG_LS1B_SPI0
 
-#ifdef CONFIG_LS1B_SPI1 /* SPI1 控制器 */
+#if defined(CONFIG_LS1B_SPI1) /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	{	/* mmc/sd card */
-		.modalias		= "mmc_spi",		//mmc spi,
+	{
+		.modalias		= "mmc_spi",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS0,
 		.max_speed_hz	= 25000000,
 		.platform_data	= &mmc_spi,
-	},
-#endif
-
-#if defined(CONFIG_EASY_DAB_AUDIO)
-	{	
-		.modalias		= "easy_dab",
-		.bus_num 		= 1,
-		.chip_select	= SPI1_CS1,
-		.max_speed_hz	= 10000000,
 	},
 #endif
 };
@@ -919,60 +1147,72 @@ static struct platform_device ls1b_spi1_device = {
 		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
 	},
 };
-#endif	//#ifdef CONFIG_LS1B_SPI1
-
-#ifdef CONFIG_SPI_GPIO
-struct spi_gpio_platform_data spigpio_platform_data = {
-	.sck = 24,	/*gpio24*/
-	.mosi = 26,	/*gpio26*/
-	.miso = 25,	/*gpio25*/
+#elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
+struct spi_gpio_platform_data spi1_gpio_platform_data = {
+	.sck = 39,	/*gpio39*/
+	.mosi = 40,	/*gpio40*/
+	.miso = 41,	/*gpio41*/
 	.num_chipselect = 3,
 };
 
-static struct platform_device spigpio_device = {
+static struct platform_device spi1_gpio_device = {
 	.name = "spi_gpio",
-	.id   = 2,	/* 用于区分spi0和spi1 */
+	.id   = 3,
 	.dev = {
-		.platform_data = &spigpio_platform_data,
+		.platform_data = &spi1_gpio_platform_data,
 	},
 };
 
-static struct spi_board_info spi_gpio_devices[] = {
-#ifdef CONFIG_MTD_M25P80
-	{	/* DataFlash chip */
-		.modalias	= "w25q64",		//"m25p80",
-		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
-		.controller_data = (void *)27,	/*gpio27*/
-		.chip_select	= 0,
-		.max_speed_hz	= 80000000,
-		.platform_data	= &flash,
-	},
-#endif
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
+static struct spi_board_info spi1_gpio_devices[] = {
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
-		.modalias = "ads7846",
-		.platform_data = &ads_info,
-		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
-		.controller_data = (void *)28,	/*gpio28*/
-		.chip_select 	= 1,
-		.max_speed_hz 	= 2500000,
-		.mode 			= SPI_MODE_1,
-		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
-	},
-#endif
-#ifdef CONFIG_LCD_JBT6K74
-	{
-		.modalias	= "jbt6k74",
-		.platform_data	= &jbt6k74_pdata,
-		.bus_num	= 2,		/* 对应spigpio_device的.id=2 */
-		.controller_data = (void *)43,	/*gpio43*/
-		.chip_select = 2,
-		/* irq */
-		.max_speed_hz	= 100 * 1000,
+		.modalias		= "mmc_spi",
+		.bus_num 		= 3,
+		.controller_data = (void *)38,	/*gpio38*/
+		.chip_select	= 0,	/* SPI1_CS0 */
+		.max_speed_hz	= 25000000,
+		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_3,
 	},
 #endif
 };
-#endif //#ifdef CONFIG_SPI_GPIO
+#endif	//#ifdef CONFIG_LS1B_SPI1
+
+#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
+struct spi_gpio_platform_data spigpio_74x165_data = {
+	.sck = 39,	/*gpio39 cp*/
+	.mosi = SPI_GPIO_NO_MOSI,
+	.miso = 41,	/*gpio41 q7*/
+	.num_chipselect = 1,
+};
+
+static struct platform_device spigpio_74x165_device = {
+	.name = "spi_gpio",
+	.id   = 4,
+	.dev = {
+		.platform_data = &spigpio_74x165_data,
+	},
+};
+
+#include <linux/spi/74x165.h>
+static struct nxp_74x165_chip_platform_data nxp_74x165_info = {
+	.base = 188,	/* 自定义的74x165 gpio起始号 */
+	.latch = 38,	/*gpio38 pl*/
+	.daisy_chained = 2,
+};
+
+static struct spi_board_info spi3_gpio_devices[] __maybe_unused = {
+	{
+		.modalias	= "74x165",
+		.bus_num 		= 4,	/* 对应spigpio_74x165_device的 .id=2 */
+		.controller_data = (void *)SPI_GPIO_NO_CHIPSELECT,
+		.chip_select	= 0,
+		.max_speed_hz	= 1000000,
+		.platform_data	= &nxp_74x165_info,
+		.mode = SPI_MODE_2,
+	},
+};
+#endif	//#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
 
 /************************************************/	//GPIO && buzzer && button
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
@@ -1018,105 +1258,6 @@ static struct platform_device ls1b_gpio_key_device = {
 	},
 };
 #endif //#ifdef CONFIG_KEYBOARD_GPIO_POLLED
-
-#ifdef CONFIG_LS1B_BUZZER
-static struct gpio_keys_button ls1b_gpio_buzzer[] = {
-	[0] = {
-		.gpio	= 40,	//57
-		.type	= EV_LED,
-	},	
-/*
-	[1] = {
-		.gpio	= 34,
-	},	
-	[2] = {
-		.gpio	= 35,
-	},	*/
-};
-
-static struct gpio_keys_platform_data ls1b_gpio_buzzer_data = {
-	.buttons	= ls1b_gpio_buzzer,
-	.nbuttons	= 1,
-};
-
-static struct platform_device ls1b_gpio_buzzer_device = {
-	.name	= "buzzer_gpio",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_gpio_buzzer_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BUZZER
-
-//xhm
-#ifdef CONFIG_LS1B_BBDIO
-static struct gpio_keys_button ls1b_bobodogio_button[] = {
-#if 0
-	[0]  = { .gpio = 4, .type = EV_LED},	
-	[1]  = { .gpio = 5, .type = EV_LED},
-	[2]  = { .gpio = 6, .type = EV_LED},
-	[3]  = { .gpio = 7, .type = EV_LED},
-	[4]  = { .gpio = 8, .type = EV_LED},
-	[5]  = { .gpio = 9, .type = EV_LED},
-	[6]  = { .gpio = 10, .type = EV_LED},
-	[7]  = { .gpio = 11, .type = EV_LED},
-	[8]  = { .gpio = 12, .type = EV_LED},
-	[9]  = { .gpio = 13, .type = EV_LED},
-	[10] = { .gpio = 14, .type = EV_LED},
-	[11] = { .gpio = 15, .type = EV_LED},
-	[12] = { .gpio = 16, .type = EV_LED},
-	[13] = { .gpio = 17, .type = EV_LED},
-	[14] = { .gpio = 18, .type = EV_LED},
-#endif
-	[0] = { .gpio = 48, .type = EV_KEY},
-	[1] = { .gpio = 49, .type = EV_LED},
-};
-
-static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
-	.buttons	= ls1b_bobodogio_button,
-	.nbuttons	= 15,
-};
-
-static struct platform_device ls1b_bobodogio_dog = {
-	.name	= "bobodog_io_control",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_bobodogio_dog_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BBDIO
-
-#ifdef CONFIG_LS1B_PWM_DRIVER
-static struct resource ls1b_pwm0_resource[] = {
-	[0]={
-		.start	= LS1B_PWM0_BASE,
-		.end	= (LS1B_PWM0_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1]={
-		.start	= LS1B_PWM1_BASE,
-		.end	= (LS1B_PWM1_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-	[2]={
-		.start	= LS1B_PWM2_BASE,
-		.end	= (LS1B_PWM2_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-	[3]={
-		.start	= LS1B_PWM3_BASE,
-		.end	= (LS1B_PWM3_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ls1b_pwm_device = {
-	.name	= "ls1b-pwm",
-	.id	= -1,
-	.num_resources	= ARRAY_SIZE(ls1b_pwm0_resource),
-	.resource	= ls1b_pwm0_resource,
-};
-#endif //#ifdef CONFIG_LS1B_PWM_DRIVER
 
 /**
  * Rotary encoder input device
@@ -1209,8 +1350,8 @@ static struct matrix_keypad_platform_data ls1bkbd_pdata = {
 	.col_gpios			= ls1bkbd_col_gpios,
 	.num_row_gpios		= ARRAY_SIZE(ls1bkbd_row_gpios),
 	.num_col_gpios		= ARRAY_SIZE(ls1bkbd_col_gpios),
-	.col_scan_delay_us	= 5,
-	.debounce_ms		= 25,
+	.col_scan_delay_us	= 2,
+	.debounce_ms		= 24,
 	.active_low			= 1,
 	.wakeup				= 1,
 	.no_autorepeat		= 0,
@@ -1253,6 +1394,36 @@ struct platform_device ssd1305fb_device = {
 	},
 };
 #endif //#ifdef CONFIG_FB_SSD1305
+
+#ifdef CONFIG_FB_ST7565
+#include <linux/st7565.h>
+static struct st7565_platform_data st7565_pdata = {
+	.gpio_outpu = REG_GPIO_OUT0,
+	.gpios_res = 17,
+	.gpios_cs = 16,
+	.gpios_dc = 18,
+	.gpios_rd = 20,
+	.gpios_wr = 19,
+	
+	.gpios_d0 = 8,
+	.gpios_d1 = 9,
+	.gpios_d2 = 10,
+	.gpios_d3 = 11,
+	.gpios_d4 = 12,
+	.gpios_d5 = 13,
+	.gpios_d6 = 14,
+	.gpios_d7 = 15,
+	.datas_offset = 8,
+};
+
+struct platform_device st7565fb_device = {
+	.name	= "st7565fb",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &st7565_pdata,
+	},
+};
+#endif //#ifdef CONFIG_FB_ST7565
 
 #ifdef CONFIG_FB_ST7920
 static struct st7920_platform_data st7920_pdata = {
@@ -1437,7 +1608,6 @@ static struct platform_device ls1x_sja1000_1 = {
 #endif //#ifdef CONFIG_LS1X_CAN1
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
-
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
@@ -1468,6 +1638,26 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
+#ifdef CONFIG_SOUND_LS1X_AC97
+	&ls1x_audio_device,
+#endif
+
+#if defined(CONFIG_LS1B_SPI0)
+	&ls1b_spi0_device,
+#elif defined(CONFIG_SPI_GPIO)
+	&spi0_gpio_device,
+#endif
+
+#if defined(CONFIG_LS1B_SPI1)
+	&ls1b_spi1_device,
+#elif defined(CONFIG_SPI_GPIO)
+	&spi1_gpio_device,
+#endif
+
+#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
+	&spigpio_74x165_device,
+#endif
+
 #ifdef CONFIG_LS1X_WDT
 	&ls1b_wat_device,
 #endif
@@ -1482,35 +1672,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c2_device,
 #endif
 
-#ifdef CONFIG_SOUND_LS1X_AC97
-	&ls1x_audio_device,
-#endif
-
-#ifdef CONFIG_LS1B_SPI0
-	&ls1b_spi0_device,
-#endif
-#ifdef CONFIG_LS1B_SPI1
-	&ls1b_spi1_device,
-#endif
-
-#ifdef CONFIG_SPI_GPIO
-	&spigpio_device,
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+	&pca9555_leds,
 #endif
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
-#endif
-	
-#ifdef CONFIG_LS1B_BUZZER
-	&ls1b_gpio_buzzer_device,
-#endif
-
-#ifdef CONFIG_LS1B_PWM_DRIVER
-	&ls1b_pwm_device,
-#endif
-
-#ifdef CONFIG_LS1B_BBDIO
-	&ls1b_bobodogio_dog,
 #endif
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
@@ -1524,7 +1691,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_FB_SSD1305
 	&ssd1305fb_device,
 #endif
-
+#ifdef CONFIG_FB_ST7565
+	&st7565fb_device,
+#endif
 #ifdef CONFIG_FB_ST7920
 	&st7920fb_device,
 #endif
@@ -1623,23 +1792,27 @@ int __init ls1b_platform_init(void)
 	ads7846_detect_penirq();
 #endif
 
-#ifdef CONFIG_LS1B_SPI0
+#if defined(CONFIG_LS1B_SPI0)
 	/* disable gpio24-27 */
 	*(volatile unsigned int *)0xbfd010c0 &= ~(0xf << 24);
 	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
+#elif defined(CONFIG_SPI_GPIO)
+	spi_register_board_info(spi0_gpio_devices, ARRAY_SIZE(spi0_gpio_devices));
 #endif
 
-#ifdef CONFIG_LS1B_SPI1
+#if defined(CONFIG_LS1B_SPI1)
 	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
 	/* 编程需要注意 */
 	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);
 	/* disable gpio38-41 */
 	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
 	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
+#elif defined(CONFIG_SPI_GPIO)
+	spi_register_board_info(spi1_gpio_devices, ARRAY_SIZE(spi1_gpio_devices));
 #endif
 
-#ifdef CONFIG_SPI_GPIO
-	spi_register_board_info(spi_gpio_devices, ARRAY_SIZE(spi_gpio_devices));
+#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
+	spi_register_board_info(spi3_gpio_devices, ARRAY_SIZE(spi3_gpio_devices));
 #endif
 
 #ifdef CONFIG_BACKLIGHT_GENERIC
@@ -1648,6 +1821,7 @@ int __init ls1b_platform_init(void)
 #ifdef CONFIG_LCD_PLATFORM
 	gpio_request(GPIO_BACKLIGHT_CTRL, "lcd_enable");
 #endif
+
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 

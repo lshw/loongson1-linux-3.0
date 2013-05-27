@@ -1126,7 +1126,7 @@ static struct spi_board_info spi0_gpio_devices[] = {
 };
 #endif //#ifdef CONFIG_LS1B_SPI0
 
-#ifdef CONFIG_LS1B_SPI1 /* SPI1 控制器 */
+#if defined(CONFIG_LS1B_SPI1) /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
@@ -1177,6 +1177,35 @@ static struct platform_device ls1b_spi1_device = {
 		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
 	},
 };
+#elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
+struct spi_gpio_platform_data spi1_gpio_platform_data = {
+	.sck = 39,	/*gpio39*/
+	.mosi = 40,	/*gpio40*/
+	.miso = 41,	/*gpio41*/
+	.num_chipselect = 3,
+};
+
+static struct platform_device spi1_gpio_device = {
+	.name = "spi_gpio",
+	.id   = 3,
+	.dev = {
+		.platform_data = &spi1_gpio_platform_data,
+	},
+};
+
+static struct spi_board_info spi1_gpio_devices[] = {
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
+	{
+		.modalias		= "mmc_spi",
+		.bus_num 		= 3,
+		.controller_data = (void *)38,	/*gpio38*/
+		.chip_select	= 0,	/* SPI1_CS0 */
+		.max_speed_hz	= 25000000,
+		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_3,
+	},
+#endif
+};
 #endif	//#ifdef CONFIG_LS1B_SPI1
 
 #if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
@@ -1189,7 +1218,7 @@ struct spi_gpio_platform_data spigpio_74x165_data = {
 
 static struct platform_device spigpio_74x165_device = {
 	.name = "spi_gpio",
-	.id   = 3,
+	.id   = 4,
 	.dev = {
 		.platform_data = &spigpio_74x165_data,
 	},
@@ -1205,7 +1234,7 @@ static struct nxp_74x165_chip_platform_data nxp_74x165_info = {
 static struct spi_board_info spi3_gpio_devices[] __maybe_unused = {
 	{
 		.modalias	= "74x165",
-		.bus_num 		= 3,	/* 对应spigpio_74x165_device的 .id=2 */
+		.bus_num 		= 4,	/* 对应spigpio_74x165_device的 .id=2 */
 		.controller_data = (void *)SPI_GPIO_NO_CHIPSELECT,
 		.chip_select	= 0,
 		.max_speed_hz	= 1000000,
@@ -1749,8 +1778,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&spi0_gpio_device,
 #endif
 
-#ifdef CONFIG_LS1B_SPI1
+#if defined(CONFIG_LS1B_SPI1)
 	&ls1b_spi1_device,
+#elif defined(CONFIG_SPI_GPIO)
+	&spi1_gpio_device,
 #endif
 
 #if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
@@ -1837,8 +1868,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 };
 
-#define AHCI_PCI_BAR  5
-
 int __init ls1b_platform_init(void)
 {
 	ls1x_serial_setup();
@@ -1913,13 +1942,15 @@ int __init ls1b_platform_init(void)
 	spi_register_board_info(spi0_gpio_devices, ARRAY_SIZE(spi0_gpio_devices));
 #endif
 
-#ifdef CONFIG_LS1B_SPI1
+#if defined(CONFIG_LS1B_SPI1)
 	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
 	/* 编程需要注意 */
 	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);
 	/* disable gpio38-41 */
 	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
 	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
+#elif defined(CONFIG_SPI_GPIO)
+	spi_register_board_info(spi1_gpio_devices, ARRAY_SIZE(spi1_gpio_devices));
 #endif
 
 #if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
