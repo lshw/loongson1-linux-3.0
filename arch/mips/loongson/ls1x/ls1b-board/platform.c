@@ -367,6 +367,183 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
+#ifdef CONFIG_GPIO_PCA953X
+#include <linux/i2c/pca953x.h>
+#define PCA9555_GPIO_BASE 170
+#define PCA9555_IRQ_BASE 170
+#define PCA9555_GPIO_IRQ 8
+
+#define PCA9555_DO0 (PCA9555_GPIO_BASE+0)
+#define PCA9555_DO1 (PCA9555_GPIO_BASE+1)
+#define PCA9555_DO2 (PCA9555_GPIO_BASE+2)
+#define PCA9555_DO3 (PCA9555_GPIO_BASE+3)
+#define PCA9555_DO4 (PCA9555_GPIO_BASE+4)
+#define PCA9555_DO5 (PCA9555_GPIO_BASE+5)
+#define PCA9555_DO6 (PCA9555_GPIO_BASE+6)
+#define PCA9555_DO7 (PCA9555_GPIO_BASE+7)
+
+#define PCA9555_EMERG_OFF (PCA9555_GPIO_BASE+10)
+#define PCA9555_PWRKEY (PCA9555_GPIO_BASE+11)
+
+#define PCA9555_LED0 (PCA9555_GPIO_BASE+8)
+#define PCA9555_LED1 (PCA9555_GPIO_BASE+12)
+#define PCA9555_LED2 (PCA9555_GPIO_BASE+13)
+#define PCA9555_LED3 (PCA9555_GPIO_BASE+14)
+#define PCA9555_LED4 (PCA9555_GPIO_BASE+15)
+
+static int ls1x_pca9555_setup(struct i2c_client *client,
+			       unsigned gpio_base, unsigned ngpio,
+			       void *context)
+{
+#if 0
+	static int ls1x_gpio_value[] = {
+		1, 1, 1, 1, 1, 1, 1, 1, 0, -1, -1, 0, 0, 0, 0, 0
+	};
+	int n;
+
+	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
+	gpio_direction_input(PCA9555_GPIO_IRQ);		/* 输入使能 */
+
+	for (n = 0; n < ARRAY_SIZE(ls1x_gpio_value); ++n) {
+		gpio_request(gpio_base + n, "ACS-5000 GPIO Expander");
+		if (ls1x_gpio_value[n] < 0)
+			gpio_direction_input(gpio_base + n);
+		else
+			gpio_direction_output(gpio_base + n,
+					      ls1x_gpio_value[n]);
+		gpio_export(gpio_base + n, 0); /* Export, direction locked down */
+	}
+#endif
+	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
+	gpio_direction_input(PCA9555_GPIO_IRQ);
+	return 0;
+}
+
+static struct pca953x_platform_data ls1x_i2c_pca9555_platdata = {
+	.gpio_base	= PCA9555_GPIO_BASE, /* Start directly after the CPU's GPIO */
+	.irq_base = PCA9555_IRQ_BASE,
+//	.invert		= 0, /* Do not invert */
+	.setup		= ls1x_pca9555_setup,
+};
+
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#include <linux/leds.h>
+struct gpio_led pca9555_gpio_leds[] = {
+	/* gpio for 7 relay purposes */
+	{
+		.name			= "DO0",
+		.gpio			= PCA9555_DO0,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO1",
+		.gpio			= PCA9555_DO1,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO2",
+		.gpio			= PCA9555_DO2,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO3",
+		.gpio			= PCA9555_DO3,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO4",
+		.gpio			= PCA9555_DO4,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "DO5",
+		.gpio			= PCA9555_DO5,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO6",
+		.gpio			= PCA9555_DO6,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO7",
+		.gpio			= PCA9555_DO7,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+
+	/* ctrl GPRS */
+	{
+		.name			= "emerg_off",
+		.gpio			= PCA9555_EMERG_OFF,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "pwrkey",
+		.gpio			= PCA9555_PWRKEY,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+
+	/* 5 leds */
+	{
+		.name			= "green:run",
+		.gpio			= PCA9555_LED0,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	}, {
+		.name			= "red:channel1",
+		.gpio			= PCA9555_LED1,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "red:channel2",
+		.gpio			= PCA9555_LED2,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "red:channel3",
+		.gpio			= PCA9555_LED3,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "red:channel4",
+		.gpio			= PCA9555_LED4,
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+};
+
+static struct gpio_led_platform_data pca9555_gpio_led_info = {
+	.leds		= pca9555_gpio_leds,
+	.num_leds	= ARRAY_SIZE(pca9555_gpio_leds),
+};
+
+static struct platform_device pca9555_leds = {
+	.name	= "leds-gpio",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &pca9555_gpio_led_info,
+	}
+};
+#endif //#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#endif //#ifdef CONFIG_GPIO_PCA953X
+
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 #ifdef CONFIG_TOUCHSCREEN_TSC2007
@@ -387,6 +564,13 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
 		.platform_data = &gc0308_plat,
+	},
+#endif
+#ifdef CONFIG_GPIO_PCA953X
+	{
+		I2C_BOARD_INFO("pca9555", 0x27),
+		.irq = LS1X_GPIO_FIRST_IRQ + PCA9555_GPIO_IRQ,
+		.platform_data = &ls1x_i2c_pca9555_platdata,
 	},
 #endif
 };
@@ -1585,6 +1769,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c0_device,
 	&ls1x_i2c1_device,
 	&ls1x_i2c2_device,
+#endif
+
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+	&pca9555_leds,
 #endif
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
