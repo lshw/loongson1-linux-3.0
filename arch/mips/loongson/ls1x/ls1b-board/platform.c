@@ -1198,6 +1198,7 @@ struct spi_gpio_platform_data spi1_gpio_platform_data = {
 
 static struct platform_device spi1_gpio_device = {
 	.name = "spi_gpio",
+//	.name = "spi_gpio_delay",
 	.id   = 3,
 	.dev = {
 		.platform_data = &spi1_gpio_platform_data,

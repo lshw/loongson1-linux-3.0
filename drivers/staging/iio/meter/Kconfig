@@ -59,3 +59,21 @@ config ADE7854_SPI
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ade7854-spi.
+
+config ATT7022
+	tristate "ATT7022 Polyphase Multifunction Energy Metering IC Driver"
+	depends on SPI
+	help
+	  Say yes here to build support for ATT7022 Polyphase
+	  Multifunction Energy Metering IC Driver.
+
+config ATT7022_SPI
+	tristate "support SPI bus connection"
+	depends on ATT7022 && SPI
+	default y
+	help
+	  Say Y here if you have ATT7022 hooked to a SPI bus.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called att7022-spi.
+
