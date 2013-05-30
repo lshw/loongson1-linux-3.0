@@ -621,6 +621,24 @@ static struct platform_device ls1x_i2c2_device = {
 };
 #endif //#ifdef CONFIG_I2C_LS1X
 
+#ifdef CONFIG_SENSORS_SHT15
+#include <linux/sht15.h>
+static struct sht15_platform_data platform_data_sht15 = {
+	.gpio_data =  2,	/* 注意:可能需要修改sht15.c驱动中的gpio延时参数 */
+	.gpio_sck  =  3,
+	.supply_mv = 5000, /* 5000mV */
+	.checksum = 1,
+};
+
+static struct platform_device sht15 = {
+	.name = "sht10",
+	.id = -1,
+	.dev = {
+		.platform_data = &platform_data_sht15,
+	},
+};
+#endif
+
 /*
  * lcd
  */
@@ -1067,7 +1085,7 @@ struct spi_gpio_platform_data spi0_gpio_platform_data = {
 	.sck = 24,	/*gpio24*/
 	.mosi = 26,	/*gpio26*/
 	.miso = 25,	/*gpio25*/
-	.num_chipselect = 3,
+	.num_chipselect = 4,
 };
 
 static struct platform_device spi0_gpio_device = {
@@ -1087,6 +1105,15 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.chip_select	= 0,
 		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
+	},
+#endif
+#ifdef CONFIG_SPI_MCP3201
+	{
+		.modalias	= "mcp3201",
+		.bus_num 	= 2,
+		.controller_data = (void *)30,	/*gpio30*/
+		.chip_select	= 3, /*SPI0_CS2*/
+		.max_speed_hz	= 1000000,
 	},
 #endif
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
@@ -1823,6 +1850,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c0_device,
 	&ls1x_i2c1_device,
 	&ls1x_i2c2_device,
+#endif
+
+#ifdef CONFIG_SENSORS_SHT15
+	&sht15,
 #endif
 
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
