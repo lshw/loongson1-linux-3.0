@@ -1215,7 +1215,8 @@ static struct platform_device ls1b_spi1_device = {
 		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
 	},
 };
-#elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
+//#elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
+#elif 0
 struct spi_gpio_platform_data spi1_gpio_platform_data = {
 	.sck = 39,	/*gpio39*/
 	.mosi = 40,	/*gpio40*/
@@ -1830,7 +1831,8 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #if defined(CONFIG_LS1B_SPI1)
 	&ls1b_spi1_device,
-#elif defined(CONFIG_SPI_GPIO)
+//elif defined(CONFIG_SPI_GPIO)
+#elif 0
 	&spi1_gpio_device,
 #endif
 
@@ -1856,8 +1858,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&sht15,
 #endif
 
+#ifdef CONFIG_GPIO_PCA953X
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 	&pca9555_leds,
+#endif
 #endif
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
@@ -2003,7 +2007,8 @@ int __init ls1b_platform_init(void)
 	/* disable gpio38-41 */
 	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
 	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
-#elif defined(CONFIG_SPI_GPIO)
+//#elif defined(CONFIG_SPI_GPIO)
+#elif 0
 	spi_register_board_info(spi1_gpio_devices, ARRAY_SIZE(spi1_gpio_devices));
 #endif
 

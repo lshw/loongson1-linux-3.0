@@ -27,7 +27,6 @@
 #include <linux/sched.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
-#include <linux/module.h>
 #include <linux/bio.h>
 #include <linux/dma-mapping.h>
 #include <linux/crc7.h>
@@ -1553,4 +1552,3 @@ MODULE_AUTHOR("Mike Lavender, David Brownell, "
 MODULE_DESCRIPTION("SPI SD/MMC host driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("spi:mmc_spi");
-

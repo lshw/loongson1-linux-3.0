@@ -83,7 +83,7 @@ static int __init pcibios_init(void)
 #ifdef CONFIG_TRACE_BOOT
 #endif
 	pr_info("arch_initcall:pcibios_init\n");
-	pr_info("register_pci_controller : %x\n",&ls1a_pci_controller);
+//	pr_info("register_pci_controller : %x\n",&ls1a_pci_controller);
 
 	if(!disablepci)
 	register_pci_controller(&ls1a_pci_controller);

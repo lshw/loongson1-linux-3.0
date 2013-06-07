@@ -32,7 +32,7 @@
 #include <linux/init.h>
 #include <linux/pci.h>
 #include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1b_board_int.h>
+#include <asm/mach-loongson/ls1x/irq.h>
 #include <asm/gpio.h>
 
 

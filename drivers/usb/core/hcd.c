@@ -2459,7 +2459,6 @@ int usb_add_hcd(struct usb_hcd *hcd,
 		       retval);
 		goto error_create_attr_group;
 	}
-
 	if (hcd->uses_new_polling && HCD_POLL_RH(hcd))
 		usb_hcd_poll_rh_status(hcd);
 	return retval;

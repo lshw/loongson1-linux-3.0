@@ -167,6 +167,7 @@ int irq_startup(struct irq_desc *desc)
 		irq_state_clr_masked(desc);
 		return ret;
 	}
+
 	irq_enable(desc);
 	return 0;
 }

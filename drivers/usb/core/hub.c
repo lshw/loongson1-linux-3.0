@@ -2906,7 +2906,6 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	 * first 8 bytes of the device descriptor to get the ep0 maxpacket
 	 * value.
 	 */
-
 	for (i = 0; i < GET_DESCRIPTOR_TRIES; (++i, msleep(100))) {
 		if (USE_NEW_SCHEME(retry_counter) && !(hcd->driver->flags & HCD_USB3)) {
 			struct usb_device_descriptor *buf;
@@ -2974,7 +2973,6 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
  		 * unauthorized address in the Connect Ack sequence;
  		 * authorization will assign the final address.
  		 */
-
 		if (udev->wusb == 0) {
 			for (j = 0; j < SET_ADDRESS_TRIES; ++j) {
 				retval = hub_set_address(udev, devnum);

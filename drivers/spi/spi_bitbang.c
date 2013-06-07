@@ -473,7 +473,6 @@ int spi_bitbang_start(struct spi_bitbang *bitbang)
 	/* driver may get busy before register() returns, especially
 	 * if someone registered boardinfo for devices
 	 */
-
 	status = spi_register_master(bitbang->master);
 	if (status < 0)
 		goto err2;
