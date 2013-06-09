@@ -8,6 +8,7 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/vmalloc.h>
 #include <linux/fb.h>
 #include <linux/uaccess.h>
 #include <linux/of_device.h>
@@ -15,7 +16,7 @@
 #include <linux/delay.h>
 #include <linux/st7565.h>
 
-#define X_OFFSET		4
+#define X_OFFSET		0
 #define ST7565FB_WIDTH			128
 #define ST7565FB_HEIGHT		64
 
@@ -369,9 +370,9 @@ static void st7565fb_hw_init(struct st7565fb_par *par)
 
 	/* 设置ADC和SCAN的模式可以对显示进行旋转 */
 	/* Sets the display RAM address SEG output correspondence */
-	st7565fb_write_cmd(par, SSD1307FB_ADC_REV);
+	st7565fb_write_cmd(par, SSD1307FB_ADC_NOR);
 	/* Common output mode select */
-	st7565fb_write_cmd(par, ST7565FB_SCAN_NOR);
+	st7565fb_write_cmd(par, ST7565FB_SCAN_REV);
 
 	/* Sets the LCD drive voltage bias ratio */
 	st7565fb_write_cmd(par, ST7565FB_LCD_19BIAS);
@@ -383,7 +384,7 @@ static void st7565fb_hw_init(struct st7565fb_par *par)
 	st7565fb_write_cmd(par, 0x81);
 	st7565fb_write_cmd(par, 0x3f);
 	/* Display start line set st7565r */
-//	st7565fb_write_cmd(par, 0x60);
+	st7565fb_write_cmd(par, 0x60);
 	/* Booster ratio set */
 	st7565fb_write_cmd(par, 0xf8);
 	st7565fb_write_cmd(par, 0x03);
@@ -414,7 +415,7 @@ static void st7565fb_hw_exit(struct st7565fb_par *par)
 static int st7565fb_probe(struct platform_device *device)
 {
 	struct fb_info *info;
-	u32 vmem_size = ST7565FB_WIDTH * ST7565FB_HEIGHT / 8;
+	u32 vmem_size = roundup((ST7565FB_WIDTH * ST7565FB_HEIGHT / 8), PAGE_SIZE);
 	struct st7565fb_par *par;
 	u8 *vmem;
 	int ret = 0;
@@ -425,7 +426,7 @@ static int st7565fb_probe(struct platform_device *device)
 		return -ENOMEM;
 	}
 
-	vmem = devm_kzalloc(&device->dev, vmem_size, GFP_KERNEL);
+	vmem = vzalloc(vmem_size);
 	if (!vmem) {
 		dev_err(&device->dev, "Couldn't allocate graphical memory.\n");
 		ret = -ENOMEM;
