@@ -15,6 +15,12 @@
 #ifndef __GADGET_CHIPS_H
 #define __GADGET_CHIPS_H
 
+#ifdef CONFIG_USB_GADGET_SNPS_DWC_OTG
+#define	gadget_is_dwc_otg(g)    !strcmp("dwc_otg_pcd", (g)->name)
+#else
+#define	gadget_is_dwc_otg(g)    0
+#endif
+
 #ifdef CONFIG_USB_GADGET_NET2280
 #define	gadget_is_net2280(g)	!strcmp("net2280", (g)->name)
 #else

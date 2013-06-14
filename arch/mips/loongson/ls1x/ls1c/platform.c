@@ -1382,10 +1382,41 @@ static struct platform_device ls1x_sja1000_1 = {
 #endif //#ifdef CONFIG_LS1X_CAN1
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
+#ifdef	CONFIG_USB_DWC_OTG_LPM
+static u64 ls1c_otg_dma_mask = DMA_BIT_MASK(32);
+static struct resource ls1c_otg_resources[] = {
+	[0] = {
+		.start = LS1X_OTG_BASE,
+		.end   = LS1X_OTG_BASE + 0xfffff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = LS1X_OTG_IRQ,
+		.end   = LS1X_OTG_IRQ,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device ls1c_otg_device = {
+	.name           = "dwc_otg",
+	.id             = 0,
+	.dev = {
+		.dma_mask = &ls1c_otg_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
+	.num_resources  = ARRAY_SIZE(ls1c_otg_resources),
+	.resource       = ls1c_otg_resources,
+};
+#endif
+
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
+
+#ifdef	CONFIG_USB_DWC_OTG_LPM
+	&ls1c_otg_device, 
+#endif
 
 #ifdef CONFIG_LS1X_FB0
 	&ls1x_fb0_device,

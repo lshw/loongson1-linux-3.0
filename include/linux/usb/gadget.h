@@ -430,6 +430,9 @@ struct usb_gadget_ops {
 	int	(*pullup) (struct usb_gadget *, int is_on);
 	int	(*ioctl)(struct usb_gadget *,
 				unsigned code, unsigned long param);
+#ifdef	CONFIG_USB_DWC_OTG_LPM
+	int	(*lpm_support) (struct usb_gadget *);
+#endif
 };
 
 /**
@@ -657,6 +660,15 @@ static inline int usb_gadget_vbus_disconnect(struct usb_gadget *gadget)
 		return -EOPNOTSUPP;
 	return gadget->ops->vbus_session(gadget, 0);
 }
+
+#ifdef CONFIG_USB_DWC_OTG_LPM
+static inline int usb_gadget_test_lpm_support (struct usb_gadget *gadget)
+{
+	if (!gadget->ops->lpm_support)
+		return -EOPNOTSUPP;
+	return gadget->ops->lpm_support (gadget);
+}
+#endif
 
 /**
  * usb_gadget_connect - software-controlled connect to USB host

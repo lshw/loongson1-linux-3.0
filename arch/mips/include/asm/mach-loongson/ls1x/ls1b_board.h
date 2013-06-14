@@ -152,6 +152,7 @@ struct ls1b_usbh_data {
 }; 
 
 #if defined(CONFIG_LS1C_MACH)
+#define	LS1X_OTG_BASE			0x1fe00000
 #define LS1X_EHCI_BASE			0x1fe20000
 #define LS1X_OHCI_BASE			0x1fe28000
 #else

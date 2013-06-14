@@ -256,6 +256,9 @@
 
 #include "gadget_chips.h"
 
+#ifdef CONFIG_USB_DWC_OTG_LPM
+#include <linux/dma-mapping.h>
+#endif
 
 
 /*
@@ -574,6 +577,42 @@ config_desc = {
 	.bMaxPower =		CONFIG_USB_GADGET_VBUS_DRAW / 2,
 };
 
+#ifdef CONFIG_USB_DWC_OTG_LPM
+/* WUSB BOS Descriptor (Binary Object Store) */
+/* USB_DT_BOS:  group of wireless capabilities */
+struct bos_desc {
+	__u8  bLength;
+	__u8  bDescriptorType;
+
+	__le16 wTotalLength;
+	__u8  bNumDeviceCaps;
+} __attribute__ ((__packed__));
+
+struct usb20_ext_cap_desc {
+            __u8 bLength;
+            __u8 bDescriptorType;
+            __u8 bDevCapabilityType;
+            __le32 bmAttributes;
+} __attribute__ ((__packed__));
+
+/** The BOS Descriptor */
+#define USB_CAP_20_EXT		0x02
+#define USB_20_EXT_LPM		0x02
+
+static struct usb20_ext_cap_desc cap_lpm = {
+            .bLength = sizeof(struct usb20_ext_cap_desc),
+            .bDescriptorType = USB_DT_DEVICE_CAPABILITY,
+            .bDevCapabilityType = USB_CAP_20_EXT,
+            .bmAttributes = cpu_to_le32(USB_20_EXT_LPM),
+};
+
+static struct bos_desc bos = {
+            .bLength = sizeof(struct bos_desc),
+            .bDescriptorType = USB_DT_BOS,
+            .wTotalLength = cpu_to_le16(sizeof(struct bos_desc) + sizeof(cap_lpm)),
+            .bNumDeviceCaps = 1,
+};
+#endif
 
 static struct usb_qualifier_descriptor
 dev_qualifier = {
@@ -929,6 +968,18 @@ static int standard_setup_req(struct fsg_dev *fsg,
 
 		case USB_DT_DEVICE:
 			VDBG(fsg, "get device descriptor\n");
+
+#ifdef CONFIG_USB_DWC_OTG_LPM
+			/* Set the bcdUSB to 0201H to indicate support
+			 * for the BOS Descriptor. */
+			if (usb_gadget_test_lpm_support(fsg->gadget)) {
+				VDBG(fsg, "set bcdUSB to 0201h\n");
+				device_desc.bcdUSB = 0x201;
+			} else {
+				VDBG(fsg, "set bcdUSB to 0200h\n");
+                                device_desc.bcdUSB = 0x200;
+			}
+#endif
 			value = sizeof device_desc;
 			memcpy(req->buf, &device_desc, value);
 			break;
@@ -936,6 +987,17 @@ static int standard_setup_req(struct fsg_dev *fsg,
 			VDBG(fsg, "get device qualifier\n");
 			if (!gadget_is_dualspeed(fsg->gadget))
 				break;
+#ifdef CONFIG_USB_DWC_OTG_LPM
+			/* Set the bcdUSB to 0201H to indicate support
+			 * for the BOS Descriptor. */
+			if (usb_gadget_test_lpm_support(fsg->gadget)) {
+				VDBG(fsg, "set bcdUSB to 0201h\n");
+				dev_qualifier.bcdUSB = 0x201;
+			} else {
+				VDBG(fsg, "set bcdUSB to 0200h\n");
+                                dev_qualifier.bcdUSB = 0x200;
+			}
+#endif
 			value = sizeof dev_qualifier;
 			memcpy(req->buf, &dev_qualifier, value);
 			break;
@@ -961,6 +1023,21 @@ get_config:
 			value = usb_gadget_get_string(&fsg_stringtab,
 					w_value & 0xff, req->buf);
 			break;
+
+#ifdef CONFIG_USB_DWC_OTG_LPM
+		case USB_DT_BOS:
+			if (usb_gadget_test_lpm_support(fsg->gadget)) {
+			        VDBG(fsg, "LPM support enabled in DWC UDC PCD\n");
+                                cap_lpm.bmAttributes |= USB_20_EXT_LPM;
+                        	__u8 *buf = req->buf;
+				VDBG(fsg, "get bos descriptor\n");
+				memcpy(buf, &bos, sizeof bos);
+				buf += sizeof bos;
+				memcpy(buf, &cap_lpm, sizeof cap_lpm);
+				value = sizeof bos + sizeof cap_lpm;
+				break;
+			}
+#endif
 		}
 		break;
 
@@ -3170,7 +3247,11 @@ static void /* __init_or_exit */ fsg_unbind(struct usb_gadget *gadget)
 
 	/* Free the request and buffer for endpoint 0 */
 	if (req) {
+#ifdef CONFIG_USB_DWC_OTG_LPM
+		dma_free_coherent(NULL, EP0_BUFSIZE, req->buf, req->dma);
+#else
 		kfree(req->buf);
+#endif
 		usb_ep_free_request(fsg->ep0, req);
 	}
 
@@ -3200,7 +3281,13 @@ static int __init check_parameters(struct fsg_dev *fsg)
 		gcnum = usb_gadget_controller_number(fsg->gadget);
 		if (gcnum >= 0)
 			mod_data.release = 0x0300 + gcnum;
-		else {
+		else if (gadget_is_dwc_otg(fsg->gadget)) {
+			mod_data.release = __constant_cpu_to_le16 (0x0200);
+			mod_data.vendor  = __constant_cpu_to_le16 (0x053f);
+			if (mod_data.product == FSG_PRODUCT_ID) {
+				mod_data.product  = __constant_cpu_to_le16 (0x0000);
+			}
+		} else {
 			WARNING(fsg, "controller '%s' not recognized\n",
 				fsg->gadget->name);
 			mod_data.release = 0x0399;
@@ -3447,11 +3534,24 @@ static int __init fsg_bind(struct usb_gadget *gadget)
 
 	rc = -ENOMEM;
 
+#ifdef CONFIG_USB_DWC_OTG_LPM
+	/* When LPM is enabled, Inform the host that the remote wake
+	 * up capability is supported. */
+	if (usb_gadget_test_lpm_support(fsg->gadget)) {
+		config_desc.bmAttributes |= USB_CONFIG_ATT_WAKEUP;
+	}
+#endif
+
 	/* Allocate the request and buffer for endpoint 0 */
 	fsg->ep0req = req = usb_ep_alloc_request(fsg->ep0, GFP_KERNEL);
 	if (!req)
 		goto out;
+
+#ifdef CONFIG_USB_DWC_OTG_LPM
+	req->buf = dma_alloc_coherent(NULL, EP0_BUFSIZE, &req->dma, GFP_KERNEL);
+#else
 	req->buf = kmalloc(EP0_BUFSIZE, GFP_KERNEL);
+#endif
 	if (!req->buf)
 		goto out;
 	req->complete = ep0_complete;
@@ -3463,7 +3563,11 @@ static int __init fsg_bind(struct usb_gadget *gadget)
 		/* Allocate for the bulk-in endpoint.  We assume that
 		 * the buffer will also work with the bulk-out (and
 		 * interrupt-in) endpoint. */
+
+#ifdef CONFIG_USB_DWC_OTG_LPM
 		bh->buf = kmalloc(mod_data.buflen, GFP_KERNEL);
+		bh->buf = UNCAC_ADDR((unsigned int)bh->buf);
+#endif
 		if (!bh->buf)
 			goto out;
 		bh->next = bh + 1;
