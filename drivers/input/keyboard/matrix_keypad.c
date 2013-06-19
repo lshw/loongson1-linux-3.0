@@ -341,7 +341,8 @@ static int __devinit init_matrix_gpio(struct platform_device *pdev,
 		}
 	} else {
 		for (i = 0; i < pdata->num_row_gpios; i++) {
-			err = request_irq(gpio_to_irq(pdata->row_gpios[i]),
+//			err = request_irq(gpio_to_irq(pdata->row_gpios[i]),
+			err = request_threaded_irq(gpio_to_irq(pdata->row_gpios[i]), NULL, 
 					matrix_keypad_interrupt,
 					IRQF_DISABLED |
 					IRQF_TRIGGER_RISING |

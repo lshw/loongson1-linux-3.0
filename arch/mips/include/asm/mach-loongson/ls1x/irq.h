@@ -101,7 +101,7 @@
 #define INT4_IRQ			MIPS_CPU_IRQ(6)
 #define TIMER_IRQ			MIPS_CPU_IRQ(7)		/* cpu timer */
 
-#define NR_IRQS 	  256
+#define NR_IRQS 	  320
 
 struct ls1x_intc_regs
 {
