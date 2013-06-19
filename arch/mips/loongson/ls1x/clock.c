@@ -262,6 +262,18 @@ static void ddr_clk_init(struct clk *clk)
 	pr_info("busclock=%ldHz\n", clk->rate);
 }
 
+static void apb_clk_init(struct clk *clk)
+{
+	u32 pll;
+
+	pll = clk_get_rate(clk->parent);
+#if defined(CONFIG_LS1C_MACH)
+	clk->rate = pll;
+#else
+	clk->rate = pll / 2;
+#endif
+}
+
 static void dc_clk_init(struct clk *clk)
 {
 	u32 pll, ctrl;
@@ -281,6 +293,10 @@ static struct clk_ops cpu_clk_ops = {
 
 static struct clk_ops ddr_clk_ops = {
 	.init	= ddr_clk_init,
+};
+
+static struct clk_ops apb_clk_ops = {
+	.init	= apb_clk_init,
 };
 
 static struct clk_ops dc_clk_ops = {
@@ -309,6 +325,12 @@ static struct clk ddr_clk = {
 	.ops	= &ddr_clk_ops,
 };
 
+static struct clk apb_clk = {
+	.name	= "apb",
+	.parent = &ddr_clk,
+	.ops	= &apb_clk_ops,
+};
+
 static struct clk dc_clk = {
 	.name	= "dc",
 	.parent = &pll_clk,
@@ -331,6 +353,7 @@ static struct clk *ls1x_clks[] = {
 	&pll_clk,
 	&cpu_clk,
 	&ddr_clk,
+	&apb_clk,
 	&dc_clk,
 };
 

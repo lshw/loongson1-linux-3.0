@@ -108,9 +108,9 @@
 
 /* watchdog */
 #if	defined(CONFIG_LS1A_MACH)
-#define LS1X_WAT_BASE				0x1fe7c060
+#define LS1X_WDT_BASE				0x1fe7c060
 #elif	defined(CONFIG_LS1B_MACH) || defined(CONFIG_LS1C_MACH)
-#define LS1X_WAT_BASE				0x1fe5c060
+#define LS1X_WDT_BASE				0x1fe5c060
 #endif
 #define WDT_EN						0x00
 #define WDT_TIMER					0x04

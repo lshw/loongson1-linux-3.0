@@ -194,12 +194,12 @@ void __init ls1x_serial_setup(void)
 				LS1X_MUX_CTRL1);
 #endif
 
-	clk = clk_get(NULL, "ddr");
+	clk = clk_get(NULL, "apb");
 	if (IS_ERR(clk))
-		panic("unable to get dc clock, err=%ld", PTR_ERR(clk));
+		panic("unable to get apb clock, err=%ld", PTR_ERR(clk));
 
 	for (p = ls1x_serial8250_port; p->flags != 0; ++p)
-		p->uartclk = clk_get_rate(clk) / 2;
+		p->uartclk = clk_get_rate(clk);
 }
 
 /* OHCI */
@@ -280,19 +280,19 @@ static struct platform_device ls1x_ehci_device = {
 * watchdog
 */
 #ifdef CONFIG_LS1X_WDT
-static struct resource ls1b_wat_resource[] = {
+static struct resource ls1x_wdt_resource[] = {
 	[0]={
-		.start      = LS1X_WAT_BASE,
-		.end        = (LS1X_WAT_BASE + 0x8),
+		.start      = LS1X_WDT_BASE,
+		.end        = (LS1X_WDT_BASE + 0x8),
 		.flags      = IORESOURCE_MEM,
 	},
 };
 
-static struct platform_device ls1b_wat_device = {
-	.name       = "ls1b-wdt",
+static struct platform_device ls1x_wdt_device = {
+	.name       = "ls1x-wdt",
 	.id         = -1,
-	.num_resources  = ARRAY_SIZE(ls1b_wat_resource),
-	.resource   = ls1b_wat_resource,
+	.num_resources  = ARRAY_SIZE(ls1x_wdt_resource),
+	.resource   = ls1x_wdt_resource,
 };
 #endif //#ifdef CONFIG_LS1X_WDT
 
@@ -1548,7 +1548,7 @@ static struct platform_device ls1bkbd_device = {
 
 #ifdef CONFIG_FB_SSD1305
 static struct ssd1305_platform_data ssd1305_pdata = {
-	.gpio_outpu = REG_GPIO_OUT0,
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
 	.gpios_res = 17,
 	.gpios_cs = 16,
 	.gpios_dc = 18,
@@ -1578,7 +1578,7 @@ struct platform_device ssd1305fb_device = {
 #ifdef CONFIG_FB_ST7565
 #include <linux/st7565.h>
 static struct st7565_platform_data st7565_pdata = {
-	.gpio_outpu = REG_GPIO_OUT0,
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
 	.gpios_res = 17,
 	.gpios_cs = 16,
 	.gpios_dc = 18,
@@ -1607,7 +1607,7 @@ struct platform_device st7565fb_device = {
 
 #ifdef CONFIG_FB_ST7920
 static struct st7920_platform_data st7920_pdata = {
-	.gpio_outpu = REG_GPIO_OUT0,
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
 	.gpios_res = 8,
 	.gpios_cs = 11,
 	.gpios_sid = 9,
@@ -1841,7 +1841,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 
 #ifdef CONFIG_LS1X_WDT
-	&ls1b_wat_device,
+	&ls1x_wdt_device,
 #endif
 
 #ifdef CONFIG_RTC_DRV_LOONGSON1

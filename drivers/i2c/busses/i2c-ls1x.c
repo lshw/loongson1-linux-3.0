@@ -176,8 +176,8 @@ static void ls1x_i2c_hwinit(struct ls1x_i2c *i2c)
 	/* make sure the device is disabled */
 	i2c_writeb(i2c, OCI2C_CONTROL, ctrl & ~(OCI2C_CTRL_EN|OCI2C_CTRL_IEN));
 
-	clk = clk_get(NULL, "ddr");
-	prescale = clk_get_rate(clk) / 2;
+	clk = clk_get(NULL, "apb");
+	prescale = clk_get_rate(clk);
 	prescale = (prescale / (5*I2C_CLOCK)) - 1;
 	i2c_writeb(i2c, OCI2C_PRELOW, prescale & 0xff);
 	i2c_writeb(i2c, OCI2C_PREHIGH, prescale >> 8);

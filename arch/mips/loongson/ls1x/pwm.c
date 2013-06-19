@@ -129,7 +129,7 @@ int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
 	if (duty_ns < 0 || duty_ns > period_ns)
 		return -EINVAL;
 
-	tmp = (unsigned long long)clk_get_rate(ls1x_pwm_clk) * period_ns / 2;
+	tmp = (unsigned long long)clk_get_rate(ls1x_pwm_clk) * period_ns;
 	do_div(tmp, 1000000000);
 	period = tmp;
 
@@ -170,7 +170,7 @@ static int __init ls1x_pwm_init(void)
 	if (!ls1x_pwm_base)
 		panic("Failed to ioremap timer registers");
 
-	ls1x_pwm_clk = clk_get(NULL, "ddr");
+	ls1x_pwm_clk = clk_get(NULL, "apb");
 
 	if (IS_ERR(ls1x_pwm_clk)) {
 		ret = PTR_ERR(ls1x_pwm_clk);

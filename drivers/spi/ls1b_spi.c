@@ -108,7 +108,7 @@ static int ls1b_spi_update_state(struct spi_device *spi,
 
 	if (cs->hz != hz) {
 		clk = clk_get_rate(hw->clk);
-		div = DIV_ROUND_UP(clk, hz * 2);
+		div = DIV_ROUND_UP(clk, hz);
 
 		if (div < 2)
 			div = 2;
@@ -378,7 +378,7 @@ static int ls1b_spi_probe(struct platform_device *pdev)
   	writeb(0x05, hw->regs + REG_SPER);
 
 
-	hw->clk = clk_get(&pdev->dev, "ddr");
+	hw->clk = clk_get(&pdev->dev, "apb");
 	if (IS_ERR(hw->clk)) {
 		dev_err(&pdev->dev, "No clock for device\n");
 		err = PTR_ERR(hw->clk);
