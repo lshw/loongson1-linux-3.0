@@ -46,26 +46,8 @@
 #define LS1X_GPIO_BASE	0x1fd010c0
 
 /* SPI regs */
-#define LS1B_BOARD_SPI_BASE	0x1f000000 
-#define REG_SPCR			0x00
-#define REG_SPSR			0x01
-#define REG_SPDR			0x02
-#define REG_SPER			0x03
-#define	REG_SPPR			0x04
-#define	REG_SPCSR			0x05
-#define	REG_SPTR			0x06
-
 #define LS1B_BOARD_SPI0_BASE	0x1fe80000
 #define LS1B_BOARD_SPI1_BASE	0x1fec0000
-#define REG_SPCR				0x00	//控制寄存器
-#define REG_SPSR				0x01	//状态寄存器
-#define REG_SPDR				0x02	//数据寄存器（TxFIFO）
-#define REG_TXFIFO    			0x02	//数据传输寄存器 输出
-#define REG_RXFIFO    			0x02	//数据传输寄存器 输入
-#define REG_SPER				0x03	//外部寄存器
-#define REG_PARAM     			0x04	//SPI Flash参数控制寄存器
-#define REG_SOFTCS    			0x05	//SPI Flash片选控制寄存器
-#define REG_PARAM2    			0x06	//SPI Flash时序控制寄存器
 
 #define SPI0_CS0				0
 #define SPI0_CS1				1

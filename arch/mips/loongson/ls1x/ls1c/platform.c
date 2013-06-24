@@ -706,7 +706,7 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.modalias	= "w25q64",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS0,
-		.max_speed_hz	= 80000000,
+		.max_speed_hz	= 60000000,
 		.platform_data	= &flash,
 	},
 #endif
@@ -933,105 +933,6 @@ static struct platform_device ls1b_gpio_key_device = {
 	},
 };
 #endif //#ifdef CONFIG_KEYBOARD_GPIO_POLLED
-
-#ifdef CONFIG_LS1B_BUZZER
-static struct gpio_keys_button ls1b_gpio_buzzer[] = {
-	[0] = {
-		.gpio	= 40,	//57
-		.type	= EV_LED,
-	},	
-/*
-	[1] = {
-		.gpio	= 34,
-	},	
-	[2] = {
-		.gpio	= 35,
-	},	*/
-};
-
-static struct gpio_keys_platform_data ls1b_gpio_buzzer_data = {
-	.buttons	= ls1b_gpio_buzzer,
-	.nbuttons	= 1,
-};
-
-static struct platform_device ls1b_gpio_buzzer_device = {
-	.name	= "buzzer_gpio",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_gpio_buzzer_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BUZZER
-
-//xhm
-#ifdef CONFIG_LS1B_BBDIO
-static struct gpio_keys_button ls1b_bobodogio_button[] = {
-#if 0
-	[0]  = { .gpio = 4, .type = EV_LED},	
-	[1]  = { .gpio = 5, .type = EV_LED},
-	[2]  = { .gpio = 6, .type = EV_LED},
-	[3]  = { .gpio = 7, .type = EV_LED},
-	[4]  = { .gpio = 8, .type = EV_LED},
-	[5]  = { .gpio = 9, .type = EV_LED},
-	[6]  = { .gpio = 10, .type = EV_LED},
-	[7]  = { .gpio = 11, .type = EV_LED},
-	[8]  = { .gpio = 12, .type = EV_LED},
-	[9]  = { .gpio = 13, .type = EV_LED},
-	[10] = { .gpio = 14, .type = EV_LED},
-	[11] = { .gpio = 15, .type = EV_LED},
-	[12] = { .gpio = 16, .type = EV_LED},
-	[13] = { .gpio = 17, .type = EV_LED},
-	[14] = { .gpio = 18, .type = EV_LED},
-#endif
-	[0] = { .gpio = 48, .type = EV_KEY},
-	[1] = { .gpio = 49, .type = EV_LED},
-};
-
-static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
-	.buttons	= ls1b_bobodogio_button,
-	.nbuttons	= 15,
-};
-
-static struct platform_device ls1b_bobodogio_dog = {
-	.name	= "bobodog_io_control",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_bobodogio_dog_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BBDIO
-
-#ifdef CONFIG_LS1B_PWM_DRIVER
-static struct resource ls1b_pwm0_resource[] = {
-	[0]={
-		.start	= LS1B_PWM0_BASE,
-		.end	= (LS1B_PWM0_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-	[1]={
-		.start	= LS1B_PWM1_BASE,
-		.end	= (LS1B_PWM1_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-	[2]={
-		.start	= LS1B_PWM2_BASE,
-		.end	= (LS1B_PWM2_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-	[3]={
-		.start	= LS1B_PWM3_BASE,
-		.end	= (LS1B_PWM3_BASE + 0x0f),
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ls1b_pwm_device = {
-	.name	= "ls1b-pwm",
-	.id	= -1,
-	.num_resources	= ARRAY_SIZE(ls1b_pwm0_resource),
-	.resource	= ls1b_pwm0_resource,
-};
-#endif //#ifdef CONFIG_LS1B_PWM_DRIVER
 
 /**
  * Rotary encoder input device
@@ -1472,18 +1373,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
-#endif
-	
-#ifdef CONFIG_LS1B_BUZZER
-	&ls1b_gpio_buzzer_device,
-#endif
-
-#ifdef CONFIG_LS1B_PWM_DRIVER
-	&ls1b_pwm_device,
-#endif
-
-#ifdef CONFIG_LS1B_BBDIO
-	&ls1b_bobodogio_dog,
 #endif
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER

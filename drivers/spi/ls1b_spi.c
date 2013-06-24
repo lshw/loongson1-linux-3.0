@@ -23,6 +23,16 @@
 
 #define USE_POLL
 
+#define REG_SPCR				0x00	//控制寄存器
+#define REG_SPSR				0x01	//状态寄存器
+#define REG_SPDR				0x02	//数据寄存器（TxFIFO）
+#define REG_TXFIFO    			0x02	//数据传输寄存器 输出
+#define REG_RXFIFO    			0x02	//数据传输寄存器 输入
+#define REG_SPER				0x03	//外部寄存器
+#define REG_PARAM     			0x04	//SPI Flash参数控制寄存器
+#define REG_SOFTCS    			0x05	//SPI Flash片选控制寄存器
+#define REG_PARAM2    			0x06	//SPI Flash时序控制寄存器
+
 struct ls1b_spi_devstate {
 	unsigned int	hz;
 	u8		spcr;
@@ -376,6 +386,7 @@ static int ls1b_spi_probe(struct platform_device *pdev)
  	writeb(0x50, hw->regs + REG_SPCR);
 #endif
   	writeb(0x05, hw->regs + REG_SPER);
+  	writeb(0x05, hw->regs + REG_PARAM2);
 
 
 	hw->clk = clk_get(&pdev->dev, "apb");

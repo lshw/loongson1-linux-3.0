@@ -883,7 +883,7 @@ config M54xx_WATCHDOG
 
 config LS1X_WDT
 	tristate "Loongson1 watchdog timer"
-	depends on MACH_LOONGSON1
+	depends on (LS1A_MACH || LS1B_MACH || LS1C_MACH)
 	help
 		Hardware driver for the built-in watchdog timer on the Loongson1
 		SoCs.
