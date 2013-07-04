@@ -367,6 +367,16 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
+#ifdef CONFIG_SOC_CAMERA_LS1B
+#include <media/ls1b_camera.h>
+static struct ls1b_camera_platform_data gc0307_plat = {
+	.bl = 57,
+	.ts = 56,
+	.hsync = 58,
+	.vsync = 59,
+};
+#endif
+
 #ifdef CONFIG_GPIO_PCA953X
 #include <linux/i2c/pca953x.h>
 #define PCA9555_GPIO_BASE 170
@@ -564,6 +574,12 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
 		.platform_data = &gc0308_plat,
+	},
+#endif
+#ifdef CONFIG_SOC_CAMERA_LS1B
+	{
+		I2C_BOARD_INFO("gc0307", 0x21),
+		.platform_data = &gc0307_plat,
 	},
 #endif
 #ifdef CONFIG_GPIO_PCA953X

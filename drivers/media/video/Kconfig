@@ -870,6 +870,12 @@ config SOC_CAMERA_OV9740
 	help
 	  This is a ov9740 camera driver
 
+config SOC_CAMERA_LS1B
+	tristate "ls1b camera(nand flash Interface) support for gc0307 (EXPERIMENTAL)"
+	depends on I2C && LS1B_MACH && EXPERIMENTAL
+	help
+	  This is a gc0307 camera driver
+
 config MX1_VIDEO
 	bool
 

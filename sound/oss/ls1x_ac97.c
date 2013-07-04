@@ -32,8 +32,7 @@
 #include <irq.h>
 #include <ls1b_board.h>
 
-
-void __iomem *order_addr_in;
+static void __iomem *order_addr_in;
 static int codec_reset = 1;
 
 struct dma_desc {
