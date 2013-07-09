@@ -29,7 +29,6 @@
 #include <linux/videodev2.h>
 #include <linux/gpio_keys.h>
 #include <linux/input.h>
-#include <linux/input/matrix_keypad.h>
 #include <linux/input/74x165_gpio_keys_polled.h>
 #include <linux/rotary_encoder.h>
 #include <linux/ssd1305.h>
@@ -367,11 +366,110 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
+#ifdef CONFIG_SOC_CAMERA_LS1B
+#include <media/ls1b_camera.h>
+static struct ls1b_camera_platform_data gc0307_plat = {
+	.bl = 57,
+	.ts = 56,
+	.hsync = 58,
+	.vsync = 59,
+};
+#endif
+
+#if defined(CONFIG_GPIO_PCF857X) || defined(CONFIG_GPIO_PCF857X_MODULE)
+#include <linux/i2c/pcf857x.h>
+#define PCF8574_GPIO_BASE 188
+
+#define PCF8574_DO0	(PCF8574_GPIO_BASE+0)
+#define LOCKER_BL	(PCF8574_GPIO_BASE+1)
+#define SHUTDOWN	(PCF8574_GPIO_BASE+2)
+#define WIFI_RFEN	(PCF8574_GPIO_BASE+3)
+#define USBRESET	(PCF8574_GPIO_BASE+4)
+#define NAND_CAMERA	(PCF8574_GPIO_BASE+5)
+#define PCF8574_DO6	(PCF8574_GPIO_BASE+6)
+#define POWER_OFF	(PCF8574_GPIO_BASE+7)
+static struct pcf857x_platform_data ls1x_pcf857x_pdata = {
+	.gpio_base	= PCF8574_GPIO_BASE,
+	.n_latch	= 0,
+	.setup		= NULL,
+	.teardown	= NULL,
+	.context	= NULL,
+};
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#include <linux/leds.h>
+struct gpio_led pcf8574_gpio_leds[] = {
+/*	{
+		.name			= "DO0",
+		.gpio			= PCF8574_DO0,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},*/
+	{
+		.name			= "LOCKER_BL",
+		.gpio			= LOCKER_BL,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "SHUTDOWN",
+		.gpio			= SHUTDOWN,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "WIFI_RFEN",
+		.gpio			= WIFI_RFEN,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "USB_RESET",
+		.gpio			= USBRESET,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	}, {
+		.name			= "NAND_CAMERA",
+		.gpio			= NAND_CAMERA,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "DO6",
+		.gpio			= PCF8574_DO6,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "POWER_OFF",
+		.gpio			= POWER_OFF,
+		.active_low		= 0,
+		.default_trigger	= "none",
+		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+	},
+};
+
+static struct gpio_led_platform_data pcf8574_gpio_led_info = {
+	.leds		= pcf8574_gpio_leds,
+	.num_leds	= ARRAY_SIZE(pcf8574_gpio_leds),
+};
+
+static struct platform_device pcf8574_leds = {
+	.name	= "leds-gpio",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &pcf8574_gpio_led_info,
+	}
+};
+#endif
+#endif
+
 #ifdef CONFIG_GPIO_PCA953X
 #include <linux/i2c/pca953x.h>
 #define PCA9555_GPIO_BASE 170
-#define PCA9555_IRQ_BASE 170
-#define PCA9555_GPIO_IRQ 8
+#define PCA9555_IRQ_BASE 170 + LS1X_GPIO_FIRST_IRQ
+#define PCA9555_GPIO_IRQ 2
 
 #define PCA9555_DO0 (PCA9555_GPIO_BASE+0)
 #define PCA9555_DO1 (PCA9555_GPIO_BASE+1)
@@ -416,6 +514,15 @@ static int ls1x_pca9555_setup(struct i2c_client *client,
 #endif
 	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
 	gpio_direction_input(PCA9555_GPIO_IRQ);
+
+	gpio_request(gpio_base + 12, "lcd reset");
+	gpio_direction_output(gpio_base + 12, 1);
+	gpio_request(gpio_base + 13, "mfrc531 irq");
+	gpio_direction_input(gpio_base + 13);
+	gpio_request(gpio_base + 14, "mfrc531 ncs");
+	gpio_direction_output(gpio_base + 14, 1);
+	gpio_request(gpio_base + 15, "mfrc531 rstpd");
+	gpio_direction_output(gpio_base + 15, 0);
 	return 0;
 }
 
@@ -425,123 +532,6 @@ static struct pca953x_platform_data ls1x_i2c_pca9555_platdata = {
 //	.invert		= 0, /* Do not invert */
 	.setup		= ls1x_pca9555_setup,
 };
-
-#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
-#include <linux/leds.h>
-struct gpio_led pca9555_gpio_leds[] = {
-	/* gpio for 7 relay purposes */
-	{
-		.name			= "DO0",
-		.gpio			= PCA9555_DO0,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
-		.name			= "DO1",
-		.gpio			= PCA9555_DO1,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
-		.name			= "DO2",
-		.gpio			= PCA9555_DO2,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
-		.name			= "DO3",
-		.gpio			= PCA9555_DO3,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
-		.name			= "DO4",
-		.gpio			= PCA9555_DO4,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	}, {
-		.name			= "DO5",
-		.gpio			= PCA9555_DO5,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
-		.name			= "DO6",
-		.gpio			= PCA9555_DO6,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
-		.name			= "DO7",
-		.gpio			= PCA9555_DO7,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},
-
-	/* ctrl GPRS */
-	{
-		.name			= "emerg_off",
-		.gpio			= PCA9555_EMERG_OFF,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	}, {
-		.name			= "pwrkey",
-		.gpio			= PCA9555_PWRKEY,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},
-
-	/* 5 leds */
-	{
-		.name			= "green:run",
-		.gpio			= PCA9555_LED0,
-		.active_low		= 1,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_ON,
-	}, {
-		.name			= "red:channel1",
-		.gpio			= PCA9555_LED1,
-		.active_low		= 1,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	}, {
-		.name			= "red:channel2",
-		.gpio			= PCA9555_LED2,
-		.active_low		= 1,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	}, {
-		.name			= "red:channel3",
-		.gpio			= PCA9555_LED3,
-		.active_low		= 1,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	}, {
-		.name			= "red:channel4",
-		.gpio			= PCA9555_LED4,
-		.active_low		= 1,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},
-};
-
-static struct gpio_led_platform_data pca9555_gpio_led_info = {
-	.leds		= pca9555_gpio_leds,
-	.num_leds	= ARRAY_SIZE(pca9555_gpio_leds),
-};
-
-static struct platform_device pca9555_leds = {
-	.name	= "leds-gpio",
-	.id	= 0,
-	.dev	= {
-		.platform_data	= &pca9555_gpio_led_info,
-	}
-};
-#endif //#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 #endif //#ifdef CONFIG_GPIO_PCA953X
 
 #ifdef CONFIG_I2C_LS1X
@@ -566,9 +556,21 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		.platform_data = &gc0308_plat,
 	},
 #endif
+#ifdef CONFIG_SOC_CAMERA_LS1B
+	{
+		I2C_BOARD_INFO("gc0307", 0x21),
+		.platform_data = &gc0307_plat,
+	},
+#endif
+#if defined(CONFIG_GPIO_PCF857X) || defined(CONFIG_GPIO_PCF857X_MODULE)
+	{
+		I2C_BOARD_INFO("pcf8574a", 0x24),
+		.platform_data	= &ls1x_pcf857x_pdata,
+	},
+#endif
 #ifdef CONFIG_GPIO_PCA953X
 	{
-		I2C_BOARD_INFO("pca9555", 0x27),
+		I2C_BOARD_INFO("pca9555", 0x26),
 		.irq = LS1X_GPIO_FIRST_IRQ + PCA9555_GPIO_IRQ,
 		.platform_data = &ls1x_i2c_pca9555_platdata,
 	},
@@ -621,6 +623,24 @@ static struct platform_device ls1x_i2c2_device = {
 };
 #endif //#ifdef CONFIG_I2C_LS1X
 
+#ifdef CONFIG_SENSORS_SHT15
+#include <linux/sht15.h>
+static struct sht15_platform_data platform_data_sht15 = {
+	.gpio_data =  2,	/* 注意:可能需要修改sht15.c驱动中的gpio延时参数 */
+	.gpio_sck  =  3,
+	.supply_mv = 5000, /* 5000mV */
+	.checksum = 1,
+};
+
+static struct platform_device sht15 = {
+	.name = "sht10",
+	.id = -1,
+	.dev = {
+		.platform_data = &platform_data_sht15,
+	},
+};
+#endif
+
 /*
  * lcd
  */
@@ -658,7 +678,7 @@ struct platform_device ls1x_fb0_device = {
 #endif	//#ifdef CONFIG_LS1X_FB0
 #endif	//#if defined(CONFIG_FB_LOONGSON1)
 
-#define GPIO_BACKLIGHT_CTRL	53
+#define GPIO_BACKLIGHT_CTRL	181	/* 对应PCA9555的I/O1.3 */
 #ifdef CONFIG_BACKLIGHT_GENERIC
 #include <linux/backlight.h>
 static void ls1x_bl_set_intensity(int intensity)
@@ -913,7 +933,7 @@ static struct flash_platform_data flash __maybe_unused = {
 
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
-#define DETECT_GPIO	3
+#define DETECT_GPIO  29
 #if 1
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
@@ -948,7 +968,7 @@ static struct mmc_spi_platform_data mmc_spi __maybe_unused = {
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
-#define ADS7846_GPIO_IRQ 29 /* 开发板触摸屏使用的外部中断 */
+#define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
 int ads7846_pendown_state(void)
 {
 	return !gpio_get_value(ADS7846_GPIO_IRQ);
@@ -990,7 +1010,7 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 };
 #endif
 
-#if defined(CONFIG_LS1B_SPI0)
+#ifdef CONFIG_LS1B_SPI0
 static struct spi_board_info ls1b_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{
@@ -1018,6 +1038,16 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
 		.irq				= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+	},
+#endif
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
+	{
+		.modalias		= "mmc_spi",
+		.bus_num 		= 0,
+		.chip_select	= SPI0_CS2,
+		.max_speed_hz	= 25000000,
+		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_3,
 	},
 #endif
 };
@@ -1057,7 +1087,7 @@ struct spi_gpio_platform_data spi0_gpio_platform_data = {
 	.sck = 24,	/*gpio24*/
 	.mosi = 26,	/*gpio26*/
 	.miso = 25,	/*gpio25*/
-	.num_chipselect = 3,
+	.num_chipselect = 4,
 };
 
 static struct platform_device spi0_gpio_device = {
@@ -1079,6 +1109,15 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.platform_data	= &flash,
 	},
 #endif
+#ifdef CONFIG_SPI_MCP3201
+	{
+		.modalias	= "mcp3201",
+		.bus_num 	= 2,
+		.controller_data = (void *)30,	/*gpio30*/
+		.chip_select	= 3, /*SPI0_CS2*/
+		.max_speed_hz	= 1000000,
+	},
+#endif
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
 	{
 		.modalias = "ads7846",
@@ -1091,6 +1130,14 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
+	{
+		.modalias		= "spidev",
+		.bus_num 		= 2,
+		.controller_data = (void *)28,	/*gpio38*/
+		.chip_select	= 1,	/* SPI1_CS1 */
+		.max_speed_hz	= 5000000,
+		.mode = SPI_MODE_2,
+	},
 #ifdef CONFIG_LCD_JBT6K74
 	{
 		.modalias	= "jbt6k74",
@@ -1107,28 +1154,35 @@ static struct spi_board_info spi0_gpio_devices[] = {
 
 #if defined(CONFIG_LS1B_SPI1) /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
-		.modalias		= "mmc_spi",
+		.modalias		= "spidev",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS0,
 		.max_speed_hz	= 25000000,
-		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_0,
 	},
-#endif
 	{
 		.modalias		= "spidev",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS1,
 		.max_speed_hz	= 25000000,
 		.mode = SPI_MODE_0,
-	}, {
+	},
+	{
 		.modalias		= "spidev",
 		.bus_num 		= 1,
 		.chip_select	= SPI1_CS2,
 		.max_speed_hz	= 25000000,
 		.mode = SPI_MODE_0,
 	},
+/*#if defined(CONFIG_EASY_DAB_AUDIO)
+	{	
+		.modalias		= "easy_dab",
+		.bus_num 		= 1,
+		.chip_select	= SPI1_CS1,
+		.max_speed_hz	= 10000000,
+	},
+#endif*/
 };
 
 static struct resource ls1b_spi1_resource[] = {
@@ -1161,15 +1215,17 @@ static struct platform_device ls1b_spi1_device = {
 	},
 };
 #elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
+//#elif 0
 struct spi_gpio_platform_data spi1_gpio_platform_data = {
 	.sck = 39,	/*gpio39*/
 	.mosi = 40,	/*gpio40*/
 	.miso = 41,	/*gpio41*/
-	.num_chipselect = 3,
+	.num_chipselect = 1,
 };
 
 static struct platform_device spi1_gpio_device = {
 	.name = "spi_gpio",
+//	.name = "spi_gpio_delay",
 	.id   = 3,
 	.dev = {
 		.platform_data = &spi1_gpio_platform_data,
@@ -1182,27 +1238,12 @@ static struct spi_board_info spi1_gpio_devices[] = {
 		.modalias		= "mmc_spi",
 		.bus_num 		= 3,
 		.controller_data = (void *)38,	/*gpio38*/
-		.chip_select	= 0,	/* SPI1_CS0 */
+		.chip_select	= 0,
 		.max_speed_hz	= 25000000,
 		.platform_data	= &mmc_spi,
 		.mode = SPI_MODE_3,
 	},
 #endif
-	{
-		.modalias		= "spidev",
-		.bus_num 		= 3,
-		.controller_data = (void *)0,	/*gpio0*/
-		.chip_select	= 1,	/* SPI1_CS1 */
-		.max_speed_hz	= 25000000,
-		.mode = SPI_MODE_0,
-	}, {
-		.modalias		= "spidev",
-		.bus_num 		= 3,
-		.controller_data = (void *)1,	/*gpio1*/
-		.chip_select	= 2,	/* SPI1_CS2 */
-		.max_speed_hz	= 25000000,
-		.mode = SPI_MODE_0,
-	},
 };
 #endif	//#ifdef CONFIG_LS1B_SPI1
 
@@ -1322,55 +1363,53 @@ static struct platform_device rotary_encoder_device = {
 
 /* matrix keypad */
 #if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
-/*
-static const uint32_t ls1bkbd_keymap[] = {
-	KEY(0, 0, KEY_A),
-	KEY(0, 1, KEY_B),
-	KEY(0, 2, KEY_C),
-	KEY(0, 3, KEY_D),
-
-	KEY(1, 0, KEY_E),
-	KEY(1, 1, KEY_F),
-	KEY(1, 2, KEY_G),
-	KEY(1, 3, KEY_H),
-};
-*/
+#include <linux/input/matrix_keypad.h>
 static const uint32_t ls1bkbd_keymap[] = {
 	KEY(0, 0, KEY_1),
 	KEY(0, 1, KEY_2),
 	KEY(0, 2, KEY_3),
 	KEY(0, 3, KEY_4),
+	KEY(0, 4, KEY_5),
+	KEY(0, 5, KEY_6),
 
-	KEY(1, 0, KEY_5),
-	KEY(1, 1, KEY_6),
-	KEY(1, 2, KEY_7),
-	KEY(1, 3, KEY_8),
+	KEY(1, 0, KEY_7),
+	KEY(1, 1, KEY_8),
+	KEY(1, 2, KEY_9),
+	KEY(1, 3, KEY_0),
+	KEY(1, 4, KEY_A),
+	KEY(1, 5, KEY_B),
 	
-	KEY(2, 0, KEY_9),
-	KEY(2, 1, KEY_0),
-	KEY(2, 2, KEY_A),
-	KEY(2, 3, KEY_B),
+	KEY(2, 0, KEY_B),
+	KEY(2, 1, KEY_C),
+	KEY(2, 2, KEY_D),
+	KEY(2, 3, KEY_E),
+	KEY(2, 4, KEY_F),
+	KEY(2, 5, KEY_G),
 	
-	KEY(3, 0, KEY_C),
-	KEY(3, 1, KEY_D),
-	KEY(3, 2, KEY_E),
-	KEY(3, 3, KEY_F),
+	KEY(3, 0, KEY_H),
+	KEY(3, 1, KEY_I),
+	KEY(3, 2, KEY_J),
+	KEY(3, 3, KEY_K),
+	KEY(3, 4, KEY_L),
+	KEY(3, 5, KEY_M),
+
+	KEY(4, 0, KEY_N),
+	KEY(4, 1, KEY_O),
+	KEY(4, 2, KEY_P),
+	KEY(4, 3, KEY_Q),
+	KEY(4, 4, KEY_R),
+	KEY(4, 5, KEY_S),
 };
 
 static struct matrix_keymap_data ls1bkbd_keymap_data = {
 	.keymap			= ls1bkbd_keymap,
 	.keymap_size	= ARRAY_SIZE(ls1bkbd_keymap),
 };
-/*
+
 static const int ls1bkbd_row_gpios[] =
-	{ 30, 28 };
+	{ 170, 171, 172, 173, 174 };
 static const int ls1bkbd_col_gpios[] =
-	{ 29, 58, 50, 52 };
-*/
-static const int ls1bkbd_row_gpios[] =
-	{ 16, 17, 18, 19 };	//gpio 16 17 18 19
-static const int ls1bkbd_col_gpios[] =
-	{ 20, 21, 22, 23 };	//gpio 20 21 22 23
+	{ 175, 176, 177, 178, 179, 180 };
 
 static struct matrix_keypad_platform_data ls1bkbd_pdata = {
 	.keymap_data		= &ls1bkbd_keymap_data,
@@ -1396,7 +1435,7 @@ static struct platform_device ls1bkbd_device = {
 
 #ifdef CONFIG_FB_SSD1305
 static struct ssd1305_platform_data ssd1305_pdata = {
-	.gpio_outpu = REG_GPIO_OUT0,
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
 	.gpios_res = 17,
 	.gpios_cs = 16,
 	.gpios_dc = 18,
@@ -1426,7 +1465,7 @@ struct platform_device ssd1305fb_device = {
 #ifdef CONFIG_FB_ST7565
 #include <linux/st7565.h>
 static struct st7565_platform_data st7565_pdata = {
-	.gpio_outpu = REG_GPIO_OUT0,
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
 	.gpios_res = 17,
 	.gpios_cs = 16,
 	.gpios_dc = 18,
@@ -1455,7 +1494,7 @@ struct platform_device st7565fb_device = {
 
 #ifdef CONFIG_FB_ST7920
 static struct st7920_platform_data st7920_pdata = {
-	.gpio_outpu = REG_GPIO_OUT0,
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
 	.gpios_res = 8,
 	.gpios_cs = 11,
 	.gpios_sid = 9,
@@ -1636,6 +1675,7 @@ static struct platform_device ls1x_sja1000_1 = {
 #endif //#ifdef CONFIG_LS1X_CAN1
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
@@ -1679,6 +1719,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #if defined(CONFIG_LS1B_SPI1)
 	&ls1b_spi1_device,
 #elif defined(CONFIG_SPI_GPIO)
+//#elif 0
 	&spi1_gpio_device,
 #endif
 
@@ -1700,20 +1741,34 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c2_device,
 #endif
 
+#ifdef CONFIG_SENSORS_SHT15
+	&sht15,
+#endif
+
+#if defined(CONFIG_GPIO_PCF857X) || defined(CONFIG_GPIO_PCF857X_MODULE)
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
-	&pca9555_leds,
+	&pcf8574_leds,
+#endif
 #endif
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
 #endif
+	
+#ifdef CONFIG_LS1B_BUZZER
+	&ls1b_gpio_buzzer_device,
+#endif
+
+#ifdef CONFIG_LS1B_PWM_DRIVER
+	&ls1b_pwm_device,
+#endif
+
+#ifdef CONFIG_LS1B_BBDIO
+	&ls1b_bobodogio_dog,
+#endif
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
 	&rotary_encoder_device,
-#endif
-
-#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
-	&ls1bkbd_device,
 #endif
 
 #ifdef CONFIG_FB_SSD1305
@@ -1743,9 +1798,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
-#ifdef CONFIG_BACKLIGHT_GENERIC
-	&ls1x_bl_dev,
-#endif
 #ifdef CONFIG_LCD_PLATFORM
 	&ls1x_lcd_powerdev,
 #endif
@@ -1836,6 +1888,7 @@ int __init ls1b_platform_init(void)
 	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
 	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
 #elif defined(CONFIG_SPI_GPIO)
+//#elif 0
 	spi_register_board_info(spi1_gpio_devices, ARRAY_SIZE(spi1_gpio_devices));
 #endif
 
@@ -1849,9 +1902,21 @@ int __init ls1b_platform_init(void)
 #ifdef CONFIG_LCD_PLATFORM
 	gpio_request(GPIO_BACKLIGHT_CTRL, "lcd_enable");
 #endif
-
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
-
 arch_initcall(ls1b_platform_init);
 
+static struct platform_device *lateinit_platform_devices[] __initdata = {
+#ifdef CONFIG_BACKLIGHT_GENERIC
+	&ls1x_bl_dev,
+#endif
+#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
+	&ls1bkbd_device,
+#endif
+};
+
+static int __init late_init(void)
+{
+	return platform_add_devices(lateinit_platform_devices, ARRAY_SIZE(lateinit_platform_devices));
+}
+late_initcall(late_init);

@@ -1932,7 +1932,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 
 #ifdef CONFIG_BACKLIGHT_GENERIC
-	&ls1x_bl_dev
+	&ls1x_bl_dev,
 #endif
 #ifdef CONFIG_LCD_PLATFORM
 	&ls1x_lcd_powerdev,
@@ -1961,7 +1961,7 @@ int __init ls1b_platform_init(void)
 	sja1000_pdata->osc_freq = clk_get_rate(clk);
 	#endif
 
-#ifdef	CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 	#ifdef CONFIG_LS1X_CAN0
 	/* CAN0复用设置 */
 //	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
@@ -1974,7 +1974,7 @@ int __init ls1b_platform_init(void)
 //	ls1b_gpio_free(NULL, 69);
 	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
 	#endif
-#elif	CONFIG_LS1B_MACH
+#elif defined(CONFIG_LS1B_MACH)
 	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
 	#ifdef CONFIG_LS1X_CAN0
 	/* CAN0复用设置 */

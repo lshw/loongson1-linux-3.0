@@ -1411,7 +1411,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 
 #ifdef CONFIG_BACKLIGHT_GENERIC
-	&ls1x_bl_dev
+	&ls1x_bl_dev,
 #endif
 #ifdef CONFIG_LCD_PLATFORM
 	&ls1x_lcd_powerdev,
