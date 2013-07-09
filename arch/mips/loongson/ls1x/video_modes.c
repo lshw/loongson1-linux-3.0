@@ -65,6 +65,20 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 10,	// 250-240
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},*/
+	{	// NT35310控制器
+		.name	= "NT35310",
+		.pixclock	= 77470,
+		.refresh	= 60,
+		.xres		= 320,
+		.yres		= 480,
+		.hsync_len	= 4,		// 364-360
+		.left_margin	= 68,	// 432-364
+		.right_margin	= 40,	// 360-320
+		.vsync_len	= 2,		// 490-488
+		.upper_margin	= 8,	// 498-490
+		.lower_margin	= 8,	// 488-480
+		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
+	},
 	{	//AT043TN24
 		.name	= "AT043TN24",
 		.pixclock	= 82000,

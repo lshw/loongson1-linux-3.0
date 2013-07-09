@@ -980,7 +980,7 @@ static int ls1b_nand_probe(struct platform_device *pdev)
 	ls1b_nand_init_mtd(mtd, info);
 
 	ls1b_nand_init_info(info);
-	platform_set_drvdata(pdev, mtd);   
+	platform_set_drvdata(pdev, mtd);
 
 	if (nand_scan(mtd, 1)) {
 		dev_err(&pdev->dev, "failed to scan nand\n");
