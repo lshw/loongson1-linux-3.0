@@ -428,20 +428,20 @@ struct gpio_led pcf8574_gpio_leds[] = {
 		.gpio			= USBRESET,
 		.active_low		= 0,
 		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
 	}, {
 		.name			= "NAND_CAMERA",
 		.gpio			= NAND_CAMERA,
 		.active_low		= 0,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
+	},/*{
 		.name			= "DO6",
 		.gpio			= PCF8574_DO6,
 		.active_low		= 0,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
+	},*/{
 		.name			= "POWER_OFF",
 		.gpio			= POWER_OFF,
 		.active_low		= 0,
@@ -939,7 +939,12 @@ static struct flash_platform_data flash __maybe_unused = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
 #define DETECT_GPIO  29
+#define WRITE_PROTECT_GPIO  194	/* 写保护探测 */ /* PCF8574_DO6 (PCF8574_GPIO_BASE+6) */
 #if 1
+static int mmc_spi_get_ro(struct device *dev)
+{
+	return gpio_get_value(WRITE_PROTECT_GPIO);
+}
 /* 轮询方式探测card的插拔 */
 static int mmc_spi_get_cd(struct device *dev)
 {
@@ -967,6 +972,7 @@ static struct mmc_spi_platform_data mmc_spi __maybe_unused = {
 //	.exit = ls1b_mmc_spi_exit,
 //	.detect_delay = 1200,	/* msecs */
 	/* 轮询方式方式探测card的插拔 */
+	.get_ro = mmc_spi_get_ro,
 	.get_cd = mmc_spi_get_cd,
 	.caps = MMC_CAP_NEEDS_POLL,
 };	
