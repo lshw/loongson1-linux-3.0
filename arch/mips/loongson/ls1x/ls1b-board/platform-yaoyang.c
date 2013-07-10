@@ -575,6 +575,11 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		.platform_data = &ls1x_i2c_pca9555_platdata,
 	},
 #endif
+#ifdef CONFIG_SENSORS_MCP3021
+	{
+		I2C_BOARD_INFO("mcp3021", 0x4d),
+	},
+#endif
 };
 
 static struct resource ls1x_i2c0_resource[] = {
