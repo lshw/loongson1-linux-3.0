@@ -1165,35 +1165,16 @@ static struct spi_board_info spi0_gpio_devices[] = {
 
 #if defined(CONFIG_LS1B_SPI1) /* SPI1 控制器 */
 static struct spi_board_info ls1b_spi1_devices[] = {
+#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
-		.modalias		= "spidev",
+		.modalias		= "mmc_spi",
 		.bus_num 		= 1,
-		.chip_select	= SPI1_CS0,
+		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 25000000,
-		.mode = SPI_MODE_0,
+		.platform_data	= &mmc_spi,
+		.mode = SPI_MODE_3,
 	},
-	{
-		.modalias		= "spidev",
-		.bus_num 		= 1,
-		.chip_select	= SPI1_CS1,
-		.max_speed_hz	= 25000000,
-		.mode = SPI_MODE_0,
-	},
-	{
-		.modalias		= "spidev",
-		.bus_num 		= 1,
-		.chip_select	= SPI1_CS2,
-		.max_speed_hz	= 25000000,
-		.mode = SPI_MODE_0,
-	},
-/*#if defined(CONFIG_EASY_DAB_AUDIO)
-	{	
-		.modalias		= "easy_dab",
-		.bus_num 		= 1,
-		.chip_select	= SPI1_CS1,
-		.max_speed_hz	= 10000000,
-	},
-#endif*/
+#endif
 };
 
 static struct resource ls1b_spi1_resource[] = {
@@ -1213,7 +1194,7 @@ static struct ls1b_spi_info ls1b_spi1_platdata = {
 	.board_size = ARRAY_SIZE(ls1b_spi1_devices),
 	.board_info = ls1b_spi1_devices,
 	.bus_num	= 1,
-	.num_cs		= 3,
+	.num_cs		= 1,
 };
 
 static struct platform_device ls1b_spi1_device = {

@@ -13,6 +13,7 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <linux/gpio.h>
+#include <linux/slab.h>
 #include <linux/dma-mapping.h>
 #include <linux/miscdevice.h>
 #include <asm/dma.h>
