@@ -13,7 +13,6 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <linux/gpio.h>
-#include <linux/slab.h>
 #include <linux/dma-mapping.h>
 #include <linux/miscdevice.h>
 #include <asm/dma.h>
@@ -24,6 +23,7 @@
 #include <media/ls1b_camera.h>
 #include "gc0307.h"
 
+#define LS1B_CAMERA_MINOR 251
 #define GC0307_DRIVER_NAME	"gc0307"
 
 #define SENSOR_WIDTH	320
@@ -60,7 +60,7 @@ static void __iomem *ls1b_nand_base;
 
 /* NAND_TIMING寄存器定义 */
 #define HOLD_CYCLE	0x00
-#define WAIT_CYCLE	0x09
+#define WAIT_CYCLE	0x0a
 
 #undef THERM_USE_PROC
 #ifdef THERM_USE_PROC
@@ -176,16 +176,14 @@ static int nand_setup(void)
 {
 	struct clk *clk;
 	int prescale;
-	int timeout = 200000;
+	int timeout = 2000;
 	u32 ret;
-	
+
 	clk = clk_get(NULL, "apb");
 	prescale = clk_get_rate(clk);
 	prescale = prescale / SENSOR_OSC_CLK;
 
 	writel(0, ls1b_nand_base + NAND_CMD);
-	writel(0, ls1b_nand_base + NAND_ADDR_L);
-	writel(0, ls1b_nand_base + NAND_ADDR_H);
 //	writel((HOLD_CYCLE << 8) | prescale, ls1b_nand_base + NAND_TIMING);
 	writel((HOLD_CYCLE << 8) | WAIT_CYCLE, ls1b_nand_base + NAND_TIMING);
 	writel(SENSOR_WIDTH, ls1b_nand_base + NAND_OPNUM);
@@ -196,31 +194,36 @@ static int nand_setup(void)
 	writel(0x00000041, ls1b_nand_base + NAND_CMD);
 	do {
 		ret = readl(ls1b_nand_base + NAND_CMD);
-		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
+//		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
 	} while (((ret & 0x400) != 0x400) && (timeout-- > 0));
 	if (timeout == 0) {
 		return -1;
 	}
 
+	writel(0x1f000000, ls1b_nand_base + NAND_ADDR_L);
+	writel(0x00000008, ls1b_nand_base + NAND_ADDR_H);	/* 设置访问NAND Falsh的地址，目的是使片选CS0无效 */
+	writel(0x00000100, ls1b_nand_base + NAND_PARAM);	/* 设置外部颗粒大小，目的是使片选CS0无效 */
+	writel(0x18141211, ls1b_nand_base + NAND_CS_RDY);	/* 重映射rdy1/2/3信号到rdy0 rdy用于判断是否忙 */
+
 	/* read id */
-	timeout = 200000;
+	timeout = 2000;
 	writel(0x00000020, ls1b_nand_base + NAND_CMD);
 	writel(0x00000021, ls1b_nand_base + NAND_CMD);
 	do {
 		ret = readl(ls1b_nand_base + NAND_CMD);
-		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
+//		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
 	} while (((ret & 0x400) != 0x400) && (timeout-- > 0));
 	if (timeout == 0) {
 		return -1;
 	}
 
 	/* read state */
-	timeout = 200000;
+	timeout = 2000;
 	writel(0x00000080, ls1b_nand_base + NAND_CMD);
 	writel(0x00000081, ls1b_nand_base + NAND_CMD);
 	do {
 		ret = readl(ls1b_nand_base + NAND_CMD);
-		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
+//		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
 	} while (((ret & 0x400) != 0x400) && (timeout-- > 0));
 	if (timeout == 0) {
 		return -1;
@@ -229,7 +232,7 @@ static int nand_setup(void)
 	return 0;
 }
 
-static void fp_capture(struct i2c_client *client)
+static int fp_capture(struct i2c_client *client)
 {
 	struct ls1b_camera_platform_data *pdata = client->dev.platform_data;
 	struct ls1b_camera_info *info = i2c_get_clientdata(client);
@@ -238,6 +241,22 @@ static void fp_capture(struct i2c_client *client)
 	int ret, ret1;
 	int timeout = 2000000;
 
+	/* 判断vsync信号是否是一帧的开始 gc0307为低电平有效 */
+	while (timeout--) {
+		ret = gpio_get_value(pdata->vsync);
+		if (ret) {
+			udelay(10);
+			ret = gpio_get_value(pdata->vsync);
+			if (!ret) {
+				break;
+			}
+		}
+	}
+	if (timeout == 0) {
+		dev_err(&client->dev, "vsync timeout\n");
+		return -1;
+	}
+#if 0
 	do {
 		ret = gpio_get_value(pdata->vsync);
 		udelay(5);
@@ -252,9 +271,10 @@ static void fp_capture(struct i2c_client *client)
 		ret = gpio_get_value(pdata->vsync);
 		udelay(5);
 	} while (ret/* && (timeout-- > 0)*/);
-
+#endif
+	/* 采样一帧信号 */
 	while (height_counter > 0) {
-		timeout = 2000000;
+//		timeout = 2000000;
 		do {
 			ret = gpio_get_value(pdata->hsync);
 			ret1 = gpio_get_value(pdata->vsync);
@@ -270,18 +290,19 @@ static void fp_capture(struct i2c_client *client)
 			while (readl(order_addr_in) & 0x4) {
 			}
 		}
-
 		dma_disable_trans(info);*/
+
 		dma_setup(info, 0);
+
 		do {
 			ret = gpio_get_value(pdata->hsync);
 			ret1 = gpio_get_value(pdata->vsync);
 			udelay(2);
 		} while ((!ret) && (!ret1)/* && (timeout-- > 0)*/);
 
-		writel(width_counter, ls1b_nand_base + NAND_ADDR_L);
-		writel(0x00002102, ls1b_nand_base + NAND_CMD);
-		writel(0x00002103, ls1b_nand_base + NAND_CMD);
+		/* 使能nand flash读 */
+		writel(0x00000102, ls1b_nand_base + NAND_CMD);
+		writel(0x00000103, ls1b_nand_base + NAND_CMD);
 
 		writel(info->data_buff_phys + width_counter, info->dma_desc_addr + DMA_SADDR);
 		writel(0x00000001, info->dma_desc_addr + DMA_CMD);
@@ -301,6 +322,8 @@ static void fp_capture(struct i2c_client *client)
 		width_counter += SENSOR_WIDTH;
 		height_counter--;
 	}
+
+	return 0;
 }
 
 static irqreturn_t camera_ts_interrupt(int irq, void *id)
@@ -343,7 +366,7 @@ static int ls1b_camera_init(struct i2c_client *client)
 	struct ls1b_camera_platform_data *pdata = client->dev.platform_data;
 	int err = -EINVAL;
 
-	err = gpio_request(pdata->bl, "ls1b_camera_bl");
+/*	err = gpio_request(pdata->bl, "ls1b_camera_bl");
 	if (err) {
 		dev_err(&client->dev,
 			"failed to request GPIO%d for BL\n", pdata->bl);
@@ -357,7 +380,7 @@ static int ls1b_camera_init(struct i2c_client *client)
 			"failed to request GPIO%d for TS\n", pdata->ts);
 		goto err_free_ts;
 	}
-	gpio_direction_input(pdata->ts);
+	gpio_direction_input(pdata->ts);*/
 
 	err = gpio_request(pdata->hsync, "ls1b_camera_hsync");
 	if (err) {
@@ -414,17 +437,17 @@ static int ls1b_camera_init(struct i2c_client *client)
 	return 0;
 
 err_vsync_int:
-	free_irq(gpio_to_irq(pdata->hsync), pdata);
+//	free_irq(gpio_to_irq(pdata->hsync), pdata);
 err_hsync_int:
-	free_irq(gpio_to_irq(pdata->ts), pdata);
+//	free_irq(gpio_to_irq(pdata->ts), pdata);
 err_ts_int:
 	gpio_free(pdata->vsync);
 err_free_vsync:
 	gpio_free(pdata->hsync);
 err_free_hsync:
-	gpio_free(pdata->ts);
+//	gpio_free(pdata->ts);
 err_free_ts:
-	gpio_free(pdata->bl);
+//	gpio_free(pdata->bl);
 err_free_bl:
 	return err;
 }
@@ -510,12 +533,12 @@ static int ls1b_camera_remove(struct i2c_client *client)
 	struct ls1b_camera_platform_data *pdata = client->dev.platform_data;
 	struct ls1b_camera_info *info = i2c_get_clientdata(client);
 
-	free_irq(gpio_to_irq(pdata->hsync), pdata);
-	free_irq(gpio_to_irq(pdata->ts), pdata);
+//	free_irq(gpio_to_irq(pdata->hsync), pdata);
+//	free_irq(gpio_to_irq(pdata->ts), pdata);
 	gpio_free(pdata->vsync);
 	gpio_free(pdata->hsync);
-	gpio_free(pdata->ts);
-	gpio_free(pdata->bl);
+//	gpio_free(pdata->ts);
+//	gpio_free(pdata->bl);
 
 	iounmap(ls1b_nand_base);
 	iounmap(order_addr_in);
@@ -568,8 +591,8 @@ ls1b_camera_read(struct file *file, char __user *buf, size_t count, loff_t *ptr)
 		return -EFAULT;
 	}
 	else {
-		*ptr += len;
-		printk(KERN_INFO "read %d bytes(s) from %ld\n", len, offset);
+//		*ptr += len;
+//		printk(KERN_INFO "read %d bytes(s) from %ld\n", len, offset);
 		return len;
 	}
 }
@@ -589,9 +612,9 @@ static const struct file_operations ls1b_camera_fops = {
 };
 
 static struct miscdevice ls1b_camera_miscdev = {
-	TEMP_MINOR,
-	"ls1b_camera",
-	&ls1b_camera_fops
+	.minor = LS1B_CAMERA_MINOR,
+	.name = "ls1b_camera",
+	.fops = &ls1b_camera_fops,
 };
 
 static __init int init_ls1b_camera(void)

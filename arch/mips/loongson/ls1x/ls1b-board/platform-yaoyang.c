@@ -369,8 +369,8 @@ static struct gc0308_platform_data gc0308_plat = {
 #ifdef CONFIG_SOC_CAMERA_LS1B
 #include <media/ls1b_camera.h>
 static struct ls1b_camera_platform_data gc0307_plat = {
-	.bl = 57,
-	.ts = 56,
+//	.bl = 57,
+//	.ts = 56,
 	.hsync = 58,
 	.vsync = 59,
 };
@@ -410,7 +410,7 @@ struct gpio_led pcf8574_gpio_leds[] = {
 		.gpio			= LOCKER_BL,
 		.active_low		= 0,
 		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
 	},{
 		.name			= "SHUTDOWN",
 		.gpio			= SHUTDOWN,
