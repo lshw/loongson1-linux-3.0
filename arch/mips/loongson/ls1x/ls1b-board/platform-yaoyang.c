@@ -1667,6 +1667,44 @@ static struct platform_device ls1x_sja1000_1 = {
 #endif //#ifdef CONFIG_LS1X_CAN1
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
+#ifdef CONFIG_USB_CH372
+#include <linux/ch372.h>
+#define CH372_GPIO_IRQ 60
+static void ch372_irq_init(void)
+{
+	gpio_request(CH372_GPIO_IRQ, "ch372 gpio irq");
+	gpio_direction_input(CH372_GPIO_IRQ);
+}
+
+static struct ch372_platform_data ch372_pdata = {
+	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
+//	.gpios_res = 17,
+	.gpios_cs = 50,
+	.gpios_dc = 51,
+	.gpios_rd = 52,
+	.gpios_wr = 53,
+	
+	.gpios_d0 = 42,
+	.gpios_d1 = 43,
+	.gpios_d2 = 44,
+	.gpios_d3 = 45,
+	.gpios_d4 = 46,
+	.gpios_d5 = 47,
+	.gpios_d6 = 48,
+	.gpios_d7 = 49,
+	.datas_offset = 8,
+	.irq = LS1X_GPIO_FIRST_IRQ + CH372_GPIO_IRQ,
+};
+
+struct platform_device ch372_usb_device = {
+	.name	= "ch372_usb",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &ch372_pdata,
+	},
+};
+#endif //#ifdef CONFIG_USB_CH372
+
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
@@ -1796,6 +1834,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_BACKLIGHT_PWM
 	&ls1x_pwm_backlight,
 #endif
+#ifdef CONFIG_USB_CH372
+	&ch372_usb_device,
+#endif
 };
 
 int __init ls1b_platform_init(void)
@@ -1893,6 +1934,9 @@ int __init ls1b_platform_init(void)
 #endif
 #ifdef CONFIG_LCD_PLATFORM
 	gpio_request(GPIO_BACKLIGHT_CTRL, "lcd_enable");
+#endif
+#ifdef CONFIG_USB_CH372
+	ch372_irq_init();
 #endif
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }

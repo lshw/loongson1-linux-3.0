@@ -20,6 +20,13 @@ menuconfig MISC_DEVICES
 
 if MISC_DEVICES
 
+config USB_CH372
+	tristate "ch372 usb device driver (EXPERIMENTAL)"
+	depends on EXPERIMENTAL
+	default n
+	help
+	 transport data with ep1 and ep2
+
 config EASY_DAB_AUDIO
 	tristate "easynetting spi dab autio supported"
 	depends on SPI
