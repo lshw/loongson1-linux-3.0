@@ -47,6 +47,8 @@
 #include <spi.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
+#include <media/soc_camera.h>                                                                                                           
+#include <media/soc_camera_platform.h> 
 
 #ifdef CONFIG_MTD_NAND_LS1X
 struct ls1b_nand_platform_data{
@@ -1316,6 +1318,77 @@ static struct platform_device ls1c_otg_device = {
 };
 #endif
 
+#ifdef	CONFIG_SOC_CAMERA_LS1C
+#ifdef CONFIG_SOC_CAMERA_GC0308
+static struct i2c_board_info gc0308_i2c_camera = {
+	I2C_BOARD_INFO("GC0308", 0x42 >> 1),
+};
+
+static struct soc_camera_link gc0308_link = {
+	.bus_id         = 0,
+	.i2c_adapter_id = 0,
+	.board_info     = &gc0308_i2c_camera,
+//	.power          = ls1c_camera_power,
+//	.reset          = ls1c_camera_reset,
+};
+#endif
+
+#ifdef CONFIG_SOC_CAMERA_S5K5CA
+static struct i2c_board_info s5k5ca_i2c_camera = {
+	I2C_BOARD_INFO("S5K5CA", 0x78 >> 1),
+};
+
+static struct soc_camera_link s5k5ca_link = {
+	.bus_id         = 0,
+	.i2c_adapter_id = 0,
+	.board_info     = &s5k5ca_i2c_camera,
+//	.power          = ls1c_camera_power,
+//	.reset          = ls1c_camera_reset,
+};
+#endif
+
+static struct platform_device ls1c_camera = {
+//	{
+		.name	= "soc-camera-pdrv",
+		.id	= 0,
+		.dev	= {
+#ifdef CONFIG_SOC_CAMERA_S5K5CA
+			.platform_data = &s5k5ca_link,
+#endif
+
+#ifdef CONFIG_SOC_CAMERA_GC0308
+			.platform_data = &gc0308_link,
+#endif
+		},
+};
+
+static struct resource ls1c_camera_resources[] = {
+	{
+		.start   = LS1C_CAMERA_BASE,
+		.end     = LS1C_CAMERA_BASE + 0x38 - 1,
+		.flags   = IORESOURCE_MEM,
+	}, {
+		.start   = LS1X_CAM_IRQ,
+		.end     = LS1X_CAM_IRQ,
+		.flags   = IORESOURCE_IRQ,
+	},
+};
+
+static struct ls1c_camera_pdata ls1c_camera_platform_data = {
+	.mclk_24MHz = 24000000,
+};
+
+static struct platform_device ls1c_camera_host = {
+	.name	= "ls1c-camera",
+	.id		= 0,
+	.dev	= {
+		.platform_data = &ls1c_camera_platform_data,
+	},
+	.resource		= ls1c_camera_resources,
+	.num_resources	= ARRAY_SIZE(ls1c_camera_resources),
+};
+#endif	//End of CONFIG_SOC_CAMERA_LS1C
+
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
@@ -1371,10 +1444,18 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_rtc_device,
 #endif
 
+#ifdef	CONFIG_SOC_CAMERA_LS1C
+	&ls1c_camera,
+#endif
+
 #ifdef CONFIG_I2C_LS1X
 	&ls1x_i2c0_device,
 	&ls1x_i2c1_device,
 	&ls1x_i2c2_device,
+#endif
+
+#ifdef	CONFIG_SOC_CAMERA_LS1C
+	&ls1c_camera_host,
 #endif
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED

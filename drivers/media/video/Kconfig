@@ -782,6 +782,25 @@ config SOC_CAMERA
 	  over a bus like PCI or USB. For example some i2c camera connected
 	  directly to the data bus of an SoC.
 
+config SOC_CAMERA_LS1C
+	tristate "ls1c_soc camera controller support"
+	depends on SOC_CAMERA && I2C
+	select VIDEOBUF_DMA_CONTIG
+	help
+	  This driver supports cameras from ls1c.
+
+config SOC_CAMERA_GC0308
+	tristate "GC0308 camera support for ls1c."
+	depends on SOC_CAMERA_LS1C
+	help
+	  This is a GC0308 camera driver
+
+config SOC_CAMERA_S5K5CA
+	tristate "S5K5CA camera support for ls1c."
+	depends on SOC_CAMERA_LS1C
+	help
+	  This is a S5K5CA camera driver
+
 config SOC_CAMERA_IMX074
 	tristate "imx074 support"
 	depends on SOC_CAMERA && I2C

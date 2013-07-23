@@ -125,6 +125,9 @@
 /* PCI */
 #define LS1B_BOARD_PCI_REGS_BASE		 0x1f002000
 
+/* CAMERA */
+#define LS1C_CAMERA_BASE                0x1c280000
+
 #include <regs-clk.h>
 #include <regs-mux.h>
 #include <regs-gpio.h>
@@ -133,6 +136,11 @@ struct ls1b_usbh_data {
     u8      ports;      /* number of ports on root hub */
     u8      vbus_pin[]; /* port power-control pin */
 }; 
+
+struct ls1c_camera_pdata {                                                                                                              
+        unsigned long mclk_24MHz;                                                                                                       
+        unsigned long flags;                                                                                                            
+};
 
 #if defined(CONFIG_LS1C_MACH)
 #define	LS1X_OTG_BASE			0x1fe00000

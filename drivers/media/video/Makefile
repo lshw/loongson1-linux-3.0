@@ -71,6 +71,8 @@ obj-$(CONFIG_VIDEO_SR030PC30)	+= sr030pc30.o
 obj-$(CONFIG_VIDEO_NOON010PC30)	+= noon010pc30.o
 obj-$(CONFIG_VIDEO_M5MOLS)	+= m5mols/
 obj-$(CONFIG_VIDEO_GC0308)		+= gc0308.o	#lxy
+obj-$(CONFIG_SOC_CAMERA_GC0308)	+= ls1c_gc0308.o	#lxy
+obj-$(CONFIG_SOC_CAMERA_S5K5CA)	+= ls1c_s5k5ca.o  #cys
 
 obj-$(CONFIG_SOC_CAMERA_IMX074)		+= imx074.o
 obj-$(CONFIG_SOC_CAMERA_MT9M001)	+= mt9m001.o
