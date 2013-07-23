@@ -23,8 +23,18 @@ config SOUND_VWSND
 	  capabilities.
 
 config SOUND_LS1X_AC97
-	tristate "Loongson1 AC97 Sound"
-	depends on CPU_LOONGSON1A || CPU_LOONGSON1B
+	tristate "Loongson1 Sound"
+	depends on CPU_LOONGSON1A || CPU_LOONGSON1B || CPU_LOONGSON1C
+
+choice 
+	prompt "sound card bus select"
+	depends on SOUND_LS1X_AC97
+
+config LS1C_AC97_BUS
+	bool "ac97 bus"
+config LS1C_IIS_BUS
+	bool "iis bus"
+endchoice
 
 config SOUND_MSNDCLAS
 	tristate "Support for Turtle Beach MultiSound Classic, Tahiti, Monterey"

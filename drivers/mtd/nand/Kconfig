@@ -525,10 +525,10 @@ config MTD_NAND_JZ4740
 		Enables support for NAND Flash on JZ4740 SoC based boards.
 
 config MTD_NAND_LS1X
-	tristate "NAND Flash device on loongson-1a/1b"
-	depends on MTD_NAND && (LS1B_MACH || LS1A_MACH)
+	tristate "NAND Flash device on loongson-1a/1b/1c"
+	depends on MTD_NAND && (LS1B_MACH || LS1A_MACH || LS1C_MACH)
 	help
-	  The loongson-1a/1b BOARD NAND FLASH controller.
+	  The loongson-1a/1b/1c BOARD NAND FLASH controller.
 
 choice
 	prompt "Multiplexing selection for LS1A"

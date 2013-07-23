@@ -588,9 +588,15 @@ struct platform_device ls1x_gmac0_phy = {
 #ifdef CONFIG_SOUND_LS1X_AC97
 static struct resource ls1x_ac97_resource[] = {
 	[0]={
-		.start	= LS1X_AC97_BASE,
-		.end	= LS1X_AC97_BASE + SZ_16K - 1,
+#ifdef CONFIG_LS1B_MACH
+		.start	= LS1B_AC97_BASE,
+		.end	= LS1B_AC97_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
+#elif CONFIG_LS1C_MACH
+		.start	= LS1C_AC97_BASE,
+		.end	= LS1C_AC97_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+#endif
 	},
 };
 
