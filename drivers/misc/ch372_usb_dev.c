@@ -27,12 +27,13 @@ MODULE_AUTHOR("Tang Hai <tanghaifeng-gz@loongson.cn>");
 MODULE_ALIAS("platform:ch372_usb");
 
 #define CH372_MINOR 250
-#define EPDATA_LEN_MAX 65
+#define EPDATA_LEN_MAX 64
 
 struct ch372_platform_data *pdata;
 void __iomem *reg_addr;
 struct completion com;
-int flag = 0;
+int rx_flag = 0;
+int tx_flag = 0;
 
 static unsigned char tx_buf[EPDATA_LEN_MAX] = {};
 static unsigned char rx_buf[EPDATA_LEN_MAX] = {};
@@ -145,7 +146,7 @@ static u8 ch372_rd_dat(void)
 	gpio_direction_output(pdata->gpios_d6, 1);
 	gpio_direction_output(pdata->gpios_d7, 1);
 
-	return val & 0xFF;
+	return val;
 }
 
 static int init_controller(void)
@@ -220,17 +221,10 @@ static void out_ep_fifo_handler(void)
 		*tmp = ch372_rd_dat();
 		tmp++;
 	}
-	printk("+++++  %x\n", length);
-	tmp = rx_buf;
-	for (i = 0; i < 64; i += 1) {
-		printk("%x ", *(tmp+i));
-	}
-	printk("\n");
 }
 
 static irqreturn_t ch372_irq(int irq, void *_ch372)
 {
-//	struct ch372 *ch372 = _ch372;
 	u8 interrupt_status;
 
 	ch372_wr_cmd(CH372_GET_STATUS);
@@ -238,36 +232,31 @@ static irqreturn_t ch372_irq(int irq, void *_ch372)
 
 	switch (interrupt_status) {
 		case USB_INT_EP1_OUT:
-			printk(KERN_INFO ">> ch372_ep1out\n");
 			ch372_wr_cmd(CH372_UNLOCK_USB);
 		break;
 		case USB_INT_EP1_IN:
-			printk(KERN_INFO ">> ch372_ep1in\n");
 			ch372_wr_cmd(CH372_UNLOCK_USB);
 		break;
 		case USB_INT_EP2_OUT:
-			printk(KERN_INFO ">> ch372_ep2out\n");
-			out_ep_fifo_handler();
-			if (flag) {
+			if (rx_flag) {
+				out_ep_fifo_handler();
 				complete(&com);
 			}
+			ch372_wr_cmd(CH372_UNLOCK_USB);
 		break;
 		case USB_INT_EP2_IN:
-			printk(KERN_INFO ">> ch372_ep2in\n");
 			ch372_wr_cmd(CH372_UNLOCK_USB);
-			if (flag) {
+			if (tx_flag) {
 				complete(&com);
 			}
-//			in_ep_fifo_handler(ch372->ep[2]);
 		break;
 		case USB_INT_USB_SUSPEND:
-			printk(KERN_INFO ">> ch372_suspend\n");
+			printk(KERN_INFO "ch372_suspend\n");
 		break;
 		case USB_INT_WAKE_UP:
-			printk(KERN_INFO ">> ch372_wakeup\n");
+			printk(KERN_INFO "ch372_wakeup\n");
 		break;
 		default:
-			printk(KERN_INFO "........ ch372_default\n");
 			ch372_wr_cmd(CH372_UNLOCK_USB);
 		break;
 	}
@@ -277,17 +266,7 @@ static irqreturn_t ch372_irq(int irq, void *_ch372)
 
 static int __init ch372_probe(struct platform_device *pdev)
 {
-//	struct ch372 *ch372 = NULL;
-//	struct ch372_ep *_ep[CH372_MAX_NUM_EP];
 	int ret = 0;
-//	int i;
-
-	/* initialize udc */
-//	ch372 = kzalloc(sizeof(struct ch372), GFP_KERNEL);
-//	if (ch372 == NULL) {
-//		pr_err("kzalloc error\n");
-//		goto clean_up;
-//	}
 
 	pdata = pdev->dev.platform_data;
 	if (!pdata) {
@@ -308,19 +287,30 @@ static int __init ch372_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	init_controller();
+	ret = init_controller();
 
-	return 0;
+	return ret;
 }
 
 static int __exit ch372_remove(struct platform_device *pdev)
 {
 //	struct ch372 *ch372 = dev_get_drvdata(&pdev->dev);
 
-//	iounmap(ch372->reg);
 	free_irq(platform_get_irq(pdev, 0), NULL);
 
-//	kfree(ch372);
+	gpio_free(pdata->gpios_cs);
+	gpio_free(pdata->gpios_dc);
+	gpio_free(pdata->gpios_rd);
+	gpio_free(pdata->gpios_wr);
+
+	gpio_free(pdata->gpios_d0);
+	gpio_free(pdata->gpios_d1);
+	gpio_free(pdata->gpios_d2);
+	gpio_free(pdata->gpios_d3);
+	gpio_free(pdata->gpios_d4);
+	gpio_free(pdata->gpios_d5);
+	gpio_free(pdata->gpios_d6);
+	gpio_free(pdata->gpios_d7);
 
 	return 0;
 }
@@ -352,22 +342,23 @@ ch372_dev_read(struct file *filep, char __user *buf, size_t count, loff_t *ptr)
 	}
 
 	init_completion(&com);
-	flag = 1;
+	rx_flag = 1;
 
-/*	if (!wait_for_completion_timeout(&com, 5 * HZ)) {
-		flag = 0;
-		printk(KERN_INFO "TX: timeout");
+	if (!wait_for_completion_timeout(&com, 2 * HZ)) {
+		rx_flag = 0;
+		printk(KERN_INFO "RX: timeout");
 		return -EFAULT;
-	}*/
+	}
 
-	wait_for_completion(&com);
+//	wait_for_completion(&com);
+	rx_flag = 0;
 	
 	if (copy_to_user(buf, (void *)(rx_buf + offset), len)) {
 		return -EFAULT;
 	}
 	else {
 //		*ptr += len;
-		printk(KERN_INFO "read %d bytes(s) from %ld\n", len, offset);
+//		printk(KERN_INFO "read %d bytes(s) from %ld\n", len, offset);
 		return len;
 	}
 }
@@ -387,7 +378,7 @@ static ssize_t ch372_dev_write(struct file *filep, const char __user *buf,
 	}
 
 	init_completion(&com);
-	flag = 1;
+	tx_flag = 1;
 
 	if (copy_from_user((void *)(tx_buf + offset), buf, len)) {
 		return -EFAULT;
@@ -399,14 +390,15 @@ static ssize_t ch372_dev_write(struct file *filep, const char __user *buf,
 			ch372_wr_dat(*(tx_buf + offset + i));
 		}
 //		*ptr += len;
-		printk(KERN_INFO "write %d bytes(s) to %ld\n", len, offset);
 	}
 
-	if (!wait_for_completion_timeout(&com, 5 * HZ)) {
-		flag = 0;
+	if (!wait_for_completion_timeout(&com, 2 * HZ)) {
+		tx_flag = 0;
 		printk(KERN_INFO "TX: timeout");
 		return -EFAULT;
 	}
+	tx_flag = 0;
+//	printk(KERN_INFO "write %d bytes(s) to %ld\n", len, offset);
 
 	return len;
 }
