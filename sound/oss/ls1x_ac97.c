@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2013 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
+ *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the
  *  Free Software Foundation;  either version 2 of the License, or (at your
@@ -29,13 +31,9 @@
 #include "ls1x_ac97.h"
 #include <irq.h>
 #include <ls1b_board.h>
-///#define	CONFIG_SND_SB2F_TIMER	1
 
-void __iomem *order_addr_in;
+static void __iomem *order_addr_in;
 static int codec_reset = 1;
-
-static irqreturn_t ac97_dma_write_intr(int irq, void *private);
-static irqreturn_t ac97_dma_read_intr(int irq, void *private);
 
 struct dma_desc {
 	u32 ordered;
@@ -93,68 +91,6 @@ static struct audio_stream output_stream = {
 	fragsize:0x10000,
 };
 
-unsigned short reg1[7] = {
-        //    0x1c02,
-        //    0x1a02,
-        0x1402,
-        //    0x1402,
-        //    0x1002,
-        //    0x1202,
-        0x0014,
-        //    0x0010,
-        //    0xc003,
-        //    0xff63,
-        //    0xff00,
-        0xff03,
-        //    0xfc00,
-        //    0xcf83,
-        0x0000,
-        0x0000,
-        0x0030,
-        0x0030,
-        //    0x0230,
-        //    0x0230,
-        //    0x0830,
-        //    0x0830,
-};
-
-#define uda_address     /*0x1fe70000	*/	0x34
-
-#define uda_dev_addr    0x34
-
-#define uda1342_base    0xbfe60000
-#define DMA_BUF 0x00800000
-
-#define IISVERSION  (volatile unsigned int *)(uda1342_base + 0x0)
-#define IISCONFIG   (volatile unsigned int *)(uda1342_base + 0x4)
-#define IISSTATE  (volatile unsigned int *)(uda1342_base + 0x8)
-
-#define I2C_SINGLE 0 
-#define I2C_BLOCK 1
-#define I2C_SMB_BLOCK 2
-#define I2C_HW_SINGLE 3 //lxy 
-
-#define GS_SOC_I2C_BASE    0xbfe58000           //0x1fe58000
-//#define GS_SOC_I2C_BASE    0xbfe70000 //IIC2's base.
-#define GS_SOC_I2C_PRER_LO (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x0)
-#define GS_SOC_I2C_PRER_HI (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x1)
-#define GS_SOC_I2C_CTR     (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x2)
-#define GS_SOC_I2C_TXR     (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x3)
-#define GS_SOC_I2C_RXR     (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x3)
-#define GS_SOC_I2C_CR      (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x4)
-#define GS_SOC_I2C_SR      (volatile unsigned char *)(GS_SOC_I2C_BASE + 0x4)
-
-#define CR_START 0x80
-#define CR_WRITE 0x10
-#define SR_NOACK 0x80
-#define CR_STOP  0x40
-#define SR_BUSY  0x40 
-#define CR_START 0x80
-#define SR_TIP   0x2
-
-#define CR_READ  0x20
-#define I2C_WACK 0x8
-
 enum {
 	STOP = 0,
 	RUN = 1
@@ -191,22 +127,190 @@ static struct ls1x_audio_state {
 	struct semaphore sem;
 } ls1x_audio_state;
 
+static u16 ls1x_codec_read(struct ac97_codec *codec, volatile u8 reg)
+{
+	struct ls1x_audio_state *state = (struct ls1x_audio_state *)codec->private_data;
+	int i = 1000;
+	u32 data = 0;
+	
+	data |= CODEC_WR;
+	data |= ((u32)reg << CODEC_ADR_OFFSET);
+	writel(data, state->base + CRAC);
+
+	/* now wait for the data */
+	while (i-- > 0) {
+		if ((readl(state->base + INTRAW) & CR_DONE) != 0)
+			break;
+		udelay(500);
+	}
+	if (i > 0) {
+		readl(state->base + INT_CRCLR);
+		return readl(state->base + CRAC) & 0xffff;
+	}
+	printk("AC97 command read timeout\n");
+	return 0;
+}
+
+static void ls1x_codec_write(struct ac97_codec *codec, u8 reg, u16 val)
+{
+	struct ls1x_audio_state *state = (struct ls1x_audio_state *)codec->private_data;
+	int i = 1000;
+	u32 data = 0;
+	
+	data &= ~(CODEC_WR);
+	data |= ((u32)reg << CODEC_ADR_OFFSET) | ((u32)val << CODEC_DAT_OFFSET);
+	writel(data, state->base + CRAC);
+
+	while (i-- > 0) {
+		if ((readl(state->base + INTRAW) & CW_DONE) != 0)
+			break;
+		udelay(500);
+	}
+	if (i > 0) {
+		readl(state->base + INT_CWCLR);
+	}
+}
+
+static void set_adc_rate(struct ls1x_audio_state *state, unsigned rate)
+{
+	struct audio_stream *adc = state->input_stream;
+	struct audio_stream *dac = state->output_stream;
+	unsigned adc_rate, dac_rate;
+	u16 ac97_extstat;
+
+	if (state->no_vra) {
+		adc->sample_rate = 48000;
+		return;
+	}
+
+	ac97_extstat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
+
+	rate = rate > 48000 ? 48000 : rate;
+
+	/* enable VRA
+	*/
+	ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
+		ac97_extstat | AC97_EXTSTAT_VRA);
+
+	/* now write the sample rate
+	*/
+	ls1x_codec_write(state->codec, AC97_PCM_LR_ADC_RATE, (u16) rate);
+
+	/* read it back for actual supported rate
+	*/
+	adc_rate = ls1x_codec_read(state->codec, AC97_PCM_LR_ADC_RATE);
+
+	pr_debug("set_adc_rate: set to %d Hz\n", adc_rate);
+
+	/* some codec's don't allow unequal DAC and ADC rates, in which case
+	 * writing one rate reg actually changes both.
+	 */
+	dac_rate = ls1x_codec_read(state->codec, AC97_PCM_FRONT_DAC_RATE);
+	if (dac->num_channels > 2)
+		ls1x_codec_write(state->codec, AC97_PCM_SURR_DAC_RATE, dac_rate);
+	if (dac->num_channels > 4)
+		ls1x_codec_write(state->codec, AC97_PCM_LFE_DAC_RATE, dac_rate);
+
+	adc->sample_rate = adc_rate;
+	dac->sample_rate = dac_rate;
+}
+
+static void set_dac_rate(struct ls1x_audio_state *state, unsigned rate)
+{
+	struct audio_stream *adc = state->input_stream;
+	struct audio_stream *dac = state->output_stream;
+	unsigned adc_rate, dac_rate;
+	u16 ac97_extstat;
+
+	if (state->no_vra) {
+		dac->sample_rate = 48000;
+		return;
+	}
+
+	ac97_extstat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
+
+	rate = rate > 48000 ? 48000 : rate;
+
+	/* enable VRA
+	*/
+	ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
+		ac97_extstat | AC97_EXTSTAT_VRA);
+
+	/* now write the sample rate
+	*/
+	ls1x_codec_write(state->codec, AC97_PCM_FRONT_DAC_RATE, (u16) rate);
+
+	/* I don't support different sample rates for multichannel,
+	 * so make these channels the same.
+	 */
+	if (dac->num_channels > 2)
+		ls1x_codec_write(state->codec, AC97_PCM_SURR_DAC_RATE, (u16) rate);
+	if (dac->num_channels > 4)
+		ls1x_codec_write(state->codec, AC97_PCM_LFE_DAC_RATE, (u16) rate);
+	/* read it back for actual supported rate
+	*/
+	dac_rate = ls1x_codec_read(state->codec, AC97_PCM_FRONT_DAC_RATE);
+
+	pr_debug("set_dac_rate: set to %d Hz\n", dac_rate);
+
+	/* some codec's don't allow unequal DAC and ADC rates, in which case
+	 * writing one rate reg actually changes both.
+	 */
+	adc_rate = ls1x_codec_read(state->codec, AC97_PCM_LR_ADC_RATE);
+
+	dac->sample_rate = dac_rate;
+	adc->sample_rate = adc_rate;
+}
+
+static loff_t ls1x_llseek(struct file *file, loff_t offset, int origin)
+{
+	return -ESPIPE;
+}
+
+static int ls1x_open_mixdev(struct inode *inode, struct file *file)
+{
+	file->private_data = &ls1x_audio_state;
+	return 0;
+}
+
+static int ls1x_release_mixdev(struct inode *inode, struct file *file)
+{
+	return 0;
+}
+
+static long ls1x_ioctl_mixdev(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	struct ls1x_audio_state *state = (struct ls1x_audio_state *)file->private_data;
+	struct ac97_codec *codec = state->codec;
+
+	return codec->mixer_ioctl(codec, cmd, arg);
+}
+
+static struct file_operations ls1x_mixer_fops = {
+	.owner		= THIS_MODULE,
+	.llseek		= ls1x_llseek,
+//	.llseek		= no_llseek,
+	.unlocked_ioctl	= ls1x_ioctl_mixdev,
+	.open		= ls1x_open_mixdev,
+	.release	= ls1x_release_mixdev,
+};
+
 static void dma_enable_trans(struct audio_stream * s, struct audio_dma_desc *desc)
 {
 //	struct ls1x_audio_state *state = &ls1x_audio_state;
 	u32 val;
 	int timeout = 20000;
-	unsigned long flags;
+//	unsigned long flags;
 
 	val = desc->snd_dma_handle;
 	val |= s->output ? 0x9 : 0xa;
-	local_irq_save(flags);
+//	local_irq_save(flags);
 	writel(val, order_addr_in);
 //	while(readl(order_addr_in) & 0x8);
 	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
-		udelay(5);
+//		udelay(5);
 	}
-	local_irq_restore(flags);
+//	local_irq_restore(flags);
 //	writel(0xffffffff, state->base + INTM);
 #ifdef CONFIG_SND_SB2F_TIMER
 	mod_timer(&s->timer, jiffies + HZ/20);
@@ -235,15 +339,15 @@ void audio_clear_buf(struct audio_stream *s)
 
 static void inline link_dma_desc(struct audio_stream *s, struct audio_dma_desc *desc)
 {
-	spin_lock_irq(&s->lock);
+//	spin_lock_irq(&s->lock);
 
-	if(!list_empty(&s->run_list)) {
+	if (!list_empty(&s->run_list)) {
 		struct audio_dma_desc *desc0;
 		desc0 = list_entry(s->run_list.prev, struct audio_dma_desc, link);
 		desc0->snd.ordered = desc->snd_dma_handle | DMA_ORDERED_EN;
 		desc0->null.ordered = desc->snd_dma_handle | DMA_ORDERED_EN;
 		list_add_tail(&desc->link, &s->run_list);
-		if(s->state == STOP) {
+		if (s->state == STOP) {
 			s->state = RUN;
 			dma_enable_trans(s, desc0);
 		}
@@ -253,7 +357,7 @@ static void inline link_dma_desc(struct audio_stream *s, struct audio_dma_desc *
 		dma_enable_trans(s, desc);
 	}
 
-	spin_unlock_irq(&s->lock);
+//	spin_unlock_irq(&s->lock);
 }
 
 static void ls1x_init_dmadesc(struct audio_stream *s, struct audio_dma_desc *desc, u32 count)
@@ -261,7 +365,26 @@ static void ls1x_init_dmadesc(struct audio_stream *s, struct audio_dma_desc *des
 	struct dma_desc *_desc;
 	u32 control;
 
-	control = s->output ? 0x1fe60010 : 0x1fe6000c ;
+	control = s->output ? 0x0fe72420 : 0x0fe74c4c;
+
+	control |= (1<<31);
+	/*
+	* [30]-1 two channels
+	* [30]-0 one channel
+	*/
+	if (s->num_channels == 1)
+		control &= ~(1 << 30);
+	else
+		control |= (1 << 30);
+
+	/*
+	* [29:28]-00 --> byte
+	* [29:28]-01 --> half word(two bytes)
+	* [29:28]-10 --> word (four bytes)
+	*/
+	if (s->sample_size == AFMT_S16_LE) {
+		control |= (1 << 28);
+	}
 
 	desc->snd.daddr = desc->null.daddr = control;
 
@@ -319,7 +442,7 @@ int ls1x_setup_buf(struct audio_stream * s)
 	/* dma desc for ask_valid one per struct audio_stream */
 	s->ask_dma = dma_alloc_coherent(NULL, sizeof(struct dma_desc),
 			&dma_phyaddr, GFP_KERNEL);
-	if(!s->ask_dma) {
+	if (!s->ask_dma) {
 		printk(KERN_ERR "3. alloc dma desc err.\n");
 		goto err;
 	}
@@ -340,7 +463,6 @@ err:
 static void ls1x_audio_timeout(unsigned long data)
 {
 	struct audio_stream *s = (struct audio_stream *)data;
-
 	if (s->output)
 		ac97_dma_write_intr(0, s);
 	else
@@ -353,16 +475,16 @@ static irqreturn_t ac97_dma_read_intr(int irq, void *private)
 {
 	struct audio_stream *s = (struct audio_stream *)private;
 	struct audio_dma_desc *desc;
-	unsigned long flags;
+//	unsigned long flags;
 
 	if (list_empty(&s->run_list))
 		return IRQ_HANDLED;
 
-	local_irq_save(flags);
+//	local_irq_save(flags);
 	writel(s->ask_dma_handle | 0x6, order_addr_in);
 	while (readl(order_addr_in) & 4) {
 	}
-	local_irq_restore(flags);
+//	local_irq_restore(flags);
 
 	do {
 		desc = list_entry(s->run_list.next, struct audio_dma_desc, link);
@@ -373,7 +495,7 @@ static irqreturn_t ac97_dma_read_intr(int irq, void *private)
 		list_del(&desc->link);
 		list_add_tail(&desc->link, &s->done_list);
 //		spin_unlock(&s->lock);
-	} while(!list_empty(&s->run_list));
+	} while (!list_empty(&s->run_list));
 
 	if (!list_empty(&s->done_list))
 		wake_up(&s->frag_wq);
@@ -384,29 +506,30 @@ static irqreturn_t ac97_dma_write_intr(int irq, void *private)
 {
 	struct audio_stream *s = (struct audio_stream *)private;
 	struct audio_dma_desc *desc;
-	unsigned long flags;
-	
+//	unsigned long flags;
+
 	if (list_empty(&s->run_list))
 		return IRQ_HANDLED;
 
-	local_irq_save(flags);
+//	local_irq_save(flags);
 	writel(s->ask_dma_handle | 0x5, order_addr_in);
 	while (readl(order_addr_in) & 4) {
 	}
-	local_irq_restore(flags);
+//	local_irq_restore(flags);
 
 	do {
 		desc = list_entry(s->run_list.next, struct audio_dma_desc, link);
 		/*first desc's ordered may be null*/
-		if(s->ask_dma->ordered == desc->snd.ordered || s->ask_dma->ordered == 
+		if (s->ask_dma->ordered == desc->snd.ordered || s->ask_dma->ordered == 
 			((desc->snd_dma_handle + sizeof(struct dma_desc)) | DMA_ORDERED_EN))
 			break;
+
 //		spin_lock(&s->lock);
 		list_del(&desc->link);
 		desc->pos = 0;
 		list_add_tail(&desc->link, &s->free_list);
 //		spin_unlock(&s->lock);
-	} while(!list_empty(&s->run_list));
+	} while (!list_empty(&s->run_list));
 
 	if (!list_empty(&s->free_list))
 		wake_up(&s->frag_wq);
@@ -459,15 +582,16 @@ static int ls1x_audio_write(struct file *file, const char *buffer, size_t count,
 	}
 
 	while (count > 0) {
-		if(list_empty(&s->free_list)) {
-			if(file->f_flags & O_NONBLOCK)
+		if (list_empty(&s->free_list)) {
+			if (file->f_flags & O_NONBLOCK)
 				return -EAGAIN;
 
-			if(wait_event_interruptible(s->frag_wq, !list_empty(&s->free_list))) {
+			if (wait_event_interruptible(s->frag_wq, !list_empty(&s->free_list))) {
 				up(&s->sem);
 				return -ERESTARTSYS;
 			}
 		}
+
 		/* Fill data , if the ring is not full */
 		ret = fill_play_buffer(s, buffer, count);
 		count -= ret;
@@ -542,7 +666,7 @@ static int ls1x_audio_read(struct file *file, char *buffer, size_t count, loff_t
 				up(&s->sem);
 				return -EAGAIN;
 			}
-			if(wait_event_interruptible(s->frag_wq, !list_empty(&s->done_list))) {
+			if (wait_event_interruptible(s->frag_wq, !list_empty(&s->done_list))) {
 				up(&s->sem);
 				return -ERESTARTSYS;
 			}
@@ -565,6 +689,71 @@ static int ls1x_audio_read(struct file *file, char *buffer, size_t count, loff_t
 	return (buffer - buffer0);
 }
 
+static int ls1x_audio_sync(struct file *file)
+{
+	struct ls1x_audio_state *state = file->private_data;
+	struct audio_stream *is = state->input_stream;
+	struct audio_stream *os = state->output_stream; 
+
+	if (file->f_mode & FMODE_READ) {
+		if (is->state == STOP && !list_empty(&is->run_list)) {
+			struct audio_dma_desc *desc;
+			desc = list_entry(is->run_list.next, struct audio_dma_desc, link);
+			dma_enable_trans(is, desc);
+			is->state = RUN;
+		}
+
+		if (!list_empty(&is->run_list))
+			schedule_timeout(CONFIG_HZ*2);
+
+		/* stop write ac97 dma */
+		writel(0x12, order_addr_in);
+	}
+	if (file->f_mode & FMODE_WRITE) {
+		if (os->state == STOP && !list_empty(&os->run_list)) {
+			struct audio_dma_desc *desc;
+			desc = list_entry(os->run_list.next, struct audio_dma_desc, link);
+			dma_enable_trans(os, desc);
+			os->state = RUN;
+		}
+
+		if (!list_empty(&os->run_list))
+			schedule_timeout(CONFIG_HZ*2);
+
+		/* stop read ac97 dma */
+		writel(0x11, order_addr_in);
+	}
+
+	return 0;
+}
+
+static unsigned int ls1x_audio_poll(struct file *file, struct poll_table_struct *wait)
+{
+	struct ls1x_audio_state *state = file->private_data;
+	struct audio_stream *is = state->input_stream;
+	struct audio_stream *os = state->output_stream;
+	unsigned int mask = 0;
+
+	if (file->f_mode & FMODE_READ) {
+		if (!is->ask_dma && ls1x_setup_buf(is))
+			return -ENOMEM;
+		poll_wait(file, &is->frag_wq, wait);
+		if(!list_empty(&is->done_list)) {
+			mask |= POLLIN | POLLRDNORM;
+		}
+	}
+
+	if (file->f_mode & FMODE_WRITE) {
+		if (!os->ask_dma && ls1x_setup_buf(os))
+			return -ENOMEM;
+		poll_wait(file, &os->frag_wq, wait);
+		if(!list_empty(&os->free_list)) {
+			mask |= POLLOUT | POLLWRNORM;
+		}
+	}
+	return mask;
+}
+
 static long ls1x_audio_ioctl(struct file *file, uint cmd, ulong arg)
 {
 	struct ls1x_audio_state *state = file->private_data;
@@ -581,6 +770,9 @@ static long ls1x_audio_ioctl(struct file *file, uint cmd, ulong arg)
 	case OSS_GETVERSION:
 		return put_user(SOUND_VERSION, (int *) arg);
 
+	case SNDCTL_DSP_SYNC:
+		return ls1x_audio_sync(file);
+
 	case SNDCTL_DSP_SETDUPLEX:
 		return 0;
 
@@ -590,10 +782,52 @@ static long ls1x_audio_ioctl(struct file *file, uint cmd, ulong arg)
 			val |= DSP_CAP_DUPLEX;
 		return put_user(val, (int *) arg);
 
-	case SNDCTL_DSP_SPEED:
+	case SNDCTL_DSP_RESET:
+		if (file->f_mode & FMODE_WRITE) {
+			ls1x_audio_sync(file);
+			audio_clear_buf(os);
+		}
+		if (file->f_mode & FMODE_READ) {
+			ls1x_audio_sync(file);
+			audio_clear_buf(is);
+		}
 		return 0;
 
+	case SNDCTL_DSP_SPEED:
+		if (get_user(val, (int *) arg))
+			return -EFAULT;
+		if (val >= 0) {
+			if (file->f_mode & FMODE_READ) {
+				set_adc_rate(state, val);
+			}
+			if (file->f_mode & FMODE_WRITE) {
+				set_dac_rate(state, val);
+			}
+		}
+		return put_user((file->f_mode & FMODE_READ) ?
+				state->input_stream->sample_rate :
+				state->output_stream->sample_rate,
+				(int *)arg);
+
 	case SNDCTL_DSP_STEREO:
+		if (get_user(val, (int *) arg))
+			return -EFAULT;
+		if (file->f_mode & FMODE_READ) {
+			is->num_channels = val ? 2 : 1;
+		}
+		if (file->f_mode & FMODE_WRITE) {
+			os->num_channels = val ? 2 : 1;
+			if (state->codec_ext_caps & AC97_EXT_DACS) {
+				/* disable surround and center/lfe in AC'97
+				*/
+				u16 ext_stat = ls1x_codec_read(state->codec,
+						       AC97_EXTENDED_STATUS);
+				ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
+					ext_stat | (AC97_EXTSTAT_PRI |
+						    AC97_EXTSTAT_PRJ |
+						    AC97_EXTSTAT_PRK));
+			}
+		}
 		return 0;
 
 	case SNDCTL_DSP_CHANNELS:
@@ -632,18 +866,18 @@ static long ls1x_audio_ioctl(struct file *file, uint cmd, ulong arg)
 					/* disable surround and center/lfe
 					 * channels in AC'97
 					 */
-					//u16 ext_stat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
-					//ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
-					//	ext_stat | (AC97_EXTSTAT_PRI | AC97_EXTSTAT_PRJ | AC97_EXTSTAT_PRK));
+					u16 ext_stat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
+					ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
+						ext_stat | (AC97_EXTSTAT_PRI | AC97_EXTSTAT_PRJ | AC97_EXTSTAT_PRK));
 				} else if (val >= 4) {
 					/* enable surround, center/lfe
 					 * channels in AC'97
 					 */
-					//u16 ext_stat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
-			//		ext_stat &= ~AC97_EXTSTAT_PRJ;
-	///				if (val == 6)
-				///	ext_stat &= ~(AC97_EXTSTAT_PRI | AC97_EXTSTAT_PRK);
-			///		ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS, ext_stat);
+					u16 ext_stat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
+					ext_stat &= ~AC97_EXTSTAT_PRJ;
+					if (val == 6)
+						ext_stat &= ~(AC97_EXTSTAT_PRI | AC97_EXTSTAT_PRK);
+					ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS, ext_stat);
 				}
 
 				os->num_channels = val;
@@ -749,480 +983,38 @@ static long ls1x_audio_ioctl(struct file *file, uint cmd, ulong arg)
 		return -EINVAL;
 	}
 
-	return 0;	//ls1x_ioctl_mixdev(file, cmd, arg);
+	return ls1x_ioctl_mixdev(file, cmd, arg);
 }
 
-
-int i2c_rec_haf_word(unsigned char *addr,int addrlen,unsigned char reg,unsigned short* buf ,int count)
-{
-        int i;
-        int j;
-        unsigned char value;
-        printk ("in %s !\n", __func__);
-        for(i=0;i<count;i++)
-        {
-                for(j=0;j<addrlen;j++)
-                {
-                        /*write slave_addr*/
-                        * GS_SOC_I2C_TXR = addr[j];
-                        * GS_SOC_I2C_CR  = (j == 0)? (CR_START|CR_WRITE):CR_WRITE; /* start on first addr */
-                        while(*GS_SOC_I2C_SR & SR_TIP);
-                        //                    printk ("device's address = 0x%x ,sr = 0x%x !\n", addr[j] ,*GS_SOC_I2C_SR);
-
-                        if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-                }
-
-        //      printk ("------1---->\n");
-                * GS_SOC_I2C_TXR = reg++;   //lxy reg++ after read once
-                * GS_SOC_I2C_CR  = CR_WRITE;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-
-        //      printk ("------2---->\n");
-
-                /*write slave_addr*/
-                * GS_SOC_I2C_TXR = addr[0]|1;
-                * GS_SOC_I2C_CR  = CR_START|CR_WRITE; /* start on first addr */
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-
-        //              printk ("------3---->\n");
-
-                * GS_SOC_I2C_CR  = CR_READ; /*read send ack*/
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                value = * GS_SOC_I2C_TXR;
-                buf[i] =  value << 8;
-
-        //              printk ("------4---->\n");
-
-                * GS_SOC_I2C_CR  = CR_READ|I2C_WACK; /*last read not send ack*/
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                value = * GS_SOC_I2C_TXR;
-                buf[i] |= value;
-
-                * GS_SOC_I2C_CR  = CR_STOP;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                //        * GS_SOC_I2C_SR;
-
-
-        }
-        while(*GS_SOC_I2C_SR & SR_BUSY);
-
-        return count;
-}
-
-
-
-unsigned char i2c_rec_b(unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count)
-{
-        int i;
-        int j;
-
-
-        unsigned char value;
-
-        for(j=0;j<addrlen;j++)
-        {
-                /*write slave_addr*/
-                * GS_SOC_I2C_TXR = addr[j];
-                * GS_SOC_I2C_CR  = j == 0? (CR_START|CR_WRITE):CR_WRITE; /* start on first addr */
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-        }
-
-
-        * GS_SOC_I2C_TXR = reg;
-        * GS_SOC_I2C_CR  = CR_WRITE;
-        while(*GS_SOC_I2C_SR & SR_TIP);
-        if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-        * GS_SOC_I2C_TXR = addr[0]|1;
-        * GS_SOC_I2C_CR  = CR_START|CR_WRITE;
-        if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-        for(i=0;i<count;i++)
-        {
-                * GS_SOC_I2C_CR  = CR_READ;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                buf[i] = * GS_SOC_I2C_TXR;
-        }
-        * GS_SOC_I2C_CR  = CR_STOP;
-
-        return count;
-}
-
-unsigned char i2c_rec_s(unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count)
-{
-        int i;
-        int j;
-        unsigned char value;
-        for(i=0;i<count;i++)
-        {
-                for(j=0;j<addrlen;j++)
-                {
-                        /*write slave_addr*/
-                        * GS_SOC_I2C_TXR = addr[j];
-                        * GS_SOC_I2C_CR  = (j == 0)? (CR_START|CR_WRITE):CR_WRITE; /* start on first addr */
-                        while(*GS_SOC_I2C_SR & SR_TIP);
-
-                        if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-                }
-
-                * GS_SOC_I2C_TXR = reg;
-                * GS_SOC_I2C_CR  = CR_WRITE;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-                /*write slave_addr*/
-                * GS_SOC_I2C_TXR = addr[0]|1;
-                * GS_SOC_I2C_CR  = CR_START|CR_WRITE; /* start on first addr */
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-                * GS_SOC_I2C_CR  = CR_READ|I2C_WACK; /*last read not send ack*/
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                buf[i] = * GS_SOC_I2C_TXR;
-                * GS_SOC_I2C_CR  = CR_STOP;
-                * GS_SOC_I2C_SR;
-
-        }
-        return count;
-}
-
-
-int tgt_i2cinit()
-{
-        *(volatile unsigned int *)(0xbfd010c0) = 0x0;
-        *(volatile unsigned int *)(0xbfd010c4) = 0x0;
-        *(volatile unsigned int *)(0xbfd010c8) = 0x0;
-
-        static int inited=0;
-        if(inited)
-                return 0;
-        inited=1;
-        * GS_SOC_I2C_PRER_LO = 0x64;
-        * GS_SOC_I2C_PRER_HI = 0;
-        * GS_SOC_I2C_CTR = 0x80;
-}
-
-/*
- * 0 single: Ã¿´Î¶ÁÒ»¸ö
- * 1 smb block
- */
-int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char *buf,int count)
-{
-        int i;
-        tgt_i2cinit();
-        memset(buf,-1,count);
-        //printk ("in %s !\n", __func__);
-        switch(type)
-        {
-                case I2C_SINGLE:
-                        return i2c_rec_s(addr,addrlen,reg,buf,count);
-                        break;
-                case I2C_BLOCK:
-                        return i2c_rec_b(addr,addrlen,reg,buf,count);
-                        break;
-                case I2C_HW_SINGLE:
-                        return i2c_rec_haf_word(addr,addrlen,reg,(unsigned short *)buf,count);
-                        break;
-
-                default: return 0;break;
-        }
-        return 0;
-}
-
-unsigned char i2c_send_s(unsigned char *addr,int addrlen,unsigned char reg,unsigned char * buf ,int count)
-{
-        int i;
-        int j;
-        for(i=0;i<count;i++)
-        {
-                for(j=0;j<addrlen;j++)
-                {
-                        /*write slave_addr*/
-                        * GS_SOC_I2C_TXR = addr[j];
-                        * GS_SOC_I2C_CR  = j == 0? (CR_START|CR_WRITE):CR_WRITE; /* start on first addr */
-                        while(*GS_SOC_I2C_SR & SR_TIP);
-
-                        if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-                }
-
-                * GS_SOC_I2C_TXR = reg;
-                * GS_SOC_I2C_CR  = CR_WRITE;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-                * GS_SOC_I2C_TXR = buf[i];
-                * GS_SOC_I2C_CR = CR_WRITE|CR_STOP;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-        }
-        while(*GS_SOC_I2C_SR & SR_BUSY);
-        return count;
-}
-
-unsigned char i2c_send_b(unsigned char *addr,int addrlen,unsigned char reg,unsigned char * buf ,int count)
-{
-        int i;
-        int j;
-        for(j=0;j<addrlen;j++)
-        {
-                /*write slave_addr*/
-                * GS_SOC_I2C_TXR = addr[j];
-                * GS_SOC_I2C_CR  = j == 0? (CR_START|CR_WRITE):CR_WRITE; /* start on first addr */
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-        }
-
-
-        * GS_SOC_I2C_TXR = reg;
-        * GS_SOC_I2C_CR  = CR_WRITE;
-        while(*GS_SOC_I2C_SR & SR_TIP);
-        if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-        for(i=0;i<count;i++)
-        {
-                * GS_SOC_I2C_TXR = buf[i];
-                * GS_SOC_I2C_CR = CR_WRITE;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return i;
-
-        }
-        * GS_SOC_I2C_CR  = CR_STOP;
-        while(*GS_SOC_I2C_SR & SR_BUSY);
-        return count;
-}
-
-int i2c_send_haf_word(unsigned char *addr,int addrlen,unsigned char reg,unsigned short * buf ,int count)
-{
-        int i;
-        int j;
-        unsigned char value;
-        for(i=0;i<count;i++)
-        {
-                for(j=0;j<addrlen;j++)
-                {
-                        /*write slave_addr*/
-                        * GS_SOC_I2C_TXR = addr[j];
-                        * GS_SOC_I2C_CR  = j == 0? (CR_START|CR_WRITE):CR_WRITE; /* start on first addr */
-                        while(*GS_SOC_I2C_SR & SR_TIP);
-
-                        if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-                }
-
-                * GS_SOC_I2C_TXR = reg++;   //lxy: reg++ after write once
-                * GS_SOC_I2C_CR  = CR_WRITE;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-
-                value = (buf[i] >> 8);
-                * GS_SOC_I2C_TXR = value;
-                * GS_SOC_I2C_CR  = CR_WRITE;
-//                printk ("hi data = 0x%x ,", value);
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-
-                value = buf[i];
-                * GS_SOC_I2C_TXR = value;
-                * GS_SOC_I2C_CR  = CR_WRITE;
-//                printk ("low data = 0x%x ,", value);
-                while(*GS_SOC_I2C_SR & SR_TIP);
-                if((* GS_SOC_I2C_SR) & SR_NOACK) return -1;
-
-                * GS_SOC_I2C_CR = CR_WRITE|CR_STOP;
-                while(*GS_SOC_I2C_SR & SR_TIP);
-        }
-        while(*GS_SOC_I2C_SR & SR_BUSY);
-        return count;
-}
-
-
-
-int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char *buf,int count)
-{
-        tgt_i2cinit();
-        switch(type&0xff)
-        {
-                case I2C_SINGLE:
-                    i2c_send_s(addr,addrlen,reg,buf,count);
-                    break;
-                case I2C_BLOCK:
-                    return i2c_send_b(addr,addrlen,reg,buf,count);
-                    break;
-                case I2C_SMB_BLOCK:
-                    break;
-                case I2C_HW_SINGLE:
-                        return i2c_send_haf_word(addr,addrlen,reg,(unsigned short *)buf,count);
-                        break;
-                default:
-                    return -1;break;
-        }
-        return -1;
-}
-
-void    uda1342_test()
-{
-        unsigned char *dev_add;
-        unsigned short data;
-        unsigned char reg;
-        int ret = 0;
-
-        dev_add = 0x8000bb90;
-        *dev_add = uda_address;
-        reg = 0x10;
-        unsigned short data1[7];
-        unsigned char i;
-
-        tgt_i2cinit();
-
-        tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data), 1);
-        printk ("data = 0x%x !\n", data);
-
-        data = 0xfc00;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data), 1);
-        if (ret == -1)
-                printk ("write error......\n");
-
-        data = 0x0;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data), 1);
-        if (ret == -1)
-                printk ("read error......\n");
-        printk ("data = 0x%x !\n", data);
-
-        reg = 0x0;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[0]), 1);
-        reg = 0x1;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[1]), 1);
-        reg = 0x10;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[2]), 1);
-        reg = 0x11;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[3]), 1);
-        reg = 0x12;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[4]), 1);
-        reg = 0x20;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[5]), 1);
-        reg = 0x21;
-        ret = tgt_i2cwrite(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&reg1[6]), 1);
-
-        reg = 0x0;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[0]), 1);
-        reg = 0x1;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[1]), 1);
-        reg = 0x10;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[2]), 1);
-        reg = 0x11;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[3]), 1);
-        reg = 0x12;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[4]), 1);
-        reg = 0x20;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[5]), 1);
-        reg = 0x21;
-        ret = tgt_i2cread(I2C_HW_SINGLE, dev_add, 1, reg, (unsigned char *)(&data1[6]), 1);
-
-        for (i=0; i<7; i++)
-        {
-                printk ("data1[%d] = 0x%x ---> 0x%x!\n", i, data1[i], reg1[i]);
-        }
-}
-
-
-
-void    config_uda1342()
-{
-        unsigned char rat_cddiv;
-        unsigned char rat_bitdiv;
-        unsigned char dev_addr;
-        unsigned short value;
-#if 1
-        dev_addr = uda_dev_addr;
-        rat_bitdiv = 0xf;
-        rat_cddiv = 0x1;
-
-        * IISCONFIG = (16<<24) | (16<<16) | (rat_bitdiv<<8) | (rat_cddiv<<0) ;
-        //    * IISSTATE = 0xc220;
-        //* IISSTATE = 0xc200;
-	//printk("* IISSTATE is %x\n",* IISSTATE);
-        * IISSTATE = 0x0d280;	///0x0200;
-        value =0x8000;
-#endif
-        uda1342_test();
-}
-
-static int ls1x_audio_sync(struct file *file)
-{
-        struct ls1x_audio_state *state = file->private_data;
-        struct audio_stream *is = state->input_stream;
-        struct audio_stream *os = state->output_stream;
-
-        if (file->f_mode & FMODE_READ) {
-                if (is->state == STOP && !list_empty(&is->run_list)) {
-                        struct audio_dma_desc *desc;
-                        desc = list_entry(is->run_list.next, struct audio_dma_desc, link);
-                        dma_enable_trans(is, desc);
-                        is->state = RUN;
-                }
-
-                if (!list_empty(&is->run_list))
-                        schedule_timeout(CONFIG_HZ*2);
-
-                /* stop write ac97 dma */
-                writel(0x12, order_addr_in);
-        }
-        if (file->f_mode & FMODE_WRITE) {
-                if (os->state == STOP && !list_empty(&os->run_list)) {
-                        struct audio_dma_desc *desc;
-                        desc = list_entry(os->run_list.next, struct audio_dma_desc, link);
-                        dma_enable_trans(os, desc);
-                        os->state = RUN;
-                }
-
-                if (!list_empty(&os->run_list))
-                        schedule_timeout(CONFIG_HZ*2);
-
-                /* stop read ac97 dma */
-                writel(0x11, order_addr_in);
-        }
-
-        return 0;
-}
 
 static int ls1x_audio_release(struct inode *inode, struct file *file)
 {
-        struct ls1x_audio_state *state = file->private_data;
+	struct ls1x_audio_state *state = file->private_data;
 
-        down(&state->sem);
+	down(&state->sem);
 
-        if (file->f_mode & FMODE_READ) {
-                ls1x_audio_sync(file);
-                audio_clear_buf(state->input_stream);
-                state->rd_ref = 0;
-                free_irq(LS1B_BOARD_DMA2_IRQ, state->input_stream);
+	if (file->f_mode & FMODE_READ) {
+		ls1x_audio_sync(file);
+		audio_clear_buf(state->input_stream);
+		state->rd_ref = 0;
+		free_irq(LS1B_BOARD_DMA2_IRQ, state->input_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
-                del_timer(&state->input_stream->timer);
-#endif 
-        }
+		del_timer(&state->input_stream->timer);
+#endif
+	}
 
-        if (file->f_mode & FMODE_WRITE) {
-                ls1x_audio_sync(file);
-                audio_clear_buf(state->output_stream);
-                state->wr_ref = 0;
-                free_irq(LS1B_BOARD_DMA1_IRQ, state->output_stream);
+	if (file->f_mode & FMODE_WRITE) {
+		ls1x_audio_sync(file);
+		audio_clear_buf(state->output_stream);
+		state->wr_ref = 0;
+		free_irq(LS1B_BOARD_DMA1_IRQ, state->output_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
-                del_timer(&state->output_stream->timer);
-#endif 
-        }
+		del_timer(&state->output_stream->timer);
+#endif
+	}
 
-        up(&state->sem);
-        return 0;
+	up(&state->sem);
+	return 0;
 }
 
 static int ls1x_audio_open(struct inode *inode, struct file *file)
@@ -1251,8 +1043,6 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 
 	file->private_data = state;
 
-	config_uda1342();
-
 	if ((file->f_mode & FMODE_WRITE)) {
 		state->wr_ref = 1;
 		os->fragsize = AUDIO_FRAGSIZE_DEFAULT;
@@ -1260,6 +1050,7 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 		os->output = 1;
 		os->num_channels = 2;
 		os->sample_size = 16;
+		set_dac_rate(state, 8000);
 		if ((minor & 0xf) == SND_DEV_DSP16)
 			os->sample_size = 16;
 		init_waitqueue_head(&os->frag_wq);
@@ -1285,6 +1076,7 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 		is->output = 0;
 		is->num_channels = 2;
 		is->sample_size = 16;
+		set_adc_rate(state, 8000);
 		if ((minor & 0xf) == SND_DEV_DSP16)
 			is->sample_size = 16;
 		init_waitqueue_head(&is->frag_wq);
@@ -1332,15 +1124,17 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 
 out:
 	up(&state->sem);
-	printk("err is %d\n",err);
 	return err;
 }
 
 static struct file_operations ls1x_dsp_fops = {
 	owner:			THIS_MODULE,
+	llseek:			ls1x_llseek,
 	read:			ls1x_audio_read,
 	write:			ls1x_audio_write,
 	unlocked_ioctl:	ls1x_audio_ioctl,
+//	fsync:			ls1x_audio_sync,
+	poll:			ls1x_audio_poll,
 	open:			ls1x_audio_open,
 	release:		ls1x_audio_release,
 };
@@ -1353,21 +1147,19 @@ static int ls1x_audio_probe(struct platform_device *pdev)
 	struct resource *res;
 	int rc;
 
-#ifdef CONFIG_LS1C_AC97_BUS
-*(volatile unsigned int *)(0xbfd00420) |= (0x1 << 14);  //shut i2s
-*(volatile unsigned int *)(0xbfd00424) |= (0x1 << 25);  //mux ac97/i2s
-#elif CONFIG_LS1C_IIS_BUS
-*(volatile unsigned int *)(0xbfd00420) |= (0x1 << 15);  //shut ac97
-*(volatile unsigned int *)(0xbfd00424) &= ~(0x1 << 25);  //mux ac97/i2s
-
-*(volatile unsigned int *)(0xbfd01044) |= (0x7 << 13); //enable dma interrupt
-*(volatile unsigned int *)(0xbfd01050) &= ~(0x7 << 13); 
-*(volatile unsigned int *)(0xbfd01054) |= (0x7 << 13); 
-
-#endif
-
 	order_addr_in = ioremap(ORDER_ADDR_IN, 0x4);
 	memset(state, 0, sizeof(struct ls1x_audio_state));
+
+	state->codec = ac97_alloc_codec();
+	if (state->codec == NULL) {
+		printk(KERN_ERR "Out of memory\n");
+		return -1;
+	}
+	state->codec->private_data = state;
+	state->codec->id = 0;
+	state->codec->codec_read = ls1x_codec_read;
+	state->codec->codec_write = ls1x_codec_write;
+//	state->codec->codec_wait = waitcodec;
 
 	state->input_stream = &input_stream;
 	state->output_stream = &output_stream;
@@ -1379,25 +1171,77 @@ static int ls1x_audio_probe(struct platform_device *pdev)
 		return -ENOENT;
 	}
 
-	if (!request_mem_region(res->start, resource_size(res), "ls1x-audio")){
-		printk("request mem error\n");
+	if (!request_mem_region(res->start, resource_size(res), "ls1x-audio"))
 		return -EBUSY;
-	}
 
 	state->base = ioremap(res->start, resource_size(res));
 	if (!state->base) {
 		dev_err(&pdev->dev, "ls1x-audio - failed to map controller\n");
-		printk("error iomap\n");
 		rc = -ENOMEM;
 		goto err_dev0;
 	}
 
-	if ((state->dev_audio = register_sound_dsp(&ls1x_dsp_fops, -1)) < 0){
-		printk("error!\n");
-		goto err_dev1;
+	/* reset ls1x ac97 controller */
+	writel(0x01, state->base + CSR);
+	writel(0x02, state->base + CSR);
+	udelay(100);
+	writel(0x01, state->base + CSR);
+	mdelay(300);
+	/* config channels */
+	writel(0x69696969, state->base + OCC0);
+	writel(0x69696969, state->base + OCC1);
+	writel(0x69696969, state->base + OCC2);
+	writel(0x69696969, state->base + ICC);
+	/* enable irqreturn */
+	writel(0xffffffff, state->base + INTM);
+
+	/* codec reset */
+	if (codec_reset) {
+		ls1x_codec_write(state->codec, AC97_RESET, 0x0000);
+		mdelay(500);
+		codec_reset = 0;
 	}
 
-	printk("register dsp success\n");
+	ls1x_codec_write(state->codec, AC97_POWER_CONTROL, 0x0000);
+
+
+	if ((state->dev_audio = register_sound_dsp(&ls1x_dsp_fops, -1)) < 0)
+		goto err_dev1;
+	if ((state->codec->dev_mixer = 
+		  register_sound_mixer(&ls1x_mixer_fops, -1)) < 0)
+		goto err_dev2;
+
+	/* codec init */
+	if (!ac97_probe_codec(state->codec)) {
+		printk(KERN_ERR "probe codec err.\n");
+		goto err_dev3;
+	}
+
+	state->codec_base_caps = ls1x_codec_read(state->codec, AC97_RESET);
+	state->codec_ext_caps = ls1x_codec_read(state->codec, AC97_EXTENDED_ID);
+	pr_info("AC'97 Base/Extended ID = %04x/%04x",
+	     state->codec_base_caps, state->codec_ext_caps);
+
+	if (!(state->codec_ext_caps & AC97_EXTID_VRA)) {
+		/* codec does not support VRA
+		*/
+		state->no_vra = 1;
+	} else if (!vra) {
+		/* Boot option says disable VRA
+		*/
+		u16 ac97_extstat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
+		ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
+			ac97_extstat & ~AC97_EXTSTAT_VRA);
+		state->no_vra = 1;
+	}
+	if (state->no_vra)
+		pr_info("no VRA, interpolating and decimating");
+
+	/* 静音输入通道 */
+	ls1x_codec_write(state->codec, AC97_MIC_VOL, 0x8008);
+	ls1x_codec_write(state->codec, AC97_LINEIN_VOL, 0x8080);
+	ls1x_codec_write(state->codec, AC97_AUX_VOL, 0x8080);
+
 	return 0;
 
 err_dev3:
@@ -1408,7 +1252,7 @@ err_dev1:
 	iounmap(state->base);
 	release_mem_region(res->start, resource_size(res));
 err_dev0:
-	///ac97_release_codec(state->codec);
+	ac97_release_codec(state->codec);
 
 	return rc;
 }
@@ -1425,7 +1269,7 @@ static int __devexit ls1x_audio_remove(struct platform_device *pdev)
 	iounmap(state->base);
 	release_mem_region(res->start, resource_size(res));
 
-	///ac97_release_codec(state->codec);
+	ac97_release_codec(state->codec);
 
 	return 0;
 }
@@ -1476,8 +1320,7 @@ module_exit(ls1x_audio_exit);
 
 #ifndef MODULE
 
-static int __init
-ls1x_setup(char *options)
+static int __init ls1x_setup(char *options)
 {
 	char           *this_opt;
 
@@ -1500,5 +1343,4 @@ __setup("ls1x_audio=", ls1x_setup);
 #endif /* MODULE */
 
 MODULE_LICENSE("GPL");
-
 

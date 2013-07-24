@@ -50,7 +50,7 @@
 #include <media/soc_camera.h>                                                                                                           
 #include <media/soc_camera_platform.h> 
 
-#ifdef CONFIG_MTD_NAND_LS1X
+#ifdef CONFIG_MTD_NAND_LS1C
 struct ls1b_nand_platform_data{
     int enable_arbiter;
     struct mtd_partition *parts;
@@ -132,7 +132,7 @@ struct platform_device ls1b_nand_device = {
     .num_resources  =ARRAY_SIZE(ls1b_nand_resources),
     .resource       =ls1b_nand_resources,
 };
-#endif //CONFIG_MTD_NAND_LS1X
+#endif //CONFIG_MTD_NAND_LS1C
 
 #define LS1X_UART(_id)						\
 	{							\
@@ -587,16 +587,16 @@ struct platform_device ls1x_gmac0_phy = {
 #endif //#ifdef CONFIG_LS1X_GMAC0
 #endif //#ifdef CONFIG_STMMAC_ETH
 
-#ifdef CONFIG_SOUND_LS1X_AC97
+#ifdef CONFIG_SOUND_LS1C_AC97
 static struct resource ls1x_ac97_resource[] = {
 	[0]={
 #ifdef CONFIG_LS1B_MACH
-		.start	= LS1B_AC97_BASE,
-		.end	= LS1B_AC97_BASE + SZ_16K - 1,
+		.start	= LS1X_AC97_BASE,
+		.end	= LS1X_AC97_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 #elif CONFIG_LS1C_MACH
-		.start	= LS1C_AC97_BASE,
-		.end	= LS1C_AC97_BASE + SZ_16K - 1,
+		.start	= LS1C_I2S_BASE,
+		.end	= LS1C_I2S_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 #endif
 	},
@@ -1402,7 +1402,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_fb0_device,
 #endif
 
-#ifdef CONFIG_MTD_NAND_LS1X
+#ifdef CONFIG_MTD_NAND_LS1C
 	&ls1b_nand_device,
 #endif
 
@@ -1421,7 +1421,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
-#ifdef CONFIG_SOUND_LS1X_AC97
+#ifdef CONFIG_SOUND_LS1C_AC97
 	&ls1x_audio_device,
 #endif
 

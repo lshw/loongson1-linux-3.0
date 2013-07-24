@@ -784,7 +784,7 @@ config SOC_CAMERA
 
 config SOC_CAMERA_LS1C
 	tristate "ls1c_soc camera controller support"
-	depends on SOC_CAMERA && I2C
+	depends on SOC_CAMERA && I2C && LS1C_MACH
 	select VIDEOBUF_DMA_CONTIG
 	help
 	  This driver supports cameras from ls1c.

@@ -424,7 +424,7 @@ static struct miscdevice ch372_dev_miscdev = {
 	.fops = &ch372_dev_fops
 };
 
-static int __init ch372_udc_init(void)
+static int __init ch372_dev_init(void)
 {
 	int ret;
 
@@ -434,11 +434,11 @@ static int __init ch372_udc_init(void)
 	return platform_driver_probe(&ch372_driver, ch372_probe);
 }
 
-module_init(ch372_udc_init);
+module_init(ch372_dev_init);
 
-static void __exit ch372_udc_cleanup(void)
+static void __exit ch372_dev_cleanup(void)
 {
 	misc_deregister(&ch372_dev_miscdev);
 	platform_driver_unregister(&ch372_driver);
 }
-module_exit(ch372_udc_cleanup);
+module_exit(ch372_dev_cleanup);
