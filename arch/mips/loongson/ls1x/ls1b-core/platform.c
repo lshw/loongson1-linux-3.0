@@ -1636,6 +1636,36 @@ static struct platform_device ls1x_sja1000_1 = {
 #endif //#ifdef CONFIG_LS1X_CAN1
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
+#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
+#include <linux/w1-gpio.h>
+static struct w1_gpio_platform_data w1_gpio_pdata = {
+	/* If you choose to use a pin other than PB16 it needs to be 3.3V */
+	.pin		= 33,
+//	.is_open_drain  = 1,
+};
+
+static struct platform_device w1_device = {
+	.name		= "w1-gpio",
+	.id			= -1,
+	.dev.platform_data	= &w1_gpio_pdata,
+};
+#endif
+
+#if defined(CONFIG_SENSORS_AM2301) || defined(CONFIG_SENSORS_AM2301_MODULE)
+#include <linux/am2301.h>
+static struct am2301_platform_data am2301_pdata = {
+	.pin		= 32,
+//	.is_open_drain  = 1,
+};
+
+static struct platform_device am2301_device = {
+	.name		= "am2301",
+	.id			= 0,
+	.dev.platform_data	= &am2301_pdata,
+};
+#endif
+
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
@@ -1751,6 +1781,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #ifdef CONFIG_BACKLIGHT_PWM
 	&ls1x_pwm_backlight,
+#endif
+#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
+	&w1_device,
+#endif
+#if defined(CONFIG_SENSORS_AM2301) || defined(CONFIG_SENSORS_AM2301_MODULE)
+	&am2301_device,
 #endif
 };
 

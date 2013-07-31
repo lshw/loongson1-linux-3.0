@@ -936,6 +936,16 @@ config SENSORS_SHT21
 	  This driver can also be built as a module.  If so, the module
 	  will be called sht21.
 
+config SENSORS_AM2301
+	tristate "Aosong humidity and temperature sensors. AM2301 and compat.(EXPERIMENTAL)"
+	depends on GENERIC_GPIO
+	help
+	  If you say yes here you get support for the Aosong AM2301/DHT21 
+	  humidity and temperature sensors.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called am2301.
+
 config SENSORS_S3C
 	tristate "Samsung built-in ADC"
 	depends on S3C_ADC
