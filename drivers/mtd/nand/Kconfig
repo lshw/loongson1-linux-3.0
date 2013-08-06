@@ -525,10 +525,10 @@ config MTD_NAND_JZ4740
 		Enables support for NAND Flash on JZ4740 SoC based boards.
 
 config MTD_NAND_LS1X
-	tristate "NAND Flash device on loongson-1a/1b"
-	depends on MTD_NAND && (LS1A_MACH || LS1B_MACH)
+	tristate "Support for NAND flash devices on Loongson1"
+	depends on MTD_NAND && (LS1A_MACH || LS1B_MACH || LS1C_MACH)
 	help
-	  The loongson-1a/1b BOARD NAND FLASH controller.
+	  Enables support for NAND Flash on Loongson 1x based boards.
 
 choice
 	prompt "Multiplexing selection for LS1A"
@@ -542,12 +542,6 @@ config NAND_USE_SPI1_PWM23
 	bool "nand d0-d5 use SPI1 and pwm23"
 
 endchoice
-
-config MTD_NAND_LS1C
-	tristate "NAND Flash device on loongson-1c"
-	depends on MTD_NAND && LS1C_MACH
-	help
-	  The loongson-1c BOARD NAND FLASH controller.
 
 config MTD_NAND_FSMC
 	tristate "Support for NAND on ST Micros FSMC"

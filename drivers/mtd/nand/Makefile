@@ -8,8 +8,8 @@ obj-$(CONFIG_MTD_NAND_BCH)		+= nand_bch.o
 obj-$(CONFIG_MTD_NAND_IDS)		+= nand_ids.o
 obj-$(CONFIG_MTD_SM_COMMON) 		+= sm_common.o
 
-obj-$(CONFIG_MTD_NAND_LS1X)		+= ls1b-nand.o
-obj-$(CONFIG_MTD_NAND_LS1C)		+= ls1c-nand.o
+obj-$(CONFIG_MTD_NAND_LS1X)		+= ls1x-nand.o
+#obj-$(CONFIG_MTD_NAND_LS1C)		+= ls1c-nand.o
 obj-$(CONFIG_MTD_NAND_CAFE)		+= cafe_nand.o
 obj-$(CONFIG_MTD_NAND_SPIA)		+= spia.o
 obj-$(CONFIG_MTD_NAND_AMS_DELTA)	+= ams-delta.o

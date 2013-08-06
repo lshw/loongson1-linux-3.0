@@ -12,8 +12,6 @@
 #include <linux/init.h>
 #include <linux/resource.h>
 #include <linux/serial_8250.h>
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/partitions.h>
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
@@ -50,86 +48,59 @@
 #include <asm-generic/sizes.h>
 
 #ifdef CONFIG_MTD_NAND_LS1X
-struct ls1b_nand_platform_data{
-    int enable_arbiter;
-    struct mtd_partition *parts;
-    unsigned int nr_parts;
-};
-
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+#include <ls1x_nand.h>
 #define	SZ_100M	(100*1024*1024)
-
-static struct mtd_partition ls1b_nand_partitions[]={
-#if 1
+static struct mtd_partition ls1x_nand_partitions[] = {
 	[0] = {
-		.name   ="kernel",
-		.offset =MTDPART_OFS_APPEND,
-		.size   =0xe00000,
-//	        .mask_flags =   MTD_WRITEABLE,
+		.name	= "kernel",
+		.offset	= MTDPART_OFS_APPEND,
+		.size	= 0xe00000,
+//		.mask_flags =   MTD_WRITEABLE,
 	},
 	[1] = {
-		.name   ="os",
-		.offset = MTDPART_OFS_APPEND,
-		.size   = SZ_100M,
-
+		.name	= "os",
+		.offset	= MTDPART_OFS_APPEND,
+		.size	= SZ_100M,
 	},
 	[2] = {
-		.name   ="data",
-		.offset = MTDPART_OFS_APPEND,
-		.size   = MTDPART_SIZ_FULL,
+		.name	= "data",
+		.offset	= MTDPART_OFS_APPEND,
+		.size	= MTDPART_SIZ_FULL,
 	},
-#else
-    [0] = {
-        .name   ="kernel",
-        .offset =0,
-        .size   =0xe00000,
-//        .mask_flags =   MTD_WRITEABLE,
-    },
-    [1] = {
-        .name   ="os",
-        .offset = 0xe00000,
-        .size   = 0x7100000,
-    
-    },
-#endif
 };
 
-static struct ls1b_nand_platform_data ls1b_nand_parts = {
-	.enable_arbiter =   1,
-	.parts          =   ls1b_nand_partitions,
-	.nr_parts       =   ARRAY_SIZE(ls1b_nand_partitions),
+static struct ls1x_nand_platform_data ls1x_nand_parts = {
+//	.enable_arbiter	= 1,
+//	.keep_config	= 1,
+	.parts		= ls1x_nand_partitions,
+	.nr_parts	= ARRAY_SIZE(ls1x_nand_partitions),
 };
 
-static struct resource ls1b_nand_resources[] = {
-    [0] = {
-        .start      =0,
-        .end        =0,
-        .flags      =IORESOURCE_DMA,    
-    },
-    [1] = {
-        .start      =0x1fe78000,
-        .end        =0x1fe78020,
-        .flags      =IORESOURCE_MEM,
-    },
-    [2] = {
-        .start      =0x1fd01160,
-        .end        =0x1fd01160,
-        .flags      =IORESOURCE_MEM,
-    },
-    [3] = {
-        .start      =LS1B_BOARD_DMA0_IRQ,
-        .end        =LS1B_BOARD_DMA0_IRQ,
-        .flags      =IORESOURCE_IRQ,
-    },
+static struct resource ls1x_nand_resources[] = {
+	[0] = {
+		.start          = LS1X_NAND_BASE,
+		.end            = LS1X_NAND_BASE + SZ_16K - 1,
+		.flags          = IORESOURCE_MEM,
+	},
+	[1] = {
+//		.start          = LS1X_NAND_IRQ,
+//		.end            = LS1X_NAND_IRQ,
+		.start          = LS1X_DMA0_IRQ,
+        .end            = LS1X_DMA0_IRQ,
+		.flags          = IORESOURCE_IRQ,
+	},
 };
 
-struct platform_device ls1b_nand_device = {
-    .name       ="ls1b-nand",
-    .id         =-1,
-    .dev        ={
-        .platform_data = &ls1b_nand_parts,
-    },
-    .num_resources  =ARRAY_SIZE(ls1b_nand_resources),
-    .resource       =ls1b_nand_resources,
+struct platform_device ls1x_nand_device = {
+	.name	= "ls1x-nand",
+	.id		= -1,
+	.dev	= {
+		.platform_data = &ls1x_nand_parts,
+	},
+	.num_resources	= ARRAY_SIZE(ls1x_nand_resources),
+	.resource		= ls1x_nand_resources,
 };
 #endif //CONFIG_MTD_NAND_LS1X
 
@@ -1430,7 +1401,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 
 #ifdef CONFIG_MTD_NAND_LS1X
-	&ls1b_nand_device,
+	&ls1x_nand_device,
 #endif
 
 #ifdef LOONGSON_AHCI
