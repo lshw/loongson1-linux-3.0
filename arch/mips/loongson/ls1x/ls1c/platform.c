@@ -47,12 +47,10 @@
 #include <spi.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
-#include <media/soc_camera.h>                                                                                                           
-#include <media/soc_camera_platform.h> 
+#include <media/soc_camera.h>
+#include <media/soc_camera_platform.h>
 
 #ifdef CONFIG_MTD_NAND_LS1X
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/partitions.h>
 #include <ls1x_nand.h>
 #define	SZ_100M	(100*1024*1024)
 static struct mtd_partition ls1x_nand_partitions[] = {

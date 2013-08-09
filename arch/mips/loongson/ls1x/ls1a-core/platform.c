@@ -12,6 +12,8 @@
 #include <linux/init.h>
 #include <linux/resource.h>
 #include <linux/serial_8250.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
@@ -48,8 +50,6 @@
 #include <asm-generic/sizes.h>
 
 #ifdef CONFIG_MTD_NAND_LS1X
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/partitions.h>
 #include <ls1x_nand.h>
 #define	SZ_100M	(100*1024*1024)
 static struct mtd_partition ls1x_nand_partitions[] = {

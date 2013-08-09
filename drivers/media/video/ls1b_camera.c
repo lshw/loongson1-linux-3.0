@@ -26,7 +26,7 @@
 #define LS1B_CAMERA_MINOR 251
 #define GC0307_DRIVER_NAME	"gc0307"
 
-#define SENSOR_WIDTH	320
+#define SENSOR_WIDTH	512
 #define SENSOR_HEIGHT	480
 #define DATA_BUFF_SIZE	(SENSOR_WIDTH * SENSOR_HEIGHT)
 #define SENSOR_OSC_CLK	24000000	/* MHz */
@@ -60,7 +60,8 @@ static void __iomem *ls1b_nand_base;
 
 /* NAND_TIMING寄存器定义 */
 #define HOLD_CYCLE	0x00
-#define WAIT_CYCLE	0x0a
+//#define WAIT_CYCLE	0x0a
+#define WAIT_CYCLE	0x05
 
 #undef THERM_USE_PROC
 #ifdef THERM_USE_PROC
@@ -240,12 +241,13 @@ static int fp_capture(struct i2c_client *client)
 	int width_counter = 0;
 	int ret, ret1;
 	int timeout = 2000000;
+	unsigned long irq_flags;
 
 	/* 判断vsync信号是否是一帧的开始 gc0307为低电平有效 */
 	while (timeout--) {
 		ret = gpio_get_value(pdata->vsync);
 		if (ret) {
-			udelay(10);
+			//udelay(10);
 			ret = gpio_get_value(pdata->vsync);
 			if (!ret) {
 				break;
@@ -259,26 +261,27 @@ static int fp_capture(struct i2c_client *client)
 #if 0
 	do {
 		ret = gpio_get_value(pdata->vsync);
-		udelay(5);
+		//udelay(5);
 	} while (ret/* && (timeout-- > 0)*/);
 
 	do {
 		ret = gpio_get_value(pdata->vsync);
-		udelay(5);
+		//udelay(5);
 	} while ((!ret)/* && (timeout-- > 0)*/);
 
 	do {
 		ret = gpio_get_value(pdata->vsync);
-		udelay(5);
+		//udelay(5);
 	} while (ret/* && (timeout-- > 0)*/);
 #endif
+	local_irq_save(irq_flags);
 	/* 采样一帧信号 */
 	while (height_counter > 0) {
 //		timeout = 2000000;
 		do {
 			ret = gpio_get_value(pdata->hsync);
 			ret1 = gpio_get_value(pdata->vsync);
-			udelay(2);
+			//udelay(2);
 		} while (ret && (!ret1)/* && (timeout-- > 0)*/);
 
 /*		if (height_counter != SENSOR_HEIGHT) {
@@ -297,7 +300,7 @@ static int fp_capture(struct i2c_client *client)
 		do {
 			ret = gpio_get_value(pdata->hsync);
 			ret1 = gpio_get_value(pdata->vsync);
-			udelay(2);
+			//udelay(2);
 		} while ((!ret) && (!ret1)/* && (timeout-- > 0)*/);
 
 		/* 使能nand flash读 */
@@ -322,6 +325,7 @@ static int fp_capture(struct i2c_client *client)
 		width_counter += SENSOR_WIDTH;
 		height_counter--;
 	}
+	local_irq_restore(irq_flags);
 
 	return 0;
 }
@@ -569,6 +573,7 @@ static struct i2c_driver ls1b_camera_driver = {
 
 static int ls1b_camera_open(struct inode *inode, struct file *file)
 {
+	printk("wwj open256480\n");
 	return nonseekable_open(inode, file);
 }
 

@@ -168,7 +168,10 @@ static void ls1x_codec_write(struct ac97_codec *codec, u8 reg, u16 val)
 	}
 	if (i > 0) {
 		readl(state->base + INT_CWCLR);
+		return;
 	}
+	printk("AC97 command write timeout\n");
+	return;
 }
 
 static void set_adc_rate(struct ls1x_audio_state *state, unsigned rate)
@@ -1184,9 +1187,9 @@ static int ls1x_audio_probe(struct platform_device *pdev)
 	/* reset ls1x ac97 controller */
 	writel(0x01, state->base + CSR);
 	writel(0x02, state->base + CSR);
-	udelay(100);
+	udelay(300);
 	writel(0x01, state->base + CSR);
-	mdelay(300);
+	mdelay(500);
 	/* config channels */
 	writel(0x69696969, state->base + OCC0);
 	writel(0x69696969, state->base + OCC1);
@@ -1196,11 +1199,13 @@ static int ls1x_audio_probe(struct platform_device *pdev)
 	writel(0xffffffff, state->base + INTM);
 
 	/* codec reset */
-	if (codec_reset) {
+//	if (codec_reset) {
+		ls1x_codec_write(state->codec, AC97_RESET, 0x0000);
+		mdelay(200);
 		ls1x_codec_write(state->codec, AC97_RESET, 0x0000);
 		mdelay(500);
-		codec_reset = 0;
-	}
+//		codec_reset = 0;
+//	}
 
 	ls1x_codec_write(state->codec, AC97_POWER_CONTROL, 0x0000);
 

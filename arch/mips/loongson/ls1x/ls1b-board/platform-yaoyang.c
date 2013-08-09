@@ -12,6 +12,8 @@
 #include <linux/init.h>
 #include <linux/resource.h>
 #include <linux/serial_8250.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
@@ -46,8 +48,6 @@
 #include <asm-generic/sizes.h>
 
 #ifdef CONFIG_MTD_NAND_LS1X
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/partitions.h>
 #include <ls1x_nand.h>
 #define	SZ_100M	(100*1024*1024)
 static struct mtd_partition ls1x_nand_partitions[] = {
@@ -1380,11 +1380,11 @@ static struct matrix_keypad_platform_data ls1bkbd_pdata = {
 	.col_gpios			= ls1bkbd_col_gpios,
 	.num_row_gpios		= ARRAY_SIZE(ls1bkbd_row_gpios),
 	.num_col_gpios		= ARRAY_SIZE(ls1bkbd_col_gpios),
-	.col_scan_delay_us	= 10,
-	.debounce_ms		= 30,
+	.col_scan_delay_us	= 5,
+	.debounce_ms		= 20,
 	.active_low			= 1,
 	.wakeup				= 1,
-	.no_autorepeat		= 0,
+	.no_autorepeat		= 1,
 };
 
 static struct platform_device ls1bkbd_device = {

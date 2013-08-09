@@ -232,6 +232,7 @@ static int ls1x_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int le
 
 static void dma_setup(unsigned int flags, struct ls1x_nand_info *info)
 {
+	int timeout = 8000;
 	unsigned long irq_flags;
 
 	writel(0, info->dma_desc + DMA_ORDERED);
@@ -250,7 +251,7 @@ static void dma_setup(unsigned int flags, struct ls1x_nand_info *info)
 
 	local_irq_save(irq_flags);
 	writel((info->dma_desc_phys & ~0x1F) | 0x8, order_addr_in);
-	while ((readl(order_addr_in) & 0x8)/* && (timeout-- > 0)*/) {
+	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
 //		printk("%s. %x\n",__func__, readl(order_addr_in));
 //		udelay(5);
 	}
@@ -479,11 +480,11 @@ static void ls1x_nand_init_hw(struct ls1x_nand_info *info)
 	nand_writel(info, NAND_OPNUM, 0x00);
 	nand_writel(info, NAND_CS_RDY, 0x88442211);	/* 重映射rdy1/2/3信号到rdy0 rdy用于判断是否忙 */
 }
-
+/*
 static int ls1x_nand_detect(struct mtd_info *mtd)
 {
 	return (mtd->erasesize != 1<<17 || mtd->writesize != 1<<11 || mtd->oobsize != 1<<6);
-}
+}*/
 
 static int ls1x_nand_probe(struct platform_device *pdev)
 {
@@ -708,4 +709,5 @@ module_exit(ls1x_nand_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Loongson1 NAND controller driver");
+MODULE_AUTHOR("TangHaifeng <tanghaifeng-gz@loongson.cn>");
 
