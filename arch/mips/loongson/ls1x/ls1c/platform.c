@@ -56,10 +56,16 @@
 static struct mtd_partition ls1x_nand_partitions[] = {
 	[0] = {
 		.name	= "kernel",
+//		.offset	= 0x100000,	/* 1MByte保留作启动用 */
 		.offset	= MTDPART_OFS_APPEND,
 		.size	= 0xe00000,
-//		.mask_flags =   MTD_WRITEABLE,
+//		.mask_flags = MTD_WRITEABLE,
 	},
+/*	[1] = {
+		.name	= "data",
+		.offset	= MTDPART_OFS_APPEND,
+		.size	= MTDPART_SIZ_FULL,
+	},*/
 	[1] = {
 		.name	= "os",
 		.offset	= MTDPART_OFS_APPEND,

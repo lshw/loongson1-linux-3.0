@@ -75,7 +75,7 @@ static void __iomem *order_addr_in;
 #define nand_readl(info, off)		\
 	__raw_readl((info)->mmio_base + (off))
 
-#define MAX_BUFF_SIZE	8192
+#define MAX_BUFF_SIZE	0x100000	/* 1MByte */
 #define PAGE_SHIFT		12	/* 页内地址(列地址)A0-A11 */
 
 #if defined(CONFIG_LS1A_MACH) || defined(CONFIG_LS1C_MACH)
@@ -168,13 +168,14 @@ static void ls1x_nand_select_chip(struct mtd_info *mtd, int chip)
 
 static int ls1x_nand_dev_ready(struct mtd_info *mtd)
 {
+	/* 多片flash的rdy信号如何判断？ */
 	struct ls1x_nand_info *info = mtd->priv;
 	unsigned int ret;
 	ret = nand_readl(info, NAND_CMD) & 0x000f0000;
-	if (ret != 0x000f0000) {
-		return 0;
+	if (ret) {
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 static void ls1x_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
@@ -230,34 +231,6 @@ static int ls1x_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int le
 	return 0;
 }
 
-static void dma_setup(unsigned int flags, struct ls1x_nand_info *info)
-{
-	int timeout = 8000;
-	unsigned long irq_flags;
-
-	writel(0, info->dma_desc + DMA_ORDERED);
-	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
-	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
-	writel((info->buf_count + 3) / 4, info->dma_desc + DMA_LENGTH);
-	writel(0, info->dma_desc + DMA_STEP_LENGTH);
-	writel(1, info->dma_desc + DMA_STEP_TIMES);
-
-	if (flags) {
-		writel(0x00001001, info->dma_desc + DMA_CMD);
-	} else {
-		writel(0x00000001, info->dma_desc + DMA_CMD);
-	}
-	dma_cache_wback((unsigned long)(info->dma_desc), DMA_DESC_NUM);
-
-	local_irq_save(irq_flags);
-	writel((info->dma_desc_phys & ~0x1F) | 0x8, order_addr_in);
-	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
-//		printk("%s. %x\n",__func__, readl(order_addr_in));
-//		udelay(5);
-	}
-	local_irq_restore(irq_flags);
-}
-
 static int ls1x_nand_done(struct ls1x_nand_info *info)
 {
 	int ret, timeout = 200000;
@@ -277,6 +250,35 @@ static void inline ls1x_nand_start(struct ls1x_nand_info *info)
 
 static void inline ls1x_nand_stop(struct ls1x_nand_info *info)
 {
+}
+
+static void start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
+{
+	int timeout = 5000;
+	unsigned long irq_flags;
+
+//	writel(0, info->dma_desc + DMA_ORDERED);
+//	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
+//	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
+	writel((info->buf_count + 3) / 4, info->dma_desc + DMA_LENGTH);
+//	writel(0, info->dma_desc + DMA_STEP_LENGTH);
+//	writel(1, info->dma_desc + DMA_STEP_TIMES);
+
+	if (flags) {
+		writel(0x00001001, info->dma_desc + DMA_CMD);
+	} else {
+		writel(0x00000001, info->dma_desc + DMA_CMD);
+	}
+	dma_cache_wback((unsigned long)(info->dma_desc), DMA_DESC_NUM);
+
+	local_irq_save(irq_flags);
+	ls1x_nand_start(info);	/* 使能nand命令 */
+	writel((info->dma_desc_phys & ~0x1F) | 0x8, order_addr_in);	/* 启动DMA */
+	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
+//		printk("%s. %x\n",__func__, readl(order_addr_in));
+//		udelay(5);
+	}
+	local_irq_restore(irq_flags);
 }
 
 static irqreturn_t ls1x_nand_irq(int irq, void *devid)
@@ -304,10 +306,10 @@ static irqreturn_t ls1x_nand_irq(int irq, void *devid)
 static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column, int page_addr)
 {
 	struct ls1x_nand_info *info = mtd->priv;
-	unsigned cmd_prev;
+//	unsigned cmd_prev;
 
-	cmd_prev = info->cmd;
-	info->cmd = command;
+//	cmd_prev = info->cmd;
+//	info->cmd = command;
 
 	switch (command) {
 	case NAND_CMD_READOOB:
@@ -323,8 +325,7 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		nand_writel(info, NAND_ADDR_H, MAIN_SPARE_ADDRH(page_addr));
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
-		ls1x_nand_start(info);
-		dma_setup(0, info);
+		start_dma_nand(0, info);
 		wait_for_completion(&info->cmd_complete);
 		dma_cache_inv((unsigned long)(info->data_buff), info->buf_count);
 		break;
@@ -341,8 +342,7 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		nand_writel(info, NAND_ADDR_H, MAIN_SPARE_ADDRH(page_addr));
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
-		ls1x_nand_start(info);
-		dma_setup(0, info);
+		start_dma_nand(0, info);
 		wait_for_completion(&info->cmd_complete);
 		dma_cache_inv((unsigned long)(info->data_buff), info->buf_count);
 		break;
@@ -354,10 +354,10 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		break;
 	case NAND_CMD_PAGEPROG:
 		init_completion(&info->cmd_complete);
-		if (cmd_prev != NAND_CMD_SEQIN) {
+/*		if (cmd_prev != NAND_CMD_SEQIN) {
 			printk(KERN_INFO "Prev cmd don't complete...\n");
 			break;
-		}
+		}*/
 /*		if (info->buf_count <= 0) {
 			printk(KERN_ERR "write oobsize+writesize error!!!\n");
 			break;
@@ -371,8 +371,7 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
 		dma_cache_wback((unsigned long)(info->data_buff), info->buf_count);
-		ls1x_nand_start(info);
-		dma_setup(1, info);
+		start_dma_nand(1, info);
 		wait_for_completion(&info->cmd_complete);
 		break;
 	case NAND_CMD_RESET:
@@ -466,6 +465,19 @@ static int ls1x_nand_init_buff(struct ls1x_nand_info *info)
 	return 0;
 }
 
+static void ls1x_dma_init(struct ls1x_nand_info *info)
+{
+	writel(0, info->dma_desc + DMA_ORDERED);
+	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
+	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
+//	writel((info->buf_count + 3) / 4, info->dma_desc + DMA_LENGTH);
+	writel(0, info->dma_desc + DMA_STEP_LENGTH);
+	writel(1, info->dma_desc + DMA_STEP_TIMES);
+	writel(0, info->dma_desc + DMA_CMD);
+
+	dma_cache_wback((unsigned long)(info->dma_desc), DMA_DESC_NUM);
+}
+
 static void ls1x_nand_init_hw(struct ls1x_nand_info *info)
 {
 	nand_writel(info, NAND_CMD, 0x00);
@@ -480,11 +492,82 @@ static void ls1x_nand_init_hw(struct ls1x_nand_info *info)
 	nand_writel(info, NAND_OPNUM, 0x00);
 	nand_writel(info, NAND_CS_RDY, 0x88442211);	/* 重映射rdy1/2/3信号到rdy0 rdy用于判断是否忙 */
 }
-/*
-static int ls1x_nand_detect(struct mtd_info *mtd)
+
+static int ls1x_nand_scan(struct mtd_info *mtd)
 {
-	return (mtd->erasesize != 1<<17 || mtd->writesize != 1<<11 || mtd->oobsize != 1<<6);
-}*/
+	struct ls1x_nand_info *info = mtd->priv;
+	struct nand_chip *chip = (struct nand_chip *)info;
+	struct platform_device *pdev = info->pdev;
+	uint64_t chipsize;
+	int exit_nand_size;
+
+/*	if (nand_scan(mtd, 1)) {
+		dev_err(&pdev->dev, "failed to scan nand\n");
+		return = -ENXIO;
+	}*/
+
+	if (nand_scan_ident(mtd, 1, NULL))
+		return -ENODEV;
+
+	chipsize = (chip->chipsize << 3) >> 20;	/* Mbit */
+
+	switch (mtd->writesize) {
+	case 2048:
+		switch (chipsize) {
+		case 1024:
+		#if defined(CONFIG_LS1A_MACH)
+			exit_nand_size = 0x1;
+		#else
+			exit_nand_size = 0x0;
+		#endif
+			break;
+		case 2048:
+			exit_nand_size = 0x1; break;
+		case 4096:
+			exit_nand_size = 0x2; break;
+		case 8192:
+			exit_nand_size = 0x3; break;
+		default:
+			exit_nand_size = 0x3; break;
+		}
+		break;
+	case 4096:
+		exit_nand_size = 0x4; break;
+	case 8192:
+		switch (chipsize) {
+		case 32768:
+			exit_nand_size = 0x5; break;
+		case 65536:
+			exit_nand_size = 0x6; break;
+		case 131072:
+			exit_nand_size = 0x7; break;
+		default:
+			exit_nand_size = 0x8; break;
+		}
+		break;
+	case 512:
+		switch (chipsize) {
+		case 64:
+			exit_nand_size = 0x9; break;
+		case 128:
+			exit_nand_size = 0xa; break;
+		case 256:
+			exit_nand_size = 0xb; break;
+		case 512:
+			exit_nand_size = 0xc;break;
+		default:
+			exit_nand_size = 0xd; break;
+		}
+		break;
+	default:
+		dev_err(&pdev->dev, "exit nand size error!\n");
+		return -ENODEV;
+	}
+	nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xfffff0ff) | (exit_nand_size << 8));
+	chip->cmdfunc(mtd, NAND_CMD_RESET, 0, 0);
+
+	return nand_scan_tail(mtd);
+}
 
 static int ls1x_nand_probe(struct platform_device *pdev)
 {
@@ -582,21 +665,16 @@ static int ls1x_nand_probe(struct platform_device *pdev)
 	}
 
 	nand_gpio_init();
-//	chip->cmdfunc(mtd, NAND_CMD_RESET, 0, 0);
+	ls1x_dma_init(info);
 	ls1x_nand_init_hw(info);
+	chip->cmdfunc(mtd, NAND_CMD_RESET, 0, 0);
 	platform_set_drvdata(pdev, info);
 
-	if (nand_scan(mtd, 1)) {
+	if (ls1x_nand_scan(mtd)) {
 		dev_err(&pdev->dev, "failed to scan nand\n");
 		ret = -ENXIO;
 		goto fail_free_irq;
 	}
-
-/*	if (ls1x_nand_detect(mtd)) {
-		dev_err(&pdev->dev, "driver don't support the Flash!\n");
-		ret = -ENXIO;
-		goto fail_free_irq;
-	}*/
 
 	mtd->name = "ls1x-nand";
 
@@ -710,4 +788,3 @@ module_exit(ls1x_nand_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Loongson1 NAND controller driver");
 MODULE_AUTHOR("TangHaifeng <tanghaifeng-gz@loongson.cn>");
-

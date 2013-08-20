@@ -385,7 +385,7 @@ struct gpio_led pcf8574_gpio_leds[] = {
 	},{
 		.name			= "SHUTDOWN",
 		.gpio			= SHUTDOWN,
-		.active_low		= 0,
+		.active_low		= 1,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
 	},{
@@ -415,7 +415,7 @@ struct gpio_led pcf8574_gpio_leds[] = {
 	},*/{
 		.name			= "POWER_OFF",
 		.gpio			= POWER_OFF,
-		.active_low		= 0,
+		.active_low		= 1,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
 	},
