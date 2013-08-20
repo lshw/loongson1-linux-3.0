@@ -19,7 +19,7 @@
 	#define AHB_CLK			25000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1B_BOARD)
-	#define AHB_CLK			25000000
+	#define AHB_CLK			33000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1B_CORE_BOARD)
 	#define AHB_CLK			25000000

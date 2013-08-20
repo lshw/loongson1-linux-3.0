@@ -180,7 +180,7 @@ void __init arch_init_irq(void)
 	setup_irq(INT1_IRQ, &cascade_irqaction);
 	setup_irq(INT2_IRQ, &cascade_irqaction);
 	setup_irq(INT3_IRQ, &cascade_irqaction);
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH) || defined(CONFIG_LS1C_MACH)
 	setup_irq(INT4_IRQ, &cascade_irqaction);
 #endif
 }

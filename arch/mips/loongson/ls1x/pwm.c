@@ -29,12 +29,12 @@
 #define REG_PWM_LRC		0x08
 #define REG_PWM_CTRL	0x0c
 
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 #define LS_GPIO_PWM0	84
 #define LS_GPIO_PWM1	85
 #define LS_GPIO_PWM2	86
 #define LS_GPIO_PWM3	87
-#else
+#elif defined(CONFIG_LS1B_MACH)
 #define LS_GPIO_PWM0	0
 #define LS_GPIO_PWM1	1
 #define LS_GPIO_PWM2	2
@@ -86,7 +86,7 @@ struct pwm_device *pwm_request(int id, const char *label)
 
 	x = __raw_readl(LS1X_MUX_CTRL0);
 	/* 设备复用模式为pwm */
-#ifdef CONFIG_LS1A_MACH
+#if defined(CONFIG_LS1A_MACH)
 	if (id == 0 || id == 1) {
 		x = x & (~NAND1_USE_PWM01) & (~GMAC0_USE_PWM01);
 		__raw_writel(x, LS1X_MUX_CTRL0);
@@ -94,7 +94,7 @@ struct pwm_device *pwm_request(int id, const char *label)
 		x = x & (~NAND_D45_USE_PWM23) & (~GMAC1_USE_PWM23);
 		__raw_writel(x, LS1X_MUX_CTRL0);
 	}
-#else
+#elif defined(CONFIG_LS1B_MACH)
 	if (id == 0 || id == 1) {
 		x = x & (~UART0_USE_PWM01) & (~NAND3_USE_PWM01) & (~NAND2_USE_PWM01) & (~NAND1_USE_PWM01);
 		__raw_writel(x, LS1X_MUX_CTRL0);
