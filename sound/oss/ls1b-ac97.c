@@ -17,7 +17,7 @@
 
 #include "ls1b-ac97.h"
 #include <irq.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 #define TIME_OUT 10		//HZ
 

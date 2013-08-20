@@ -42,7 +42,7 @@
 #include <video/ls1xfb.h>
 #include <media/gc0308_platform.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <irq.h>
 #include <spi.h>
 #include <asm/gpio.h>

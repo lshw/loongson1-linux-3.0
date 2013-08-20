@@ -10,7 +10,7 @@
 #include <linux/errno.h>
 #include <linux/gpio.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <irq.h>
 
 #define LS1B_DEBUG 0

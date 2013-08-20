@@ -5,8 +5,8 @@
  *  option) any later version.
  */
 
-#ifndef __LS1B_BOARD__H__
-#define __LS1B_BOARD__H__
+#ifndef __ASM_MACH_LOONGSON1_H
+#define __ASM_MACH_LOONGSON1_H
 
 #include <asm/addrspace.h>
 #include <asm/types.h>
@@ -19,7 +19,7 @@
 	#define AHB_CLK			25000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1B_BOARD)
-	#define AHB_CLK			33000000
+	#define AHB_CLK			25000000
 	#define PORT(offset)	(u8 *)(KSEG1ADDR(LS1X_UART2_BASE + offset))
 #elif defined(CONFIG_LS1B_CORE_BOARD)
 	#define AHB_CLK			25000000
@@ -139,9 +139,9 @@ struct ls1b_usbh_data {
     u8      vbus_pin[]; /* port power-control pin */
 }; 
 
-struct ls1c_camera_pdata {                                                                                                              
-        unsigned long mclk_24MHz;                                                                                                       
-        unsigned long flags;                                                                                                            
+struct ls1c_camera_pdata {
+        unsigned long mclk_24MHz;
+        unsigned long flags;
 };
 
 #if defined(CONFIG_LS1C_MACH)
@@ -167,5 +167,5 @@ struct ls1c_camera_pdata {
 #define LS1A_PCIMAP (*(volatile int *)0xbfd01114)
 #define LS1A_PCIMAP_CFG  (*(volatile int *)0xbfd01120)
 
-#endif	/* __LS1B_BOARD__H__ */
+#endif	/* __ASM_MACH_LOONGSON1_H */
 

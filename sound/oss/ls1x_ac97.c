@@ -30,7 +30,7 @@
 
 #include "ls1x_ac97.h"
 #include <irq.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 static void __iomem *order_addr_in;
 static int codec_reset = 1;

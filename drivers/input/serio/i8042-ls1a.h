@@ -8,7 +8,7 @@
  */
 
 #include <linux/clk.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 /*
  * Names.

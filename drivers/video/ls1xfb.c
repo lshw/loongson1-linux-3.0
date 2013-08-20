@@ -26,7 +26,7 @@
 #include <linux/serial_reg.h>
 #include <video/ls1xfb.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <regs-clk.h>
 #include "ls1xfb.h"
 

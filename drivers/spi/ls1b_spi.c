@@ -17,7 +17,7 @@
 #include <asm/types.h>
 #include <asm/io.h>
 #include <asm/dma.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <irq.h>
 #include <spi.h>
 

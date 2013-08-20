@@ -28,7 +28,7 @@
 
 #include "ls1x_ac97.h"
 #include <irq.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 ///#define	CONFIG_SND_SB2F_TIMER	1
 
 void __iomem *order_addr_in;

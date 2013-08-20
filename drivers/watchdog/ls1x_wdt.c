@@ -25,7 +25,7 @@
 #include <linux/cpufreq.h>
 #include <linux/slab.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 #define TIMEOUT_MIN		0
 #define TIMEOUT_MAX		45

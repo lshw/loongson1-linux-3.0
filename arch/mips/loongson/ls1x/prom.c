@@ -14,7 +14,7 @@
 #include <video/ls1xfb.h>
 
 #include <asm/bootinfo.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <loongson1.h>
 #include <prom.h>
 
 #define DEFAULT_MEMSIZE			64	/* If no memsize provided */

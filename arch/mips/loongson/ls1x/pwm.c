@@ -22,7 +22,7 @@
 #include <linux/pwm.h>
 #include <linux/gpio.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 #define REG_PWM_CNTR	0x00
 #define REG_PWM_HRC		0x04

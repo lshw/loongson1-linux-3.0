@@ -10,7 +10,7 @@
 #ifndef __ASM_MACH_LS1XFB_H
 #define __ASM_MACH_LS1XFB_H
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <linux/fb.h>
 #include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>

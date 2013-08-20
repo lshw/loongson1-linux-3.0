@@ -17,7 +17,7 @@
 #include <asm/io.h>
 #include <asm/gpio.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 #include "st7565r.h"
 

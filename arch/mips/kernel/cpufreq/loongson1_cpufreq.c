@@ -22,7 +22,7 @@
 #include <linux/irq.h>
 
 #include <asm/clock.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <loongson1.h>
 
 extern unsigned long cpu_clock_freq;
 extern void loongson1_cpu_wait(void);

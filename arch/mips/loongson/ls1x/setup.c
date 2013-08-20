@@ -18,7 +18,7 @@
 #include <linux/screen_info.h>
 #endif
 
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <loongson1.h>
 
 extern void prom_printf(char *fmt, ...);
 

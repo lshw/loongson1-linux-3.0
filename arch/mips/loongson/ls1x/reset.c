@@ -13,7 +13,7 @@
 #include <asm/reboot.h>
 
 #include <asm/gpio.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <loongson1.h>
 
 static void ls1x_restart(char *command)
 {

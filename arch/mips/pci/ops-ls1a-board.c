@@ -30,7 +30,7 @@
 #include <linux/pci.h>
 #include <linux/kernel.h>
 
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <loongson1.h>
 
 #define PCI_ACCESS_READ  0
 #define PCI_ACCESS_WRITE 1

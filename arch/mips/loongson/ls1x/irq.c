@@ -10,7 +10,7 @@
 #include <linux/irq.h>
 #include <asm/irq_cpu.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <irq.h>
 
 static struct ls1x_intc_regs volatile *ls1x_icregs

@@ -38,7 +38,7 @@
 #include <media/soc_mediabus.h>
 
 #include <irq.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 //#include <linux/types.h>
 
 /*

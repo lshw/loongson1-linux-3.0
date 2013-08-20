@@ -19,8 +19,8 @@
 
 #include <asm/time.h>
 
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1x_time.h>
+#include <loongson1.h>
+#include <ls1x_time.h>
 
 #define TIMER_CLOCKEVENT 0
 #define TIMER_CLOCKSOURCE 1

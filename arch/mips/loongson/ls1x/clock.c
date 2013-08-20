@@ -15,9 +15,9 @@
 #include <linux/err.h>
 #include <asm/time.h>
 
-#include <asm/mach-loongson/ls1x/clock.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
-#include <asm/mach-loongson/ls1x/ls1x_time.h>
+#include <clock.h>
+#include <loongson1.h>
+#include <ls1x_time.h>
 
 static LIST_HEAD(clocks);
 static DEFINE_MUTEX(clocks_mutex);

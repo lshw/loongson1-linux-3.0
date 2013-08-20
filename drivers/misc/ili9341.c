@@ -15,7 +15,7 @@
 #include <asm/ioctl.h>
 #include <asm/gpio.h>
 
-#include <ls1b_board.h>
+#include <loongson1.h>
 
 #include "ili9341.h"
 

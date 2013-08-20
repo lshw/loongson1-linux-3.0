@@ -31,7 +31,7 @@
 #include <generated/autoconf.h>	//lxy
 #include <linux/init.h>
 #include <linux/pci.h>
-#include <asm/mach-loongson/ls1x/ls1b_board.h>
+#include <loongson1.h>
 #include <asm/mach-loongson/ls1x/irq.h>
 #include <asm/gpio.h>
 

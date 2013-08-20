@@ -17,7 +17,7 @@
 #include <linux/module.h>
 
 #include <asm/cacheflush.h>
-#include <ls1b_board.h>
+#include <loongson1.h>
 #include <linux/delay.h>
 //#include <loongson.h>
 #include <../kernel/power/power.h>
