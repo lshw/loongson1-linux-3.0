@@ -10,7 +10,7 @@
 #include <linux/module.h>
 
 #include <asm/bootinfo.h>
-#include <asm/wbflush.h>
+//#include <asm/wbflush.h>
 #include <prom.h>
 
 #ifdef CONFIG_VT
@@ -28,6 +28,7 @@ extern void prom_printf(char *fmt, ...);
 #define PTR_PAD(p) (p)
 #endif
 
+/*
 void (*__wbflush)(void);
 EXPORT_SYMBOL(__wbflush);
 
@@ -41,18 +42,18 @@ static void wbflush_sb2f(void)
 	  "nop\n\t"
 	  ".set\tpop\n\t"
 	  ".set mips0\n\t");
-}
+}*/
 
 void  __init plat_mem_setup(void)
 {
-	set_io_port_base(PTR_PAD(0xbc000000));
+/*	set_io_port_base(PTR_PAD(0xbc000000));
 	
 	ioport_resource.start = 0;
 	ioport_resource.end = 0xffffffff;
 	iomem_resource.start = 0;
-	iomem_resource.end = 0xffffffff;
+	iomem_resource.end = 0xffffffff;*/
 
-	__wbflush = wbflush_sb2f;
+//	__wbflush = wbflush_sb2f;
 
 	add_memory_region(0, memsize<<20, BOOT_MEM_RAM);  
 

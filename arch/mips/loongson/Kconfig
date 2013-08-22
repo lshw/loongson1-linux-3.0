@@ -9,7 +9,7 @@ config LS1A_MACH
 	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
 	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
 	select SYS_HAS_CPU_LOONGSON1A
-	select CPU_HAS_WB
+#	select CPU_HAS_WB
 	select DMA_NONCOHERENT
 	select HW_HAS_PCI
 	select IRQ_CPU
@@ -27,7 +27,7 @@ config LS1B_MACH
 	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
 	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
 	select SYS_HAS_CPU_LOONGSON1B
-	select CPU_HAS_WB
+#	select CPU_HAS_WB
 	select DMA_NONCOHERENT
 	select IRQ_CPU
 	select SYS_HAS_EARLY_PRINTK
@@ -44,7 +44,7 @@ config LS1C_MACH
 	select CEVT_R4K if ! MIPS_EXTERNAL_TIMER
 	select CSRC_R4K if ! MIPS_EXTERNAL_TIMER
 	select SYS_HAS_CPU_LOONGSON1C
-	select CPU_HAS_WB
+#	select CPU_HAS_WB
 	select DMA_NONCOHERENT
 	select IRQ_CPU
 	select SYS_HAS_EARLY_PRINTK

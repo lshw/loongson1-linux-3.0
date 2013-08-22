@@ -24,17 +24,10 @@
 #include <linux/phy.h>
 #include <linux/stmmac.h>
 #include <linux/i2c.h>
-#include <linux/i2c/tsc2007.h>
-#include <linux/i2c/ft5x06_ts.h>
 #include <linux/videodev2.h>
 #include <linux/gpio_keys.h>
 #include <linux/input.h>
-#include <linux/input/74x165_gpio_keys_polled.h>
-#include <linux/rotary_encoder.h>
-#include <linux/ssd1305.h>
-#include <linux/st7920.h>
 #include <linux/clk.h>
-#include <linux/jbt6k74.h>
 #include <linux/leds.h>
 #include <linux/leds_pwm.h>
 
@@ -187,15 +180,7 @@ static struct resource ls1x_ohci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-/*
-static struct ls1x_usbh_data  ls1x_ohci_platform_data={
-#ifdef CONFIG_LS1A_MACH
-	.ports=4,
-#else
-	.ports=1,
-#endif
-};
-*/
+
 static struct platform_device ls1x_ohci_device = {
 	.name           = "ls1x-ohci",
 	.id             = 0,
@@ -224,15 +209,7 @@ static struct resource ls1x_ehci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-/*
-static struct ls1x_usbh_data  ls1x_ehci_platform_data={
-#ifdef CONFIG_LS1A_MACH
-	.ports=4,
-#else
-	.ports=1,
-#endif
-};
-*/
+
 static struct platform_device ls1x_ehci_device = {
 	.name           = "ls1x-ehci",
 	.id             = 0,
@@ -246,9 +223,7 @@ static struct platform_device ls1x_ehci_device = {
 };
 #endif //#ifdef CONFIG_USB_EHCI_HCD_LS1X
 
-/*
-* watchdog
-*/
+/* watchdog */
 #ifdef CONFIG_LS1X_WDT
 static struct resource ls1x_wdt_resource[] = {
 	[0]={
@@ -266,9 +241,7 @@ static struct platform_device ls1x_wdt_device = {
 };
 #endif //#ifdef CONFIG_LS1X_WDT
 
-/*
-*RTC
-*/
+/* RTC */
 #ifdef CONFIG_RTC_DRV_LOONGSON1
 static struct platform_device ls1x_rtc_device = {
 	.name       = "ls1x-rtc",
@@ -276,57 +249,8 @@ static struct platform_device ls1x_rtc_device = {
 };
 #endif //#ifdef CONFIG_RTC_DRV_LOONGSON1
 
-/*
-*I2C
-*/
+/* I2C */
 /* I2C devices fitted. */
-#ifdef CONFIG_TOUCHSCREEN_TSC2007
-#define TSC2007_GPIO_IRQ	60
-static int ts_get_pendown_state(void)
-{
-	return !gpio_get_value(TSC2007_GPIO_IRQ);
-}
-
-int ts_init(void)
-{
-	gpio_request(TSC2007_GPIO_IRQ, "tsc2007 gpio irq");
-	gpio_direction_input(TSC2007_GPIO_IRQ);
-	return 0;
-}
-
-static struct tsc2007_platform_data tsc2007_info = {
-	.model				= 2007,
-	.x_plate_ohms		= 180,
-	.get_pendown_state	= ts_get_pendown_state,
-	.init_platform_hw	= ts_init,
-};
-#endif //#ifdef CONFIG_TOUCHSCREEN_TSC2007
-
-#ifdef CONFIG_TOUCHSCREEN_FT5X0X
-#define FT5X0X_GPIO_IRQ		38
-#define FT5X0X_GPIO_WAUP	39
-int ft5x0x_irq_init(void)
-{
-	gpio_request(FT5X0X_GPIO_IRQ, "ft5x0x gpio irq");
-	gpio_direction_input(FT5X0X_GPIO_IRQ);		/* 输入使能 */
-	return 0;
-}
-
-int ft5x0x_wake_up(void)
-{
-	gpio_direction_output(FT5X0X_GPIO_WAUP, 0);		/* 输出使能 */
-	msleep(10);
-	gpio_set_value(FT5X0X_GPIO_WAUP, 1);
-	msleep(10);
-	return 0;
-}
-
-static struct ft5x0x_ts_platform_data ft5x0x_info = {
-	.init_platform_hw	= ft5x0x_irq_init,
-	.wake_platform_hw	= ft5x0x_wake_up,
-};
-#endif //#ifdef CONFIG_TOUCHSCREEN_FT5X0X
-
 #ifdef CONFIG_VIDEO_GC0308
 static struct gc0308_platform_data gc0308_plat = {
 	.default_width = 640,
@@ -507,20 +431,6 @@ static struct pca953x_platform_data ls1x_i2c_pca9555_platdata = {
 
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
-#ifdef CONFIG_TOUCHSCREEN_TSC2007
-	{
-		I2C_BOARD_INFO("tsc2007", 0x48),
-		.irq = LS1X_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
-		.platform_data	= &tsc2007_info,
-	},
-#endif
-#ifdef CONFIG_TOUCHSCREEN_FT5X0X
-	{
-		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
-		.irq = LS1X_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
-		.platform_data	= &ft5x0x_info,
-	},
-#endif
 #ifdef CONFIG_VIDEO_GC0308
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
@@ -599,27 +509,7 @@ static struct platform_device ls1x_i2c2_device = {
 };
 #endif //#ifdef CONFIG_I2C_LS1X
 
-#ifdef CONFIG_SENSORS_SHT15
-#include <linux/sht15.h>
-static struct sht15_platform_data platform_data_sht15 = {
-	.gpio_data =  2,	/* 注意:可能需要修改sht15.c驱动中的gpio延时参数 */
-	.gpio_sck  =  3,
-	.supply_mv = 5000, /* 5000mV */
-	.checksum = 1,
-};
-
-static struct platform_device sht15 = {
-	.name = "sht10",
-	.id = -1,
-	.dev = {
-		.platform_data = &platform_data_sht15,
-	},
-};
-#endif
-
-/*
- * lcd
- */
+/* lcd */
 #if defined(CONFIG_FB_LOONGSON1)
 #include "../video_modes.c"
 #ifdef CONFIG_LS1X_FB0
@@ -680,45 +570,6 @@ static struct platform_device ls1x_bl_dev = {
 	},
 };
 #endif //#ifdef CONFIG_BACKLIGHT_GENERIC
-
-#ifdef CONFIG_LCD_PLATFORM
-#include <video/platform_lcd.h>
-static void ls1x_lcd_power_set(struct plat_lcd_data *pd,
-				   unsigned int power)
-{
-	if (power)
-		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 1);
-	else
-		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 0);
-}
-
-static struct plat_lcd_data ls1x_lcd_power_data = {
-	.set_power		= ls1x_lcd_power_set,
-};
-
-static struct platform_device ls1x_lcd_powerdev = {
-	.name			= "platform-lcd",
-	.dev.parent		= &ls1x_fb0_device.dev,
-	.dev.platform_data	= &ls1x_lcd_power_data,
-};
-#endif //#ifdef CONFIG_LCD_PLATFORM
-
-#ifdef CONFIG_BACKLIGHT_PWM
-#include <linux/pwm_backlight.h>
-static struct platform_pwm_backlight_data ls1x_backlight_data = {
-	.pwm_id		= 2,
-	.max_brightness	= 255,
-	.dft_brightness	= 100,
-	.pwm_period_ns	= 7812500,
-};
-
-static struct platform_device ls1x_pwm_backlight = {
-	.name = "pwm-backlight",
-	.dev = {
-		.platform_data = &ls1x_backlight_data,
-	},
-};
-#endif //#ifdef CONFIG_BACKLIGHT_PWM
 
 //gmac
 #ifdef CONFIG_STMMAC_ETH
@@ -980,18 +831,6 @@ static struct ads7846_platform_data ads_info __maybe_unused = {
 };
 #endif /* TOUCHSCREEN_ADS7846 */
 
-#ifdef CONFIG_LCD_JBT6K74
-/* JBT6k74 display controller */
-static void gta02_jbt6k74_probe_completed(struct device *dev)
-{
-//	pcf50633_bl_set_brightness_limit(gta02_pcf, 0x3f);
-}
-
-const struct jbt6k74_platform_data jbt6k74_pdata = {
-//	.gpio_reset = 41,
-};
-#endif
-
 #ifdef CONFIG_LS1B_SPI0
 static struct spi_board_info ls1b_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
@@ -1120,17 +959,6 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.max_speed_hz	= 5000000,
 		.mode = SPI_MODE_2,
 	},
-#ifdef CONFIG_LCD_JBT6K74
-	{
-		.modalias	= "jbt6k74",
-		.platform_data	= &jbt6k74_pdata,
-		.bus_num	= 2,		/* 对应spigpio_device的.id=2 */
-		.controller_data = (void *)43,	/*gpio43*/
-		.chip_select = 2,
-		/* irq */
-		.max_speed_hz	= 100 * 1000,
-	},
-#endif
 };
 #endif //#ifdef CONFIG_LS1B_SPI0
 
@@ -1210,120 +1038,6 @@ static struct spi_board_info spi1_gpio_devices[] = {
 };
 #endif	//#ifdef CONFIG_LS1B_SPI1
 
-#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
-struct spi_gpio_platform_data spigpio_74x165_data = {
-	.sck = 39,	/*gpio39 cp*/
-	.mosi = SPI_GPIO_NO_MOSI,
-	.miso = 41,	/*gpio41 q7*/
-	.num_chipselect = 1,
-};
-
-static struct platform_device spigpio_74x165_device = {
-	.name = "spi_gpio",
-	.id   = 4,
-	.dev = {
-		.platform_data = &spigpio_74x165_data,
-	},
-};
-
-#include <linux/spi/74x165.h>
-static struct nxp_74x165_chip_platform_data nxp_74x165_info = {
-	.base = 188,	/* 自定义的74x165 gpio起始号 */
-	.latch = 38,	/*gpio38 pl*/
-	.daisy_chained = 2,
-};
-
-static struct spi_board_info spi3_gpio_devices[] __maybe_unused = {
-	{
-		.modalias	= "74x165",
-		.bus_num 		= 4,	/* 对应spigpio_74x165_device的 .id=2 */
-		.controller_data = (void *)SPI_GPIO_NO_CHIPSELECT,
-		.chip_select	= 0,
-		.max_speed_hz	= 1000000,
-		.platform_data	= &nxp_74x165_info,
-		.mode = SPI_MODE_2,
-	},
-};
-#endif	//#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
-
-/************************************************/	//GPIO && buzzer && button
-#ifdef CONFIG_KEYBOARD_GPIO_POLLED
-static struct gpio_keys_button ls1b_gpio_button[] = {
-	[0] = {
-		.code		= 'A',
-		.gpio	 	= 37,
-		.desc		= "SW1",
-	},
-	[1] = {
-		.code		= 'B',
-		.gpio	 	= 38,
-		.desc		= "SW2",
-	},
-	[2] = {
-		.code		= 'C',
-		.gpio	 	= 39,
-		.desc		= "SW3",
-	},
-	[3] = {
-		.code		= 'D',
-		.gpio	 	= 40,
-		.desc		= "SW4",
-	},
-	[4] = {
-		.code		= 'E',
-		.gpio	 	= 41,
-		.desc		= "SW5",
-	},
-};
-
-static struct gpio_keys_platform_data ls1b_gpio_key_dat = {
-	.buttons 		= ls1b_gpio_button,
-	.nbuttons 		= 5, 
-	.poll_interval	= 200,
-};
-
-static struct platform_device ls1b_gpio_key_device = {
-	.name 	= "gpio-keys-polled",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_gpio_key_dat,
-	},
-};
-#endif //#ifdef CONFIG_KEYBOARD_GPIO_POLLED
-
-/**
- * Rotary encoder input device
- */
-#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
-#define GPIO_ROTARY_A 59
-#define GPIO_ROTARY_B 51
-#define GPIO_KEY_C 53
-
-static struct rotary_encoder_platform_data raumfeld_rotary_encoder_info = {
-	.steps		= 30,
-	.axis		= REL_X,
-	.relative_axis	= 1,
-	.rollover	= false,
-	.gpio_a		= GPIO_ROTARY_A,
-	.gpio_b		= GPIO_ROTARY_B,
-	.gpio_c		= GPIO_KEY_C,
-	.debounce_ms	= 10,
-	.active_low		= 1,
-	.key		= KEY_ENTER,
-	.inverted_a	= 0,
-	.inverted_b	= 0,
-	.half_period	= 1,
-};
-
-static struct platform_device rotary_encoder_device = {
-	.name		= "rotary-encoder",
-	.id		= 0,
-	.dev		= {
-		.platform_data = &raumfeld_rotary_encoder_info,
-	}
-};
-#endif //#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
-
 /* matrix keypad */
 #if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
 #include <linux/input/matrix_keypad.h>
@@ -1395,248 +1109,6 @@ static struct platform_device ls1bkbd_device = {
 	},
 };
 #endif	//#if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
-
-#ifdef CONFIG_FB_SSD1305
-static struct ssd1305_platform_data ssd1305_pdata = {
-	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
-	.gpios_res = 17,
-	.gpios_cs = 16,
-	.gpios_dc = 18,
-	.gpios_rd = 20,
-	.gpios_wr = 19,
-	
-	.gpios_d0 = 8,
-	.gpios_d1 = 9,
-	.gpios_d2 = 10,
-	.gpios_d3 = 11,
-	.gpios_d4 = 12,
-	.gpios_d5 = 13,
-	.gpios_d6 = 14,
-	.gpios_d7 = 15,
-	.datas_offset = 8,
-};
-
-struct platform_device ssd1305fb_device = {
-	.name	= "ssd1305fb",
-	.id		= -1,
-	.dev	= {
-		.platform_data = &ssd1305_pdata,
-	},
-};
-#endif //#ifdef CONFIG_FB_SSD1305
-
-#ifdef CONFIG_FB_ST7565
-#include <linux/st7565.h>
-static struct st7565_platform_data st7565_pdata = {
-	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
-	.gpios_res = 17,
-	.gpios_cs = 16,
-	.gpios_dc = 18,
-	.gpios_rd = 20,
-	.gpios_wr = 19,
-	
-	.gpios_d0 = 8,
-	.gpios_d1 = 9,
-	.gpios_d2 = 10,
-	.gpios_d3 = 11,
-	.gpios_d4 = 12,
-	.gpios_d5 = 13,
-	.gpios_d6 = 14,
-	.gpios_d7 = 15,
-	.datas_offset = 8,
-};
-
-struct platform_device st7565fb_device = {
-	.name	= "st7565fb",
-	.id		= -1,
-	.dev	= {
-		.platform_data = &st7565_pdata,
-	},
-};
-#endif //#ifdef CONFIG_FB_ST7565
-
-#ifdef CONFIG_FB_ST7920
-static struct st7920_platform_data st7920_pdata = {
-	.gpio_outpu = (unsigned int)LS1X_GPIO_OUT0,
-	.gpios_res = 8,
-	.gpios_cs = 11,
-	.gpios_sid = 9,
-	.gpios_sck = 10,
-
-	.datas_offset = 8,
-};
-
-struct platform_device st7920fb_device = {
-	.name	= "st7920fb",
-	.id		= -1,
-	.dev	= {
-		.platform_data = &st7920_pdata,
-	},
-};
-#endif //#ifdef CONFIG_FB_ST7920
-
-#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
-static struct gpio_keys_button gen74x165_gpio_keys_table[] = {
-	{
-		.code		= KEY_0,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_1,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_2,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_3,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_4,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_5,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_6,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_7,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_8,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_9,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_A,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_B,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_C,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_D,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_E,
-		.active_low	= 1,
-	}, {
-		.code		= KEY_F,
-		.active_low	= 1,
-	},
-};
-
-static struct gen_74x165_platform_data gen74x165_gpio_keys_info = {
-	.q7 = 41,
-	.cp = 39,
-	.pl = 38,
-	.debounce_interval = 1,
-	.buttons	= gen74x165_gpio_keys_table,
-	.nbuttons	= ARRAY_SIZE(gen74x165_gpio_keys_table),
-	.poll_interval	= 50, /* default to 50ms */
-};
-
-static struct platform_device gen74x165_gpio_keys_device = {
-	.name		= "gen74x165_gpio-keys-polled",
-	.dev		= {
-		.platform_data	= &gen74x165_gpio_keys_info,
-	},
-};
-#endif //#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
-
-#ifdef CONFIG_LEDS_PWM
-static struct led_pwm ls1x_pwm_leds[] = {
-	{
-		.name		= "ls1x_pwm_led1",
-		.pwm_id		= 2,
-		.max_brightness	= 255,
-		.pwm_period_ns	= 7812500,
-	},
-	{
-		.name		= "ls1x_pwm_led2",
-		.pwm_id		= 3,
-		.max_brightness	= 255,
-		.pwm_period_ns	= 7812500,
-	},
-};
-
-static struct led_pwm_platform_data ls1x_pwm_data = {
-	.num_leds	= ARRAY_SIZE(ls1x_pwm_leds),
-	.leds		= ls1x_pwm_leds,
-};
-
-static struct platform_device ls1x_leds_pwm = {
-	.name	= "leds_pwm",
-	.id		= -1,
-	.dev	= {
-		.platform_data = &ls1x_pwm_data,
-	},
-};
-#endif //#ifdef CONFIG_LEDS_PWM
-
-#ifdef CONFIG_CAN_SJA1000_PLATFORM
-#include <linux/can/platform/sja1000.h>
-#ifdef CONFIG_LS1X_CAN0
-static struct resource ls1x_sja1000_resources_0[] = {
-	{
-		.start   = LS1X_CAN0_BASE,
-		.end     = LS1X_CAN0_BASE + 0x100 - 1,
-		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
-	}, {
-		.start   = LS1X_BOARD_CAN0_IRQ,
-		.end     = LS1X_BOARD_CAN0_IRQ,
-		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
-	},
-};
-
-static struct sja1000_platform_data ls1x_sja1000_platform_data_0 = {
-//	.osc_freq	= 16000000,
-	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
-	.cdr		= CDR_CBP,
-};
-
-static struct platform_device ls1x_sja1000_0 = {
-	.name = "sja1000_platform",
-	.id = 0,
-	.dev = {
-		.platform_data = &ls1x_sja1000_platform_data_0,
-	},
-	.resource = ls1x_sja1000_resources_0,
-	.num_resources = ARRAY_SIZE(ls1x_sja1000_resources_0),
-};
-#endif	//#ifdef CONFIG_LS1X_CAN0
-#ifdef CONFIG_LS1X_CAN1
-static struct resource ls1x_sja1000_resources_1[] = {
-	{
-		.start   = LS1X_CAN1_BASE,
-		.end     = LS1X_CAN1_BASE + 0x100 - 1,
-		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
-	}, {
-		.start   = LS1X_BOARD_CAN1_IRQ,
-		.end     = LS1X_BOARD_CAN1_IRQ,
-		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
-	},
-};
-
-static struct sja1000_platform_data ls1x_sja1000_platform_data_1 = {
-//	.osc_freq	= 16000000,
-	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
-	.cdr		= CDR_CBP,
-};
-
-static struct platform_device ls1x_sja1000_1 = {
-	.name = "sja1000_platform",
-	.id = 1,
-	.dev = {
-		.platform_data = &ls1x_sja1000_platform_data_1,
-	},
-	.resource = ls1x_sja1000_resources_1,
-	.num_resources = ARRAY_SIZE(ls1x_sja1000_resources_1),
-};
-#endif //#ifdef CONFIG_LS1X_CAN1
-#endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
 #ifdef CONFIG_USB_CH372
 #include <linux/ch372.h>
@@ -1724,10 +1196,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&spi1_gpio_device,
 #endif
 
-#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
-	&spigpio_74x165_device,
-#endif
-
 #ifdef CONFIG_LS1X_WDT
 	&ls1x_wdt_device,
 #endif
@@ -1742,69 +1210,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c2_device,
 #endif
 
-#ifdef CONFIG_SENSORS_SHT15
-	&sht15,
-#endif
-
 #if defined(CONFIG_GPIO_PCF857X) || defined(CONFIG_GPIO_PCF857X_MODULE)
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 	&pcf8574_leds,
 #endif
 #endif
 
-#ifdef CONFIG_KEYBOARD_GPIO_POLLED
-	&ls1b_gpio_key_device,
-#endif
-	
-#ifdef CONFIG_LS1B_BUZZER
-	&ls1b_gpio_buzzer_device,
-#endif
-
-#ifdef CONFIG_LS1B_PWM_DRIVER
-	&ls1b_pwm_device,
-#endif
-
-#ifdef CONFIG_LS1B_BBDIO
-	&ls1b_bobodogio_dog,
-#endif
-
-#ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
-	&rotary_encoder_device,
-#endif
-
-#ifdef CONFIG_FB_SSD1305
-	&ssd1305fb_device,
-#endif
-#ifdef CONFIG_FB_ST7565
-	&st7565fb_device,
-#endif
-#ifdef CONFIG_FB_ST7920
-	&st7920fb_device,
-#endif
-
-#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
-	&gen74x165_gpio_keys_device,
-#endif
-
-#ifdef CONFIG_LEDS_PWM
-	&ls1x_leds_pwm,
-#endif
-
-#ifdef CONFIG_CAN_SJA1000_PLATFORM
-#ifdef CONFIG_LS1X_CAN0
-	&ls1x_sja1000_0,
-#endif
-#ifdef CONFIG_LS1X_CAN1
-	&ls1x_sja1000_1,
-#endif
-#endif
-
-#ifdef CONFIG_LCD_PLATFORM
-	&ls1x_lcd_powerdev,
-#endif
-#ifdef CONFIG_BACKLIGHT_PWM
-	&ls1x_pwm_backlight,
-#endif
 #ifdef CONFIG_USB_CH372
 	&ch372_usb_device,
 #endif
@@ -1817,50 +1228,6 @@ int __init ls1b_platform_init(void)
 #ifdef CONFIG_STMMAC_ETH
 	ls1x_gmac_setup();
 #endif
-
-#ifdef CONFIG_CAN_SJA1000_PLATFORM
-	{
-	#ifdef CONFIG_LS1X_CAN0
-	struct sja1000_platform_data *sja1000_pdata = &ls1x_sja1000_platform_data_0;
-	sja1000_pdata->osc_freq = clk_get_rate(clk);
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	sja1000_pdata = &ls1x_sja1000_platform_data_1;
-	sja1000_pdata->osc_freq = clk_get_rate(clk);
-	#endif
-
-#ifdef	CONFIG_LS1A_MACH
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 67);
-	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 69);
-	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
-	#endif
-#elif	CONFIG_LS1B_MACH
-	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 39);
-	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 41);
-	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
-	#endif
-#endif
-	}
-#endif	//#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
 #ifdef CONFIG_I2C_LS1X
 	i2c_register_board_info(0, ls1x_i2c0_devs, ARRAY_SIZE(ls1x_i2c0_devs));
@@ -1896,19 +1263,10 @@ int __init ls1b_platform_init(void)
 	spi_register_board_info(spi1_gpio_devices, ARRAY_SIZE(spi1_gpio_devices));
 #endif
 
-#if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
-	spi_register_board_info(spi3_gpio_devices, ARRAY_SIZE(spi3_gpio_devices));
-#endif
-
-#ifdef CONFIG_BACKLIGHT_GENERIC
-	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
-#endif
-#ifdef CONFIG_LCD_PLATFORM
-	gpio_request(GPIO_BACKLIGHT_CTRL, "lcd_enable");
-#endif
 #ifdef CONFIG_USB_CH372
 	ch372_irq_init();
 #endif
+
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
 }
 arch_initcall(ls1b_platform_init);
