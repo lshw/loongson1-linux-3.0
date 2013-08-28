@@ -121,7 +121,11 @@
 #define LS1X_CAN1_BASE	0x1fe54000
 
 /* AC97 */
+#if	defined(CONFIG_LS1C_MACH)
+#define LS1X_AC97_BASE 0x1fe60000
+#else
 #define LS1X_AC97_BASE 0x1fe74000
+#endif
 #define LS1C_I2S_BASE 0x1fe60000
 
 /* PCI */

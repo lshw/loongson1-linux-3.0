@@ -101,6 +101,15 @@
 #define INT_CRCLR	0x6c
 
 #define ORDER_ADDR_IN	0x1fd01160
+#if	defined(CONFIG_LS1C_MACH)
+#define DMA_OUT_ADDR	0x1fe60010
+#define DMA_IN_ADDR		0x1fe6000c
+//#define DMA_OUT_ADDR	0x1fe62420
+//#define DMA_IN_ADDR		0x1fe64c4c
+#else
+#define DMA_OUT_ADDR	0x1fe72420
+#define DMA_IN_ADDR		0x1fe74c4c
+#endif
 
 /* dma regs */
 #define DMA_ORDERED		0x0

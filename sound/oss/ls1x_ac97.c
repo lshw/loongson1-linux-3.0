@@ -368,8 +368,7 @@ static void ls1x_init_dmadesc(struct audio_stream *s, struct audio_dma_desc *des
 	struct dma_desc *_desc;
 	u32 control;
 
-	control = s->output ? 0x0fe72420 : 0x0fe74c4c;
-
+	control = s->output ? DMA_OUT_ADDR : DMA_IN_ADDR;
 	control |= (1<<31);
 	/*
 	* [30]-1 two channels
