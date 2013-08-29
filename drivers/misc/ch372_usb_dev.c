@@ -6,6 +6,9 @@
  *  more details.
  */
 
+#include <linux/poll.h>
+#include <linux/sched.h>
+#include <linux/wait.h>
 #include <linux/fs.h>
 #include <linux/delay.h>
 #include <linux/version.h>
@@ -28,6 +31,31 @@ MODULE_ALIAS("platform:ch372_usb");
 
 #define CH372_MINOR 250
 #define EPDATA_LEN_MAX 64
+#define DATA_LEN_MAX 2048
+#define MODE_DEFINE 0
+
+#define  GPIO_CONFIG0  (*(volatile int *)0xbfd010c0)
+#define  GPIO_CONFIG1  (*(volatile int *)0xbfd010c4)
+#define  GPIO_OE0      (*(volatile int *)0xbfd010d0)
+#define  GPIO_OE1      (*(volatile int *)0xbfd010d4)
+#define  GPIO_IN0      (*(volatile int *)0xbfd010e0)
+#define  GPIO_IN1      (*(volatile int *)0xbfd010e4)
+#define  GPIO_OUT0     (*(volatile int *)0xbfd010f0)
+#define  GPIO_OUT1     (*(volatile int *)0xbfd010f4)
+
+
+/*
+struct ch372_dev {
+	unsigned int current_len;
+	struct semaphore sem;
+	wait_queue_head_t rx_wait;
+	wait_queue_head_t wx_wait;
+};*/
+
+static unsigned int current_len = 0;
+static unsigned int read_len = 0;
+wait_queue_head_t rx_wait;
+wait_queue_head_t tx_wait;
 
 struct ch372_platform_data *pdata;
 void __iomem *reg_addr;
@@ -35,13 +63,59 @@ struct completion com;
 int rx_flag = 0;
 int tx_flag = 0;
 
-static unsigned char tx_buf[EPDATA_LEN_MAX] = {};
-static unsigned char rx_buf[EPDATA_LEN_MAX] = {};
+static unsigned char tx_buf[DATA_LEN_MAX] = {};
+static unsigned char rx_buf[DATA_LEN_MAX] = {};
+static unsigned char *tx_bufp = tx_buf;
+static unsigned char *rx_bufp = rx_buf;
+
+#if MODE_DEFINE
+#else
+static void set_cs_value(int value)
+{
+     GPIO_OUT1 = (value? (GPIO_OUT1|(1<<18)) : GPIO_OUT1 & ( ~(1<<18)));  //ouput
+}
+
+static void set_a0_value(int value)
+{
+    GPIO_OUT1 = (value? (GPIO_OUT1|(1<<19)) : GPIO_OUT1 & ( ~(1<<19)));  //ouput
+}
+
+static void set_wr_value(int value)
+{
+    GPIO_OUT1 = (value? (GPIO_OUT1|(1<<21)) : GPIO_OUT1 & ( ~(1<<21)));  //ouput
+}
+
+static void set_rd_value(int value)
+{
+    GPIO_OUT1 = (value? (GPIO_OUT1|(1<<20)) : GPIO_OUT1 & ( ~(1<<20)));  //ouput
+}
+
+static void ch372_wr_dat_hw(u8 dat)
+{
+    unsigned int  value = dat;
+    
+    GPIO_OE1 &=  0xfffc03ff;  //output mode
+    value = value << 10;
+    GPIO_OUT1 = (GPIO_OUT1 & 0xfffc03ff) | value;  //ouput hight
+}
+
+static u8 ch372_rd_dat_hw(void)
+{
+    unsigned char  value = 0;
+
+    GPIO_OE1 |=  ~0xfffc03ff;  //input mode
+
+    value = (GPIO_IN1 >> 10) & 0xff ;
+    return value;
+}
+
+
+#endif
 
 static void ch372_wr_cmd(u8 cmd)
 {
+#if MODE_DEFINE
 //	u32 ret;
-
 //	udelay(2);
 	gpio_set_value(pdata->gpios_d0, (cmd>>0) & 0x01);
 	gpio_set_value(pdata->gpios_d1, (cmd>>1) & 0x01);
@@ -64,12 +138,25 @@ static void ch372_wr_cmd(u8 cmd)
 	gpio_set_value(pdata->gpios_wr, 1);
 	gpio_set_value(pdata->gpios_cs, 1);
 	gpio_set_value(pdata->gpios_dc, 1);
+#else
+    ch372_wr_dat_hw(cmd);
+    set_cs_value(0);
+  	set_a0_value(1);
+    set_rd_value(1);
+    set_wr_value(0);
+    
+    set_wr_value(1);
+    set_cs_value(1);
+    set_a0_value(1);
+
+#endif
+
 }
 
 static void ch372_wr_dat(u8 dat)
 {
+#if MODE_DEFINE
 //	u32 ret;
-
 //	udelay(2);
 	gpio_set_value(pdata->gpios_d0, (dat>>0) & 0x01);
 	gpio_set_value(pdata->gpios_d1, (dat>>1) & 0x01);
@@ -92,13 +179,25 @@ static void ch372_wr_dat(u8 dat)
 	gpio_set_value(pdata->gpios_wr, 1);
 	gpio_set_value(pdata->gpios_cs, 1);
 	gpio_set_value(pdata->gpios_dc, 1);
+#else
+    ch372_wr_dat_hw(dat);
+    set_cs_value(0);
+    set_a0_value(0);
+    set_rd_value(1);
+    set_wr_value(0);
+    
+    set_wr_value(1);
+    set_cs_value(1);
+    set_a0_value(1);
+
+#endif
 }
 
 static u8 ch372_rd_dat(void)
 {
+#if MODE_DEFINE
 //	u32 ret;
 	u8 val = 0;
-
 //	udelay(2);
 	gpio_direction_input(pdata->gpios_d0);
 	gpio_direction_input(pdata->gpios_d1);
@@ -145,8 +244,20 @@ static u8 ch372_rd_dat(void)
 	gpio_direction_output(pdata->gpios_d5, 1);
 	gpio_direction_output(pdata->gpios_d6, 1);
 	gpio_direction_output(pdata->gpios_d7, 1);
-
 	return val;
+#else
+    unsigned char temp;
+    set_a0_value(0);
+    set_cs_value(0);
+    set_rd_value(0);
+    set_wr_value(1);
+    temp =  ch372_rd_dat_hw();
+    set_rd_value(1);
+    set_cs_value(1);
+    set_a0_value(1);
+    set_wr_value(1);
+    return temp;
+#endif
 }
 
 static int init_controller(void)
@@ -213,13 +324,23 @@ static int init_controller(void)
 static void out_ep_fifo_handler(void)
 {
 	int i, length;
-	unsigned char *tmp = rx_buf;
+
+	if (rx_bufp >= (rx_buf + DATA_LEN_MAX)) {
+		rx_bufp = rx_buf;
+	}
 
 	ch372_wr_cmd(CH372_RD_USB_DATA);
+
 	length = ch372_rd_dat();
 	for (i = 0; i < length; i += 1) {
-		*tmp = ch372_rd_dat();
-		tmp++;
+		*rx_bufp = ch372_rd_dat();
+		rx_bufp++;
+	}
+	//printk("data length : %d \n",length);
+	current_len += length;
+	if (current_len >= read_len) {
+		current_len = read_len;
+		wake_up_interruptible(&rx_wait);
 	}
 }
 
@@ -238,11 +359,12 @@ static irqreturn_t ch372_irq(int irq, void *_ch372)
 			ch372_wr_cmd(CH372_UNLOCK_USB);
 		break;
 		case USB_INT_EP2_OUT:
-			if (rx_flag) {
+//			if (rx_flag) {
 				out_ep_fifo_handler();
-				complete(&com);
-			}
+//				complete(&com);
+//			}
 			ch372_wr_cmd(CH372_UNLOCK_USB);
+			wake_up_interruptible(&rx_wait);
 		break;
 		case USB_INT_EP2_IN:
 			ch372_wr_cmd(CH372_UNLOCK_USB);
@@ -287,6 +409,9 @@ static int __init ch372_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	init_waitqueue_head(&rx_wait);
+	init_waitqueue_head(&tx_wait);
+
 	ret = init_controller();
 
 	return ret;
@@ -325,6 +450,8 @@ static struct platform_driver ch372_driver = {
 
 static int ch372_dev_open(struct inode *inode, struct file *filep)
 {
+	rx_bufp = rx_buf;
+	current_len = 0;
 	return nonseekable_open(inode, filep);
 }
 
@@ -332,15 +459,15 @@ static ssize_t
 ch372_dev_read(struct file *filep, char __user *buf, size_t count, loff_t *ptr)
 {
 	unsigned long offset = *ptr;
-	unsigned int len = count;
+	read_len = count;
 
-	if (offset >= EPDATA_LEN_MAX) {
+	if (offset >= DATA_LEN_MAX) {
 		return count ? -ENXIO : 0;
 	}
-	if (len > EPDATA_LEN_MAX - offset) {
-		len = EPDATA_LEN_MAX - offset;
+	if (read_len > DATA_LEN_MAX - offset) {
+		read_len = DATA_LEN_MAX - offset;
 	}
-
+/*
 	init_completion(&com);
 	rx_flag = 1;
 
@@ -351,15 +478,31 @@ ch372_dev_read(struct file *filep, char __user *buf, size_t count, loff_t *ptr)
 	}
 
 //	wait_for_completion(&com);
-	rx_flag = 0;
-	
-	if (copy_to_user(buf, (void *)(rx_buf + offset), len)) {
+	rx_flag = 0;*/
+
+	if (rx_bufp == rx_buf) {
+		if (filep->f_flags & O_NONBLOCK) {
+			return -EFAULT;
+		}
+		wait_event_interruptible(rx_wait, rx_bufp != rx_buf);
+	}
+
+	if (read_len > EPDATA_LEN_MAX) {
+		wait_event_interruptible_timeout(rx_wait, current_len >= read_len, 1*HZ);
+	}
+
+	if (copy_to_user(buf, (void *)(rx_buf + offset), current_len)) {
+		rx_bufp = rx_buf;
+		current_len = 0;
 		return -EFAULT;
 	}
 	else {
 //		*ptr += len;
 //		printk(KERN_INFO "read %d bytes(s) from %ld\n", len, offset);
-		return len;
+		read_len = current_len;
+		rx_bufp = rx_buf;
+		current_len = 0;
+		return read_len;
 	}
 }
 
@@ -377,27 +520,46 @@ static ssize_t ch372_dev_write(struct file *filep, const char __user *buf,
 		len = EPDATA_LEN_MAX - offset;
 	}
 
-	init_completion(&com);
-	tx_flag = 1;
-
 	if (copy_from_user((void *)(tx_buf + offset), buf, len)) {
 		return -EFAULT;
 	}
 	else {
-		ch372_wr_cmd(CH372_WR_USB_DATA7);
-		ch372_wr_dat(len);
-		for (i = 0; i < len; i += 1) {
-			ch372_wr_dat(*(tx_buf + offset + i));
+		while (len > EPDATA_LEN_MAX) {
+			init_completion(&com);
+			tx_flag = 1;
+			ch372_wr_cmd(CH372_WR_USB_DATA7);
+			ch372_wr_dat(EPDATA_LEN_MAX);
+			for (i = 0; i < EPDATA_LEN_MAX; i += 1) {
+				ch372_wr_dat(*(tx_buf + offset + i));
+			}
+	//		*ptr += len;
+			if (!wait_for_completion_timeout(&com, 2 * HZ)) {
+				tx_flag = 0;
+				printk(KERN_INFO "len>len_max TX: timeout");
+				return -EFAULT;
+			}
+			tx_flag = 0;
+			len -= EPDATA_LEN_MAX;
+			offset += EPDATA_LEN_MAX;
 		}
-//		*ptr += len;
+		if (len > 0) {
+			init_completion(&com);
+			tx_flag = 1;
+			ch372_wr_cmd(CH372_WR_USB_DATA7);
+			ch372_wr_dat(len);
+			for (i = 0; i < len; i += 1) {
+				ch372_wr_dat(*(tx_buf + offset + i));
+			}
+	//		*ptr += len;
+			if (!wait_for_completion_timeout(&com, 2 * HZ)) {
+				tx_flag = 0;
+				printk(KERN_INFO "len > 0 TX: timeout");
+				return -EFAULT;
+			}
+			tx_flag = 0;
+		}
 	}
 
-	if (!wait_for_completion_timeout(&com, 2 * HZ)) {
-		tx_flag = 0;
-		printk(KERN_INFO "TX: timeout");
-		return -EFAULT;
-	}
-	tx_flag = 0;
 //	printk(KERN_INFO "write %d bytes(s) to %ld\n", len, offset);
 
 	return len;
@@ -409,6 +571,18 @@ ch372_dev_unlocked_ioctl(struct file *filep, unsigned int cmd, unsigned long arg
 	return 0;
 }
 
+static unsigned int ch372_poll(struct file *filep, poll_table *wait)
+{
+	unsigned int mask = 0;
+	poll_wait(filep, &rx_wait, wait);
+	poll_wait(filep, &tx_wait, wait);
+	
+	if (rx_bufp != rx_buf) {
+		mask |= POLLIN | POLLRDNORM; /*标示数据可获*/
+	}
+	return mask;
+}
+
 static const struct file_operations ch372_dev_fops = {
 	.owner		= THIS_MODULE,
 	.open		= ch372_dev_open,
@@ -416,6 +590,7 @@ static const struct file_operations ch372_dev_fops = {
 	.write		= ch372_dev_write,
 	.unlocked_ioctl	= ch372_dev_unlocked_ioctl,
 	.llseek		= no_llseek,
+	.poll = ch372_poll,
 };
 
 static struct miscdevice ch372_dev_miscdev = {
