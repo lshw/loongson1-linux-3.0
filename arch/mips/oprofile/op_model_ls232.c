@@ -68,18 +68,18 @@ static int myoprofileclock=0;
 #ifdef Z_DEBUG
 struct op_counter_config ctr[3];
 #endif
+/*
 static void ctr_init(void)
 {
-#ifdef Z_DEBUG
-ctr[0].enabled=1;
-ctr[1].enabled=1;
-ctr[0].user=1;
-ctr[1].user=1;
-ctr[0].kernel=1;
-ctr[1].kernel=1;
-#endif
-
-}
+	#ifdef Z_DEBUG
+	ctr[0].enabled=1;
+	ctr[1].enabled=1;
+	ctr[0].user=1;
+	ctr[1].user=1;
+	ctr[0].kernel=1;
+	ctr[1].kernel=1;
+	#endif
+}*/
 
 //#ifdef Z_DEBUG
 //static void ls232_reg_setup(void)

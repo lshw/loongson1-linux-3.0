@@ -72,32 +72,18 @@ static struct proc_dir_entry *proc_1bcamera_data;
 #endif
 static struct i2c_client *s_i2c_client = NULL;
 
-#if 0
-struct ls1b_camera_dma_desc {
-	uint32_t    orderad;
-	uint32_t    saddr;	/* 内存的物理地址 */
-	uint32_t    daddr;
-	uint32_t    length;
-	uint32_t    step_length;
-	uint32_t    step_times;
-	uint32_t    cmd;
-};
-
-static struct ls1b_camera_dma_desc *dma_desc_base;
-//void __iomem *dma_desc_base;
-#endif
-
-unsigned char __iomem *data_buff_base;
+static unsigned char *data_buff_base;
 
 struct ls1b_camera_info {
 	struct i2c_client *client;
 
-//	struct ls1b_camera_dma_desc __iomem *dma_desc_addr;
-	void __iomem *dma_desc_addr;
-	dma_addr_t	dma_desc_addr_phys;
+	void __iomem	*dma_desc;
+	dma_addr_t		dma_desc_phys;
+	size_t			dma_desc_size;
 
-	unsigned char __iomem *data_buff;
-	dma_addr_t	data_buff_phys;
+	unsigned char	*data_buff;
+	dma_addr_t		data_buff_phys;
+	size_t			data_buff_size;
 };
 
 #ifdef THERM_USE_PROC
@@ -149,88 +135,21 @@ static void dma_enable_trans(struct ls1b_camera_info *info)
 {
 	int timeout = 200000;
 
-	writel((info->dma_desc_addr_phys & ~0x1F) | 0x8, order_addr_in);
+	writel((info->dma_desc_phys & ~0x1F) | 0x8, order_addr_in);
 	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
 //		udelay(5);
 	}
 }
 
-static void inline dma_disable_trans(struct ls1b_camera_info *info)
+static int nand_done(void)
 {
-	writel(0x0, order_addr_in);
-//	writel((info->dma_desc_addr_phys & ~0x1F) | 0x00, order_addr_in);
-//	printk("%s. %x\n",__func__, readl(order_addr_in));
-}
+	int ret, timeout = 20000;
 
-static void dma_setup(struct ls1b_camera_info *info, unsigned int cmd)
-{
-	writel(0, info->dma_desc_addr + DMA_ORDERED);
-	writel(info->data_buff_phys, info->dma_desc_addr + DMA_SADDR);
-	writel(DMA_ACCESS_ADDR, info->dma_desc_addr + DMA_DADDR);
-	writel(SENSOR_WIDTH / 4, info->dma_desc_addr + DMA_LENGTH);
-	writel(0, info->dma_desc_addr + DMA_STEP_LENGTH);
-	writel(1, info->dma_desc_addr + DMA_STEP_TIMES);
-	writel(cmd, info->dma_desc_addr + DMA_CMD);
-}
-
-static int nand_setup(void)
-{
-	struct clk *clk;
-	int prescale;
-	int timeout = 2000;
-	u32 ret;
-
-	clk = clk_get(NULL, "apb");
-	prescale = clk_get_rate(clk);
-	prescale = prescale / SENSOR_OSC_CLK;
-
-	writel(0, ls1b_nand_base + NAND_CMD);
-//	writel((HOLD_CYCLE << 8) | prescale, ls1b_nand_base + NAND_TIMING);
-	writel((HOLD_CYCLE << 8) | WAIT_CYCLE, ls1b_nand_base + NAND_TIMING);
-	writel(SENSOR_WIDTH, ls1b_nand_base + NAND_OPNUM);
-	writel(0, ls1b_nand_base + NAND_CS_RDY);
-
-	/* reaset */
-	writel(0x00000040, ls1b_nand_base + NAND_CMD);
-	writel(0x00000041, ls1b_nand_base + NAND_CMD);
 	do {
 		ret = readl(ls1b_nand_base + NAND_CMD);
-//		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
 	} while (((ret & 0x400) != 0x400) && (timeout-- > 0));
-	if (timeout == 0) {
-		return -1;
-	}
 
-	writel(0x1f000000, ls1b_nand_base + NAND_ADDR_L);
-	writel(0x00000008, ls1b_nand_base + NAND_ADDR_H);	/* 设置访问NAND Falsh的地址，目的是使片选CS0无效 */
-	writel(0x00000100, ls1b_nand_base + NAND_PARAM);	/* 设置外部颗粒大小，目的是使片选CS0无效 */
-	writel(0x18141211, ls1b_nand_base + NAND_CS_RDY);	/* 重映射rdy1/2/3信号到rdy0 rdy用于判断是否忙 */
-
-	/* read id */
-	timeout = 2000;
-	writel(0x00000020, ls1b_nand_base + NAND_CMD);
-	writel(0x00000021, ls1b_nand_base + NAND_CMD);
-	do {
-		ret = readl(ls1b_nand_base + NAND_CMD);
-//		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
-	} while (((ret & 0x400) != 0x400) && (timeout-- > 0));
-	if (timeout == 0) {
-		return -1;
-	}
-
-	/* read state */
-	timeout = 2000;
-	writel(0x00000080, ls1b_nand_base + NAND_CMD);
-	writel(0x00000081, ls1b_nand_base + NAND_CMD);
-	do {
-		ret = readl(ls1b_nand_base + NAND_CMD);
-//		printk("NAND_CMD=0x%02X\n", readl(ls1b_nand_base + NAND_CMD));
-	} while (((ret & 0x400) != 0x400) && (timeout-- > 0));
-	if (timeout == 0) {
-		return -1;
-	}
-
-	return 0;
+	return timeout;
 }
 
 static int fp_capture(struct i2c_client *client)
@@ -247,7 +166,6 @@ static int fp_capture(struct i2c_client *client)
 	while (timeout--) {
 		ret = gpio_get_value(pdata->vsync);
 		if (ret) {
-			//udelay(10);
 			ret = gpio_get_value(pdata->vsync);
 			if (!ret) {
 				break;
@@ -258,69 +176,33 @@ static int fp_capture(struct i2c_client *client)
 		dev_err(&client->dev, "vsync timeout\n");
 		return -1;
 	}
-#if 0
-	do {
-		ret = gpio_get_value(pdata->vsync);
-		//udelay(5);
-	} while (ret/* && (timeout-- > 0)*/);
 
-	do {
-		ret = gpio_get_value(pdata->vsync);
-		//udelay(5);
-	} while ((!ret)/* && (timeout-- > 0)*/);
-
-	do {
-		ret = gpio_get_value(pdata->vsync);
-		//udelay(5);
-	} while (ret/* && (timeout-- > 0)*/);
-#endif
 	local_irq_save(irq_flags);
+
 	/* 采样一帧信号 */
 	while (height_counter > 0) {
 //		timeout = 2000000;
 		do {
 			ret = gpio_get_value(pdata->hsync);
 			ret1 = gpio_get_value(pdata->vsync);
-			//udelay(2);
 		} while (ret && (!ret1)/* && (timeout-- > 0)*/);
-
-/*		if (height_counter != SENSOR_HEIGHT) {
-			do {
-				ret = readl(ls1b_nand_base + NAND_CMD);
-			} while ((ret & 0x400) != 0x400);
-
-			writel((info->dma_desc_addr_phys & ~0x1F) | 0x4, order_addr_in);
-			while (readl(order_addr_in) & 0x4) {
-			}
-		}
-		dma_disable_trans(info);*/
-
-		dma_setup(info, 0);
 
 		do {
 			ret = gpio_get_value(pdata->hsync);
 			ret1 = gpio_get_value(pdata->vsync);
-			//udelay(2);
 		} while ((!ret) && (!ret1)/* && (timeout-- > 0)*/);
 
 		/* 使能nand flash读 */
 		writel(0x00000102, ls1b_nand_base + NAND_CMD);
 		writel(0x00000103, ls1b_nand_base + NAND_CMD);
-
-		writel(info->data_buff_phys + width_counter, info->dma_desc_addr + DMA_SADDR);
-		writel(0x00000001, info->dma_desc_addr + DMA_CMD);
-
-		dma_cache_wback((unsigned long)(info->dma_desc_addr), DMA_DESC_NUM);
+		/* dam操作 */
+		writel(info->data_buff_phys + width_counter, info->dma_desc + DMA_SADDR);
+		writel(0x00000001, info->dma_desc + DMA_CMD);
 		dma_enable_trans(info);
-
+		/* 等待nand操作完成 */
 		do {
 			ret = readl(ls1b_nand_base + NAND_CMD);
 		} while ((ret & 0x400) != 0x400);
-
-		writel((info->dma_desc_addr_phys & ~0x1F) | 0x4, order_addr_in);
-		while (readl(order_addr_in) & 0x4) {
-		}
-		dma_disable_trans(info);
 
 		width_counter += SENSOR_WIDTH;
 		height_counter--;
@@ -365,9 +247,68 @@ static int camera_sensor_init(struct i2c_client *client)
 	return 0;
 }
 
+static void camera_dma_init(struct ls1b_camera_info *info)
+{
+	writel(0, info->dma_desc + DMA_ORDERED);
+	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
+	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
+	writel(SENSOR_WIDTH / 4, info->dma_desc + DMA_LENGTH);
+	writel(0, info->dma_desc + DMA_STEP_LENGTH);
+	writel(1, info->dma_desc + DMA_STEP_TIMES);
+	writel(0, info->dma_desc + DMA_CMD);
+}
+
+static int camera_nand_init(void)
+{
+	struct clk *clk;
+	int prescale;
+
+	clk = clk_get(NULL, "apb");
+	prescale = clk_get_rate(clk);
+	prescale = prescale / SENSOR_OSC_CLK;
+
+	writel(0, ls1b_nand_base + NAND_CMD);
+//	writel((HOLD_CYCLE << 8) | prescale, ls1b_nand_base + NAND_TIMING);
+	writel((HOLD_CYCLE << 8) | WAIT_CYCLE, ls1b_nand_base + NAND_TIMING);
+	writel(SENSOR_WIDTH, ls1b_nand_base + NAND_OPNUM);
+	writel(0, ls1b_nand_base + NAND_CS_RDY);
+
+	/* reaset */
+	writel(0x00000040, ls1b_nand_base + NAND_CMD);
+	writel(0x00000041, ls1b_nand_base + NAND_CMD);
+	if (!nand_done()) {
+		printk(KERN_ERR "Wait time out!!!\n");
+		return -1;
+	}
+
+	writel(0x1f000000, ls1b_nand_base + NAND_ADDR_L);
+	writel(0x00000008, ls1b_nand_base + NAND_ADDR_H);	/* 设置访问NAND Falsh的地址，目的是使片选CS0无效 */
+	writel(0x00000100, ls1b_nand_base + NAND_PARAM);	/* 设置外部颗粒大小，目的是使片选CS0无效 */
+	writel(0x18141211, ls1b_nand_base + NAND_CS_RDY);	/* 重映射rdy1/2/3信号到rdy0 rdy用于判断是否忙 */
+
+	/* read id */
+	writel(0x00000020, ls1b_nand_base + NAND_CMD);
+	writel(0x00000021, ls1b_nand_base + NAND_CMD);
+	if (!nand_done()) {
+		printk(KERN_ERR "Wait time out!!!\n");
+		return -1;
+	}
+
+	/* read state */
+	writel(0x00000080, ls1b_nand_base + NAND_CMD);
+	writel(0x00000081, ls1b_nand_base + NAND_CMD);
+	if (!nand_done()) {
+		printk(KERN_ERR "Wait time out!!!\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 static int ls1b_camera_init(struct i2c_client *client)
 {
 	struct ls1b_camera_platform_data *pdata = client->dev.platform_data;
+	struct ls1b_camera_info *info = i2c_get_clientdata(client);
 	int err = -EINVAL;
 
 /*	err = gpio_request(pdata->bl, "ls1b_camera_bl");
@@ -432,7 +373,10 @@ static int ls1b_camera_init(struct i2c_client *client)
 		dev_err(&client->dev, "Initialize camera sensor fail\n");
 		goto err_vsync_int;
 	}
-	err = nand_setup();
+
+	camera_dma_init(info);
+
+	err = camera_nand_init();
 	if (err != 0) {
 		dev_err(&client->dev, "NAND Controller setup fail\n");
 		goto err_vsync_int;
@@ -468,19 +412,17 @@ static int ls1b_camera_probe(struct i2c_client *client,
 		return -ENOMEM;
 	}
 
-	info->dma_desc_addr = dma_alloc_coherent(&client->dev, DMA_DESC_NUM,
-						&info->dma_desc_addr_phys, GFP_KERNEL);
-	info->dma_desc_addr = CAC_ADDR(info->dma_desc_addr);
-	if (!info->dma_desc_addr) {
+	info->dma_desc_size = PAGE_ALIGN(DMA_DESC_NUM);
+	info->dma_desc = dma_alloc_coherent(&client->dev, info->dma_desc_size,
+						&info->dma_desc_phys, GFP_KERNEL);
+	if (!info->dma_desc) {
 		dev_err(&client->dev, "fialed to allocate dma memory!\n");
 		goto err1;
 	}
-//	dma_desc_base = (struct ls1b_camera_dma_desc *) (info->dma_desc_addr);
-//	dma_desc_base = info->dma_desc_addr;
 
-	info->data_buff = dma_alloc_coherent(&client->dev, PAGE_ALIGN(DATA_BUFF_SIZE),
+	info->data_buff_size = PAGE_ALIGN(DATA_BUFF_SIZE);
+	info->data_buff = dma_alloc_coherent(&client->dev, info->data_buff_size,
 					&info->data_buff_phys, GFP_KERNEL);
-//	info->data_buff = CAC_ADDR(info->data_buff);
 	if (!info->data_buff) {
 		dev_err(&client->dev, "failed to allocate data buffer\n");
 		goto err2;
@@ -522,11 +464,11 @@ static int ls1b_camera_probe(struct i2c_client *client,
 err3:
 	iounmap(ls1b_nand_base);
 	iounmap(order_addr_in);
-	dma_free_coherent(&client->dev, PAGE_ALIGN(DATA_BUFF_SIZE),
+	dma_free_coherent(&client->dev, info->data_buff_size,
 			info->data_buff, info->data_buff_phys);
 err2:
-	dma_free_coherent(&client->dev, DMA_DESC_NUM,
-			info->dma_desc_addr, info->dma_desc_addr_phys);
+	dma_free_coherent(&client->dev, info->dma_desc_size,
+			info->dma_desc, info->dma_desc_phys);
 err1:
 	kfree(info);
 	return -ENOMEM;
@@ -546,10 +488,10 @@ static int ls1b_camera_remove(struct i2c_client *client)
 
 	iounmap(ls1b_nand_base);
 	iounmap(order_addr_in);
-	dma_free_coherent(&client->dev, PAGE_ALIGN(DATA_BUFF_SIZE),
+	dma_free_coherent(&client->dev, info->data_buff_size,
 			info->data_buff, info->data_buff_phys);
-	dma_free_coherent(&client->dev, DMA_DESC_NUM,
-			info->dma_desc_addr, info->dma_desc_addr_phys);
+	dma_free_coherent(&client->dev, info->dma_desc_size,
+			info->dma_desc, info->dma_desc_phys);
 	kfree(info);
 
 	return 0;
@@ -592,7 +534,7 @@ ls1b_camera_read(struct file *file, char __user *buf, size_t count, loff_t *ptr)
 
 	fp_capture(s_i2c_client);
 
-	if (copy_to_user(buf, (void*)(data_buff_base + offset), len)) {
+	if (copy_to_user(buf, data_buff_base + offset, len)) {
 		return -EFAULT;
 	}
 	else {
