@@ -15,10 +15,10 @@
 		((void __iomem *)KSEG1ADDR(LS1X_GPIO_BASE + (x)))
 
 /* GPIO 0-31 */
-#define LS1X_GPIO_CFG0		LS1X_GPIO_REG(0x0)	/* 配置寄存器 */
-#define LS1X_GPIO_OE0		LS1X_GPIO_REG(0x10)	/* 输入使能寄存器 */
-#define LS1X_GPIO_IN0		LS1X_GPIO_REG(0x20)	/* 输入寄存器 */
-#define LS1X_GPIO_OUT0		LS1X_GPIO_REG(0x30)	/* 输出寄存器 */
+#define LS1X_GPIO_CFG0		((void __iomem *)0xbfd010c0)//LS1X_GPIO_REG(0x0)	/* 配置寄存器 */
+#define LS1X_GPIO_OE0		((void __iomem *)0xbfd010d0)//LS1X_GPIO_REG(0x10)	/* 输入使能寄存器 */
+#define LS1X_GPIO_IN0		((void __iomem *)0xbfd010e0)//LS1X_GPIO_REG(0x20)	/* 输入寄存器 */
+#define LS1X_GPIO_OUT0		((void __iomem *)0xbfd010f0)//LS1X_GPIO_REG(0x30)	/* 输出寄存器 */
 /* 复用PAD */
 #if defined(CONFIG_LS1A_MACH)
 	#define INIT0_OFFSET	(0)
@@ -32,10 +32,10 @@
 #endif
 
 /* GPIO 32-63 */
-#define LS1X_GPIO_CFG1		LS1X_GPIO_REG(0x4)
-#define LS1X_GPIO_OE1		LS1X_GPIO_REG(0x14)
-#define LS1X_GPIO_IN1		LS1X_GPIO_REG(0x24)
-#define LS1X_GPIO_OUT1		LS1X_GPIO_REG(0x34)
+#define LS1X_GPIO_CFG1		((void __iomem *)0xbfd010c4)//LS1X_GPIO_REG(0x4)
+#define LS1X_GPIO_OE1		((void __iomem *)0xbfd010d4)//LS1X_GPIO_REG(0x14)
+#define LS1X_GPIO_IN1		((void __iomem *)0xbfd010e4)//LS1X_GPIO_REG(0x24)
+#define LS1X_GPIO_OUT1		((void __iomem *)0xbfd010f4)//LS1X_GPIO_REG(0x34)
 /* 复用PAD */
 #if defined(CONFIG_LS1A_MACH)
 	#define KB_OFFSET	(0)
@@ -62,10 +62,10 @@
 
 #ifdef CONFIG_LS1A_MACH
 /* GPIO 64-87 */
-#define LS1X_GPIO_CFG2		LS1X_GPIO_REG(0x8)
-#define LS1X_GPIO_OE2		LS1X_GPIO_REG(0x18)
-#define LS1X_GPIO_IN2		LS1X_GPIO_REG(0x28)
-#define LS1X_GPIO_OUT2		LS1X_GPIO_REG(0x38)
+#define LS1X_GPIO_CFG2		((void __iomem *)0xbfd010c8)//LS1X_GPIO_REG(0x8)
+#define LS1X_GPIO_OE2		((void __iomem *)0xbfd010d8)//LS1X_GPIO_REG(0x18)
+#define LS1X_GPIO_IN2		((void __iomem *)0xbfd010e8)//LS1X_GPIO_REG(0x28)
+#define LS1X_GPIO_OUT2		((void __iomem *)0xbfd010f8)//LS1X_GPIO_REG(0x38)
 	#define I2C_OFFSET	(0)
 	#define CAN0_OFFSET	(2)
 	#define CAN1_OFFSET	(4)
@@ -82,15 +82,15 @@
 
 #ifdef CONFIG_LS1C_MACH
 /* GPIO 64-95 */
-#define LS1X_GPIO_CFG2		LS1X_GPIO_REG(0x8)
-#define LS1X_GPIO_OE2		LS1X_GPIO_REG(0x18)
-#define LS1X_GPIO_IN2		LS1X_GPIO_REG(0x28)
-#define LS1X_GPIO_OUT2		LS1X_GPIO_REG(0x38)
+#define LS1X_GPIO_CFG2		((void __iomem *)0xbfd010c8)//LS1X_GPIO_REG(0x8)
+#define LS1X_GPIO_OE2		((void __iomem *)0xbfd010d8)//LS1X_GPIO_REG(0x18)
+#define LS1X_GPIO_IN2		((void __iomem *)0xbfd010e8)//LS1X_GPIO_REG(0x28)
+#define LS1X_GPIO_OUT2		((void __iomem *)0xbfd010f8)//LS1X_GPIO_REG(0x38)
 /* GPIO 96-127 */
-#define LS1X_GPIO_CFG3		LS1X_GPIO_REG(0xc)
-#define LS1X_GPIO_OE3		LS1X_GPIO_REG(0x1c)
-#define LS1X_GPIO_IN3		LS1X_GPIO_REG(0x2c)
-#define LS1X_GPIO_OUT3		LS1X_GPIO_REG(0x3c)
+#define LS1X_GPIO_CFG3		((void __iomem *)0xbfd010cc)//LS1X_GPIO_REG(0xc)
+#define LS1X_GPIO_OE3		((void __iomem *)0xbfd010dc)//LS1X_GPIO_REG(0x1c)
+#define LS1X_GPIO_IN3		((void __iomem *)0xbfd010ec)//LS1X_GPIO_REG(0x2c)
+#define LS1X_GPIO_OUT3		((void __iomem *)0xbfd010fc)//LS1X_GPIO_REG(0x3c)
 #endif
 
 #endif
