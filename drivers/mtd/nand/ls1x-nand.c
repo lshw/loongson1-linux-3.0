@@ -25,7 +25,7 @@
 #define DMA_ACCESS_ADDR	0x1fe78040	/* DMA对NAND操作的地址 */
 #define ORDER_ADDR_IN	0x1fd01160	/* DMA配置寄存器 */
 static void __iomem *order_addr_in;
-#define DMA_DESC_NUM	28	/* DMA描述符占用的字节数 7x4 */
+#define DMA_DESC_NUM	64	/* DMA描述符占用的字节数 7x4 */
 /* DMA描述符 */
 #define DMA_ORDERED		0x00
 #define DMA_SADDR		0x04
@@ -232,7 +232,7 @@ static int ls1x_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int le
 	return 0;
 }
 
-static int ls1x_nand_done(struct ls1x_nand_info *info)
+static int inline ls1x_nand_done(struct ls1x_nand_info *info)
 {
 	int ret, timeout = 200000;
 
@@ -253,36 +253,35 @@ static void inline ls1x_nand_stop(struct ls1x_nand_info *info)
 {
 }
 
-static void start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
+static void inline start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
 {
 	int timeout = 5000;
-	unsigned long irq_flags;
+//	unsigned long irq_flags;
 
-//	writel(0, info->dma_desc + DMA_ORDERED);
-//	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
-//	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
-	writel((info->buf_count + 3) / 4, info->dma_desc + DMA_LENGTH);
-//	writel(0, info->dma_desc + DMA_STEP_LENGTH);
-//	writel(1, info->dma_desc + DMA_STEP_TIMES);
+	writel(0, info->dma_desc + DMA_ORDERED);
+	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
+	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
+	writel(info->buf_count / 4, info->dma_desc + DMA_LENGTH);
+	writel(0, info->dma_desc + DMA_STEP_LENGTH);
+	writel(1, info->dma_desc + DMA_STEP_TIMES);
 
 	if (flags) {
 		writel(0x00001001, info->dma_desc + DMA_CMD);
 	} else {
 		writel(0x00000001, info->dma_desc + DMA_CMD);
 	}
-//	dma_cache_wback((unsigned long)(info->dma_desc), info->dma_desc_size);
 
-	local_irq_save(irq_flags);
+//	local_irq_save(irq_flags);
 	ls1x_nand_start(info);	/* 使能nand命令 */
 	writel((info->dma_desc_phys & ~0x1F) | 0x8, order_addr_in);	/* 启动DMA */
 	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
 //		printk("%s. %x\n",__func__, readl(order_addr_in));
 //		udelay(5);
 	}
-	local_irq_restore(irq_flags);
+//	local_irq_restore(irq_flags);
 }
 
-#if 0	/* 不使用DMA的中断处理 */
+#if 1	/* 不使用DMA的中断处理 */
 static irqreturn_t ls1x_nand_irq(int irq, void *devid)
 {
 	struct ls1x_nand_info *info = devid;
@@ -309,14 +308,10 @@ static irqreturn_t ls1x_nand_irq(int irq, void *devid)
 static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column, int page_addr)
 {
 	struct ls1x_nand_info *info = mtd->priv;
-//	unsigned cmd_prev;
-
-//	cmd_prev = info->cmd;
-//	info->cmd = command;
 
 	switch (command) {
 	case NAND_CMD_READOOB:
-//		init_completion(&info->cmd_complete);
+		init_completion(&info->cmd_complete);
 		info->buf_count = mtd->oobsize;
 		info->buf_start = 0;
 		nand_writel(info, NAND_CMD, SPARE | READ);
@@ -325,16 +320,15 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
 		start_dma_nand(0, info);
-//		wait_for_completion(&info->cmd_complete);
-		if (!ls1x_nand_done(info)) {
-			printk(KERN_ERR "Wait time out!!!\n");
-			/* Stop State Machine for next command cycle */
-			ls1x_nand_stop(info);
-		}
-//		dma_cache_inv((unsigned long)(info->data_buff), info->buf_count);
+		wait_for_completion(&info->cmd_complete);
+//		if (!ls1x_nand_done(info)) {
+//			printk(KERN_ERR "Wait time out!!!\n");
+//			/* Stop State Machine for next command cycle */
+//			ls1x_nand_stop(info);
+//		}
 		break;
 	case NAND_CMD_READ0:
-//		init_completion(&info->cmd_complete);
+		init_completion(&info->cmd_complete);
 		info->buf_count = mtd->oobsize + mtd->writesize;
 		info->buf_start = 0;
 		nand_writel(info, NAND_CMD, SPARE | MAIN | READ);
@@ -343,13 +337,12 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
 		start_dma_nand(0, info);
-//		wait_for_completion(&info->cmd_complete);
-		if (!ls1x_nand_done(info)) {
-			printk(KERN_ERR "Wait time out!!!\n");
-			/* Stop State Machine for next command cycle */
-			ls1x_nand_stop(info);
-		}
-//		dma_cache_inv((unsigned long)(info->data_buff), info->buf_count);
+		wait_for_completion(&info->cmd_complete);
+//		if (!ls1x_nand_done(info)) {
+//			printk(KERN_ERR "Wait time out!!!\n");
+//			/* Stop State Machine for next command cycle */
+//			ls1x_nand_stop(info);
+//		}
 		break;
 	case NAND_CMD_SEQIN:
 		info->buf_count = mtd->oobsize + mtd->writesize - column;
@@ -358,11 +351,7 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		info->seqin_page_addr = page_addr;
 		break;
 	case NAND_CMD_PAGEPROG:
-//		init_completion(&info->cmd_complete);
-/*		if (cmd_prev != NAND_CMD_SEQIN) {
-			printk(KERN_INFO "Prev cmd don't complete...\n");
-			break;
-		}*/
+		init_completion(&info->cmd_complete);
 		if (info->seqin_column < mtd->writesize)
 			nand_writel(info, NAND_CMD, SPARE | MAIN | WRITE);
 		else
@@ -371,16 +360,17 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		nand_writel(info, NAND_ADDR_H, MAIN_SPARE_ADDRH(info->seqin_page_addr));
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
-//		dma_cache_wback((unsigned long)(info->data_buff), info->buf_count);
 		start_dma_nand(1, info);
-//		wait_for_completion(&info->cmd_complete);
-		if (!ls1x_nand_done(info)) {
-			printk(KERN_ERR "Wait time out!!!\n");
-			/* Stop State Machine for next command cycle */
-			ls1x_nand_stop(info);
-		}
+		wait_for_completion(&info->cmd_complete);
+//		if (!ls1x_nand_done(info)) {
+//			printk(KERN_ERR "Wait time out!!!\n");
+//			/* Stop State Machine for next command cycle */
+//			ls1x_nand_stop(info);
+//		}
 		break;
 	case NAND_CMD_RESET:
+		info->buf_count = 0x0;
+		info->buf_start = 0x0;
 		nand_writel(info, NAND_CMD, RESET);
 		ls1x_nand_start(info);
 		if (!ls1x_nand_done(info)) {
@@ -390,6 +380,8 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		}
 		break;
 	case NAND_CMD_ERASE1:
+		info->buf_count = 0x0;
+		info->buf_start = 0x0;
 		nand_writel(info, NAND_ADDR_L, MAIN_ADDRL(page_addr));
 		nand_writel(info, NAND_ADDR_H, MAIN_ADDRH(page_addr));
 		nand_writel(info, NAND_OPNUM, 0x01);
@@ -433,12 +425,16 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		break;
 	case NAND_CMD_ERASE2:
 	case NAND_CMD_READ1:
+		info->buf_count = 0x0;
+		info->buf_start = 0x0;
 		break;
     case NAND_CMD_RNDOUT:
 		info->buf_count = mtd->oobsize + mtd->writesize;
 		info->buf_start = column;
 		break;
 	default :
+		info->buf_count = 0x0;
+		info->buf_start = 0x0;
 		printk(KERN_ERR "non-supported command.\n");
 		break;
 	}
@@ -453,7 +449,6 @@ static int ls1x_nand_init_buff(struct ls1x_nand_info *info)
 	info->dma_desc_size = PAGE_ALIGN(DMA_DESC_NUM);
 	info->dma_desc = dma_alloc_coherent(&pdev->dev, info->dma_desc_size,
 						&info->dma_desc_phys, GFP_KERNEL);
-//	info->dma_desc = CAC_ADDR(info->dma_desc);
 	if (!info->dma_desc) {
 		dev_err(&pdev->dev,"fialed to allocate memory\n");
 		return -ENOMEM;
@@ -462,7 +457,6 @@ static int ls1x_nand_init_buff(struct ls1x_nand_info *info)
 	info->data_buff_size = PAGE_ALIGN(MAX_BUFF_SIZE);
 	info->data_buff = dma_alloc_coherent(&pdev->dev, info->data_buff_size,
 				&info->data_buff_phys, GFP_KERNEL);
-//	info->data_buff = CAC_ADDR(info->data_buff);
 	if (!info->data_buff) {
 		dev_err(&pdev->dev, "failed to allocate dma buffer\n");
 		return -ENOMEM;
@@ -664,12 +658,12 @@ static int ls1x_nand_probe(struct platform_device *pdev)
 	/* initialize all interrupts to be disabled */
 //	disable_int(info, NDSR_MASK);
 
-/*	ret = request_irq(irq, ls1x_nand_irq, IRQF_DISABLED,
+	ret = request_irq(irq, ls1x_nand_irq, IRQF_DISABLED,
 			  pdev->name, info);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to request IRQ\n");
 		goto fail_free_buf;
-	}*/
+	}
 
 	nand_gpio_init();
 	ls1x_dma_init(info);
