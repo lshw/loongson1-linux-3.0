@@ -681,7 +681,7 @@ static u64 ls1c_otg_dma_mask = DMA_BIT_MASK(32);
 static struct resource ls1c_otg_resources[] = {
 	[0] = {
 		.start = LS1X_OTG_BASE,
-		.end   = LS1X_OTG_BASE + 0xfffff,
+		.end   = LS1X_OTG_BASE + SZ_64K - 1,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -693,7 +693,7 @@ static struct resource ls1c_otg_resources[] = {
 
 static struct platform_device ls1c_otg_device = {
 	.name           = "dwc_otg",
-	.id             = 0,
+	.id             = -1,
 	.dev = {
 		.dma_mask = &ls1c_otg_dma_mask,
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
