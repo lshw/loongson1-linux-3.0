@@ -3247,7 +3247,8 @@ static void /* __init_or_exit */ fsg_unbind(struct usb_gadget *gadget)
 
 	/* Free the request and buffer for endpoint 0 */
 	if (req) {
-#ifdef CONFIG_USB_DWC_OTG_LPM
+//#ifdef CONFIG_USB_DWC_OTG_LPM
+#if 0
 		dma_free_coherent(NULL, EP0_BUFSIZE, req->buf, req->dma);
 #else
 		kfree(req->buf);
@@ -3547,7 +3548,8 @@ static int __init fsg_bind(struct usb_gadget *gadget)
 	if (!req)
 		goto out;
 
-#ifdef CONFIG_USB_DWC_OTG_LPM
+//#ifdef CONFIG_USB_DWC_OTG_LPM
+#if 0
 	req->buf = dma_alloc_coherent(NULL, EP0_BUFSIZE, &req->dma, GFP_KERNEL);
 #else
 	req->buf = kmalloc(EP0_BUFSIZE, GFP_KERNEL);
@@ -3566,7 +3568,7 @@ static int __init fsg_bind(struct usb_gadget *gadget)
 
 #ifdef CONFIG_USB_DWC_OTG_LPM
 		bh->buf = kmalloc(mod_data.buflen, GFP_KERNEL);
-		bh->buf = UNCAC_ADDR((unsigned int)bh->buf);
+//		bh->buf = UNCAC_ADDR((unsigned int)bh->buf);
 #endif
 		if (!bh->buf)
 			goto out;

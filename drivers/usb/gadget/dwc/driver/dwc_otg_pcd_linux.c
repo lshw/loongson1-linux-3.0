@@ -359,17 +359,20 @@ static int ep_queue(struct usb_ep *usb_ep, struct usb_request *usb_req,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
 	dma_addr = usb_req->dma;
 #else
-#ifdef LM_INTERFACE
-	dma_addr = plat_map_dma_mem(NULL, usb_req->buf, 0);
-#else
 	if (GET_CORE_IF(pcd)->dma_enable) {
-		struct pci_dev *dev = gadget_wrapper->pcd->otg_dev->os_dep.pcidev;
+		dwc_otg_device_t *otg_dev = gadget_wrapper->pcd->otg_dev;
+		struct device *dev = NULL;
+
+		if (otg_dev != NULL)
+			dev = DWC_OTG_OS_GETDEV(otg_dev->os_dep);
+                
 		if (usb_req->length != 0 && usb_req->dma == DWC_DMA_ADDR_INVALID) {
-			dma_addr = pci_map_single(dev, usb_req->buf, usb_req->length, 
-					ep->dwc_ep.is_in ? PCI_DMA_TODEVICE : PCI_DMA_FROMDEVICE);
+			dma_addr = dma_map_single(dev, usb_req->buf, usb_req->length, 
+										ep->dwc_ep.is_in ?
+										DMA_TO_DEVICE:
+										DMA_FROM_DEVICE);
 		}
 	}
-#endif
 #endif
 
 #ifdef DWC_UTE_PER_IO
@@ -802,9 +805,6 @@ static int _complete(dwc_otg_pcd_t * pcd, void *ep_handle,
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,27)
 	struct dwc_otg_pcd_ep *ep = NULL;
 #endif
-#ifdef PCI_INTERFACE
-	struct pci_dev *dev = NULL;
-#endif
 
 	if (req && req->complete) {
 		switch (status) {
@@ -830,15 +830,20 @@ static int _complete(dwc_otg_pcd_t * pcd, void *ep_handle,
 		req->complete(ep_handle, req);
 		DWC_SPINLOCK(pcd->lock);
 	}
-#ifdef PCI_INTERFACE
-	dev = gadget_wrapper->pcd->otg_dev->os_dep.pcidev;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,27)
 	ep = ep_from_handle(pcd, ep_handle);
 	if (GET_CORE_IF(pcd)->dma_enable) {
-		if (req->length != 0)
-			pci_unmap_single(dev, req->dma, req->length,
-					 ep->dwc_ep.
-					 is_in ? PCI_DMA_TODEVICE :
-					 PCI_DMA_FROMDEVICE);
+                if (req->length != 0) {
+                        dwc_otg_device_t *otg_dev = gadget_wrapper->pcd->otg_dev;
+                        struct device *dev = NULL;
+
+                        if (otg_dev != NULL)
+                                  dev = DWC_OTG_OS_GETDEV(otg_dev->os_dep);
+
+			dma_unmap_single(dev, req->dma, req->length,
+                                         ep->dwc_ep.is_in ?
+                                                DMA_TO_DEVICE: DMA_FROM_DEVICE);
+                }
 	}
 #endif
 
@@ -1023,7 +1028,6 @@ void gadget_add_eps(struct gadget_wrapper *d)
 	 * Initialize the EP structures.
 	 */
 	dev_endpoints = d->pcd->core_if->dev_if->num_in_eps;
-	printk ("lxy: in_ep's num = %d !\n", dev_endpoints);
 
 	for (i = 0; i < dev_endpoints; i++) {
 		ep = &d->in_ep[i];
@@ -1041,14 +1045,13 @@ void gadget_add_eps(struct gadget_wrapper *d)
 	}
 
 	dev_endpoints = d->pcd->core_if->dev_if->num_out_eps;
-	printk ("lxy: out_ep's num = %d !\n", dev_endpoints);
 
 	for (i = 0; i < dev_endpoints; i++) {
 		ep = &d->out_ep[i];
 
 		/* Init the usb_ep structure. */
 //		ep->name = names[15 + d->pcd->out_ep[i].dwc_ep.num];
-		ep->name = names[2 + d->pcd->out_ep[i].dwc_ep.num];	//lxy
+		ep->name = names[2 + d->pcd->out_ep[i].dwc_ep.num];
 		ep->ops = (struct usb_ep_ops *)&dwc_otg_pcd_ep_ops;
 
 		/**
@@ -1235,7 +1238,6 @@ void pcd_remove(
  *
  * @param driver The driver being registered
  */
-//int usb_gadget_register_driver(struct usb_gadget_driver *driver)	//lxy
 int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 		int (*bind)(struct usb_gadget *))
 {
@@ -1244,7 +1246,6 @@ int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 	DWC_DEBUGPL(DBG_PCD, "registering gadget driver '%s'\n",
 		    driver->driver.name);
 
-	//lxy
 	if (!driver || driver->speed == USB_SPEED_UNKNOWN ||
 	    !bind ||
 	    !driver->unbind || !driver->disconnect || !driver->setup) {
@@ -1265,8 +1266,7 @@ int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 	gadget_wrapper->gadget.dev.driver = &driver->driver;
 
 	DWC_DEBUGPL(DBG_PCD, "bind to driver %s\n", driver->driver.name);
-	retval = bind(&gadget_wrapper->gadget);	//lxy
-//	retval = driver->bind(&gadget_wrapper->gadget);	//lxy
+	retval = bind(&gadget_wrapper->gadget);
 	if (retval) {
 		DWC_ERROR("bind to driver %s --> error %d\n",
 			  driver->driver.name, retval);
@@ -1279,7 +1279,6 @@ int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 	return 0;
 }
 EXPORT_SYMBOL(usb_gadget_probe_driver);
-//EXPORT_SYMBOL(usb_gadget_register_driver);	//lxy
 
 /**
  * This function unregisters a gadget driver

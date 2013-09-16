@@ -68,18 +68,22 @@ extern struct device_attribute devi_attr_sleep_status;
 #endif
 
 void dwc_otg_attr_create(
-#if defined(LM_INTERFACE)
+#ifdef LM_INTERFACE
 				struct lm_device *dev
-#elif defined(PCI_INTERFACE)
+#elif  defined(PCI_INTERFACE)
 				struct pci_dev *dev
+#elif  defined(PLATFORM_INTERFACE)
+	struct platform_device *dev
 #endif
     );
 
 void dwc_otg_attr_remove(
-#if defined(LM_INTERFACE)
+#ifdef LM_INTERFACE
 				struct lm_device *dev
-#elif defined(PCI_INTERFACE)
+#elif  defined(PCI_INTERFACE)
 				struct pci_dev *dev
+#elif  defined(PLATFORM_INTERFACE)
+	struct platform_device *dev
 #endif
     );
 #endif

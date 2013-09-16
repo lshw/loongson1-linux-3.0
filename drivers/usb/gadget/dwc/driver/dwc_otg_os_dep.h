@@ -86,6 +86,9 @@ typedef struct os_dependent {
 	/** Register offset for Diagnostic API */
 	uint32_t reg_offset;
 
+	/** Base address for MPHI peripheral */
+	void *mphi_base;
+
 #ifdef LM_INTERFACE
 	struct lm_device *lmdev;
 #elif  defined(PCI_INTERFACE)
@@ -96,11 +99,76 @@ typedef struct os_dependent {
 	
 	/** Length address of a PCI region */
 	resource_size_t rsrc_len;
+#elif  defined(PLATFORM_INTERFACE)
+	struct platform_device *platformdev;
 #endif
 } os_dependent_t;
 
 #ifdef __cplusplus
 }
 #endif
+
+/* Type for the our device on the chosen bus */
+#if   defined(LM_INTERFACE)
+typedef struct lm_device       dwc_bus_dev_t;
+#elif defined(PCI_INTERFACE)
+typedef struct pci_dev         dwc_bus_dev_t;
+#elif defined(PLATFORM_INTERFACE)
+typedef struct platform_device dwc_bus_dev_t;
+#endif
+
+/* Helper macro to retrieve drvdata from the device on the chosen bus */
+#if    defined(LM_INTERFACE)
+#define DWC_OTG_BUSDRVDATA(_dev) lm_get_drvdata(_dev)
+#elif  defined(PCI_INTERFACE)
+#define DWC_OTG_BUSDRVDATA(_dev) pci_get_drvdata(_dev)
+#elif  defined(PLATFORM_INTERFACE)
+#define DWC_OTG_BUSDRVDATA(_dev) platform_get_drvdata(_dev)
+#endif
+
+/**
+ * Helper macro returning the otg_device structure of a given struct device
+ *
+ * c.f. static dwc_otg_device_t *dwc_otg_drvdev(struct device *_dev)
+ */
+#ifdef LM_INTERFACE
+#define DWC_OTG_GETDRVDEV(_var, _dev) do { \
+                struct lm_device *lm_dev = \
+                        container_of(_dev, struct lm_device, dev); \
+                _var = lm_get_drvdata(lm_dev); \
+        } while (0)
+
+#elif defined(PCI_INTERFACE)
+#define DWC_OTG_GETDRVDEV(_var, _dev) do { \
+                _var = dev_get_drvdata(_dev); \
+        } while (0)
+
+#elif defined(PLATFORM_INTERFACE)
+#define DWC_OTG_GETDRVDEV(_var, _dev) do { \
+                struct platform_device *platform_dev = \
+                        container_of(_dev, struct platform_device, dev); \
+                _var = platform_get_drvdata(platform_dev); \
+        } while (0)
+#endif
+
+
+/**
+ * Helper macro returning the struct dev of the given struct os_dependent
+ *
+ * c.f. static struct device *dwc_otg_getdev(struct os_dependent *osdep)
+ */
+#ifdef LM_INTERFACE
+#define DWC_OTG_OS_GETDEV(_osdep) \
+        ((_osdep).lmdev == NULL? NULL: &(_osdep).lmdev->dev)
+#elif defined(PCI_INTERFACE)
+#define DWC_OTG_OS_GETDEV(_osdep) \
+        ((_osdep).pci_dev == NULL? NULL: &(_osdep).pci_dev->dev)
+#elif defined(PLATFORM_INTERFACE)
+#define DWC_OTG_OS_GETDEV(_osdep) \
+        ((_osdep).platformdev == NULL? NULL: &(_osdep).platformdev->dev)
+#endif
+
+
+
 
 #endif /* _DWC_OS_DEP_H_ */

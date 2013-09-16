@@ -155,14 +155,15 @@ static int ehci_platform_suspend(struct device *dev)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	bool do_wakeup = device_may_wakeup(dev);
 
-	return ehci_suspend(hcd, do_wakeup);
+	ehci_prepare_ports_for_controller_suspend(hcd_to_ehci(hcd), do_wakeup);
+	return 0;
 }
 
 static int ehci_platform_resume(struct device *dev)
 {
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 
-	ehci_resume(hcd, false);
+	ehci_prepare_ports_for_controller_resume(hcd_to_ehci(hcd));
 	return 0;
 }
 
