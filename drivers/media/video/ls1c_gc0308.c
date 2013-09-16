@@ -27,6 +27,7 @@
 #endif
 
 #include "gc0308.h"
+#include "gc0307.h"
 
 
 
@@ -168,8 +169,9 @@ static int gc0308_i2c_read(struct v4l2_subdev *sd, unsigned char reg)
 
 	unsigned char data[1]={0};
 	data[0] = reg;
-	i2c_master_recv(client, data ,1);
-	return data[0];
+	return i2c_smbus_read_byte_data(client, reg);
+	//i2c_master_recv(client, data ,1);
+	//return data[0];
 }
 
 static int gc0308_write_regs(struct v4l2_subdev *sd, unsigned char regs[],
@@ -687,6 +689,32 @@ static int gc0308_init(struct v4l2_subdev *sd, u32 val)
 	mdelay(150);
 */
 	printk ("lxy: begin to init gc0308's reg.\n");
+
+    printk ("GC0307 ID:0x%x\n", gc0308_i2c_read(sd, 0));
+#if 1   
+
+for (i = 0; i < GC0307_INIT_REGS; i++) {
+	err = gc0308_i2c_write(sd, gc0307_YCbCr8bit[i],
+			sizeof(gc0307_YCbCr8bit[i]));
+	//mdelay(10);
+	if (err < 0)
+		v4l_info(client, "%s: %d register set failed\n",
+				__func__, i);
+}
+
+gc0308_i2c_write(sd, "\x4d\x18", 2);
+
+/*
+for (i = 0; i < GC0307_INIT_REGS; i++) 
+{
+    unsigned int tmp;
+	tmp = gc0308_i2c_read(sd, gc0307_YCbCr8bit[i][0]);
+	printk("gc0307_YCbCr8bit{0x%x, 0x%x}\n", gc0307_YCbCr8bit[i][0], tmp);
+    mdelay(10);
+}*/
+
+
+#else
 	for (i = 0; i < GC0308_INIT_REGS; i++) {
 		err = gc0308_i2c_write(sd, gc0308_init_reg[i],
 				sizeof(gc0308_init_reg[i]));
@@ -695,7 +723,17 @@ static int gc0308_init(struct v4l2_subdev *sd, u32 val)
 					__func__, i);
 	}
 
-#if 1
+for (i = 0; i < GC0308_INIT_REGS; i++) 
+{
+    unsigned int tmp;
+	tmp = gc0308_i2c_read(sd, gc0308_init_reg[i][0]);
+	printk("gc0308_init_reg{0x%x, 0x%x}\n", gc0308_init_reg[i][0], tmp);
+    mdelay(100);
+}
+
+#endif
+
+#if 0
 		gc0308_i2c_write(sd, gc0308_windows_2_page1[0],
 				sizeof(gc0308_windows_2_page1[0]));
 		
@@ -706,8 +744,8 @@ static int gc0308_init(struct v4l2_subdev *sd, u32 val)
 				sizeof(gc0308_windows_2_page0[0]));
 
 		for (i = 0; i < 8; i++) {
-			gc0308_i2c_write(sd, gc0308_windows_640[0],
-					sizeof(gc0308_windows_640[0]));
+			gc0308_i2c_write(sd, gc0308_windows_640[i],
+					sizeof(gc0308_windows_640[i]));
 		}
 	
 		gc0308_i2c_write(sd, gc0308_output_RGB[0],

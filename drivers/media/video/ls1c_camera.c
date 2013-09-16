@@ -39,7 +39,8 @@
 
 #include <irq.h>
 #include <loongson1.h>
-//#include <linux/types.h>
+
+//#define YUV_FMT
 
 /*
  * camera registers
@@ -759,9 +760,12 @@ static int ls1c_camera_set_bus_param(struct soc_camera_device *icd, __u32 pixfmt
 #if 0
 	__raw_writel(csicr1, pcdev->base + CAM_CAMIF_CONFIG);
 #else
+	#ifndef YUV_FMT
 	csicr1 |=  (1 << CONFIG_PARA_640X480) ;
 	csicr1 |= (1 << 13) | (1 << CONFIG_PARA_640X480) ;//rgb
-//	csicr1 |= (1 << CONFIG_PARA_INPUT_DATA_MODE) | (1 << CONFIG_PARA_640X480) ;//yuv
+	#else
+	csicr1 |= (1 << CONFIG_PARA_INPUT_DATA_MODE) | (1 << CONFIG_PARA_640X480) ;//yuv
+	#endif
 //	printk("------------csicr1 0x%x----------\n", csicr1);
 	__raw_writel(csicr1, pcdev->base + CAM_CAMIF_CONFIG);
 	//__raw_writel((640*480), pcdev->base + CAM_UOFF_CONFIG);
@@ -818,7 +822,7 @@ static int ls1c_camera_set_fmt(struct soc_camera_device *icd,
 	icd->current_fmt	= xlate;
 
 	int flags;
-#if 0
+#ifdef YUV_FMT
 	switch (pix->width) {
 		case 640:
 			*(volatile unsigned int *)(0xbc280038) |= (1 << CONFIG_PARA_INPUT_DATA_MODE) | (1 << CONFIG_PARA_640X480) ;//yuv
