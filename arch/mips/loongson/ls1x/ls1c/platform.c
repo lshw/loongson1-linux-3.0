@@ -449,7 +449,7 @@ struct platform_device ls1x_gmac0_phy = {
 #endif //#ifdef CONFIG_LS1X_GMAC0
 #endif //#ifdef CONFIG_STMMAC_ETH
 
-#ifdef CONFIG_SOUND_LS1C_AC97
+#if defined(CONFIG_SOUND_LS1X_AC97)
 static struct resource ls1x_ac97_resource[] = {
 	[0] = {
 		.start	= LS1X_AC97_BASE,
@@ -464,7 +464,7 @@ static struct platform_device ls1x_audio_device = {
 	.num_resources	= ARRAY_SIZE(ls1x_ac97_resource),
 	.resource		= ls1x_ac97_resource,
 };
-#elif CONFIG_SOUND_LS1X_IIS
+#elif defined(CONFIG_SOUND_LS1X_IIS)
 static struct resource ls1x_iis_resource[] = {
 	[0] = {
 		.start	= LS1C_I2S_BASE,
@@ -825,7 +825,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
-#if defined(CONFIG_SOUND_LS1C_AC97) || defined(CONFIG_SOUND_LS1X_IIS)
+#if defined(CONFIG_SOUND_LS1X_AC97) || defined(CONFIG_SOUND_LS1X_IIS)
 	&ls1x_audio_device,
 #endif
 
