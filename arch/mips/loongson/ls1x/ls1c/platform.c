@@ -57,7 +57,7 @@ static struct mtd_partition ls1x_nand_partitions[] = {
 	[1] = {
 		.name	= "os",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= SZ_100M,
+		.size	= 100*1024*1024,
 	},
 	[2] = {
 		.name	= "data",
@@ -256,6 +256,16 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		.platform_data = &gc0308_plat,
 	},
 #endif
+#ifdef CONFIG_CODEC_UDA1342
+	{
+		I2C_BOARD_INFO("uda1342", 0x1a),
+	},
+#endif
+#ifdef CONFIG_CODEC_ES8388
+	{
+		I2C_BOARD_INFO("es8388", 0x10),
+	},
+#endif
 };
 
 static struct resource ls1x_i2c0_resource[] = {
@@ -441,16 +451,10 @@ struct platform_device ls1x_gmac0_phy = {
 
 #ifdef CONFIG_SOUND_LS1C_AC97
 static struct resource ls1x_ac97_resource[] = {
-	[0]={
-#ifdef CONFIG_LS1B_MACH
+	[0] = {
 		.start	= LS1X_AC97_BASE,
 		.end	= LS1X_AC97_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
-#elif CONFIG_LS1C_MACH
-		.start	= LS1C_I2S_BASE,
-		.end	= LS1C_I2S_BASE + SZ_16K - 1,
-		.flags	= IORESOURCE_MEM,
-#endif
 	},
 };
 
@@ -459,6 +463,21 @@ static struct platform_device ls1x_audio_device = {
 	.id             = -1,
 	.num_resources	= ARRAY_SIZE(ls1x_ac97_resource),
 	.resource		= ls1x_ac97_resource,
+};
+#elif CONFIG_SOUND_LS1X_IIS
+static struct resource ls1x_iis_resource[] = {
+	[0] = {
+		.start	= LS1C_I2S_BASE,
+		.end	= LS1C_I2S_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device ls1x_audio_device = {
+	.name           = "ls1x-audio",
+	.id             = -1,
+	.num_resources	= ARRAY_SIZE(ls1x_iis_resource),
+	.resource		= ls1x_iis_resource,
 };
 #endif
 
@@ -806,7 +825,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
-#ifdef CONFIG_SOUND_LS1C_AC97
+#if defined(CONFIG_SOUND_LS1C_AC97) || defined(CONFIG_SOUND_LS1X_IIS)
 	&ls1x_audio_device,
 #endif
 

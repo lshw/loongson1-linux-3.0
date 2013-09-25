@@ -20,7 +20,8 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 
-#define I2C_CLOCK		400000		/* Hz. max 400 Kbits/sec */
+//#define I2C_CLOCK		400000		/* Hz. max 400 Kbits/sec */
+#define I2C_CLOCK		100000		/* Hz. max 100 Kbits/sec */
 
 /* registers */
 #define OCI2C_PRELOW		0

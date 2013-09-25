@@ -24,20 +24,21 @@ config SOUND_VWSND
 
 config SOUND_LS1X_AC97
 	tristate "Loongson1 AC97 Sound"
-	depends on CPU_LOONGSON1A || CPU_LOONGSON1B
+	depends on CPU_LOONGSON1A || CPU_LOONGSON1B || CPU_LOONGSON1C
 
-config SOUND_LS1C_AC97
-	tristate "Loongson1C Sound"
+config SOUND_LS1X_IIS
+	tristate "Loongson1 IIS Sound"
 	depends on CPU_LOONGSON1C
+	depends on I2C
 
 choice 
-	prompt "sound card bus select"
-	depends on SOUND_LS1C_AC97
+	prompt "codecs select"
+	depends on SOUND_LS1X_IIS
 
-config LS1C_AC97_BUS
-	bool "ac97 bus"
-config LS1C_IIS_BUS
-	bool "iis bus"
+config CODEC_UDA1342
+	bool "uda1342"
+config CODEC_ES8388
+	bool "es8388"
 endchoice
 
 config SOUND_MSNDCLAS

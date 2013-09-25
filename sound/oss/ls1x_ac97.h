@@ -10,6 +10,17 @@
 #ifndef __LS1X_AC97_H__
 #define __LS1X_AC97_H__
 
+/* iis */
+#define LS1X_IIS_BASE	0xbfe60000
+
+#define LS1X_IIS_VERSION	(0x00)
+#define LS1X_IIS_CONFIG		(0x04)
+#define LS1X_IIS_CONTROL	(0x08)
+#define LS1X_IIS_RXDATA		(0x0c)
+#define LS1X_IIS_TXDATA		(0x10)
+
+
+
 /* Control Status Register (CSR) */
 #define CSR		0x00
 #define AC97_CSR_RESUME		(1 << 1)
