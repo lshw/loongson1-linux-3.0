@@ -82,6 +82,7 @@ struct pwm_device *pwm_request(int id, const char *label)
 		return ERR_PTR(ret);
 
 	/* 如果该引脚被设置为gpio需要释放该引脚 */
+	gpio_request(pwm->gpio, "pwm");
 	gpio_free(pwm->gpio);
 
 	x = __raw_readl(LS1X_MUX_CTRL0);

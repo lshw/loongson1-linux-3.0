@@ -79,18 +79,18 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 8,	// 488-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	{	//AT043TN24
-		.name	= "AT043TN24",
-		.pixclock	= 82000,
+	{	//AT043TN13
+		.name	= "AT043TN13",
+		.pixclock	= 111000,
 		.refresh	= 60,
 		.xres		= 480,
 		.yres		= 272,
-		.hsync_len	= 1,
-		.left_margin	= 43,
-		.right_margin	= 1,
-		.vsync_len	= 1,
-		.upper_margin	= 14,
-		.lower_margin	= 1,
+		.hsync_len	= 41,		// 523-482
+		.left_margin	= 2,	// 525-523
+		.right_margin	= 2,	// 482-480
+		.vsync_len	= 10,		// 284-274
+		.upper_margin	= 2,	// 286-284
+		.lower_margin	= 2,	// 274-272
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
 	{	// jbt6k74控制器
@@ -109,16 +109,16 @@ static struct fb_videomode video_modes[] = {
 	},
 	{	//AT056TN52
 		.name	= "AT056TN52",
-		.pixclock	= 32552,
+		.pixclock	= 39682,
 		.refresh	= 60,
 		.xres		= 640,
 		.yres		= 480,
-		.hsync_len	= 10,		// thwh
-		.left_margin	= 134,	// thbp
-		.right_margin	= 16,	// thfp
-		.vsync_len	= 2,		//
-		.upper_margin	= 11,	//
-		.lower_margin	= 32,	//
+		.hsync_len	= 10,		// 666-656
+		.left_margin	= 134,	// 800-666
+		.right_margin	= 16,	// 656-640
+		.vsync_len	= 2,		// 514-512
+		.upper_margin	= 11,	// 525-514
+		.lower_margin	= 32,	// 512-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
 	{	//AT070TN93
