@@ -352,7 +352,7 @@ struct platform_device ls1x_fb0_device = {
 #ifdef CONFIG_BACKLIGHT_PWM
 #include <linux/pwm_backlight.h>
 static struct platform_pwm_backlight_data ls1x_backlight_data = {
-	.pwm_id		= 2,
+	.pwm_id		= 1,
 	.max_brightness	= 255,
 	.dft_brightness	= 100,
 	.pwm_period_ns	= 7812500,
@@ -865,6 +865,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_LS1X_CAN1
 	&ls1x_sja1000_1,
 #endif
+#endif
+#ifdef CONFIG_BACKLIGHT_PWM
+	&ls1x_pwm_backlight,
 #endif
 };
 

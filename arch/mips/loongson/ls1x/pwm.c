@@ -39,6 +39,11 @@
 #define LS_GPIO_PWM1	1
 #define LS_GPIO_PWM2	2
 #define LS_GPIO_PWM3	3
+#elif defined(CONFIG_LS1C_MACH)
+#define LS_GPIO_PWM0	06
+#define LS_GPIO_PWM1	92
+#define LS_GPIO_PWM2	93
+#define LS_GPIO_PWM3	94
 #endif
 
 void __iomem *ls1x_pwm_base;
@@ -109,6 +114,8 @@ struct pwm_device *pwm_request(int id, const char *label)
 		x = x & (~GMAC1_USE_PWM23);
 		__raw_writel(x, LS1X_MUX_CTRL1);
 	}
+#elif defined(CONFIG_LS1C_MACH)
+
 #endif
 
 	return pwm;
@@ -152,7 +159,7 @@ int pwm_enable(struct pwm_device *pwm)
 	unsigned int id = pwm->id;
 
 	writel(0x00, ls1x_pwm_base + (id << 4) + REG_PWM_CNTR);
-	writeb(0x01, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
+	writel(0x01, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
 	return 0;
 }
 
@@ -160,7 +167,7 @@ void pwm_disable(struct pwm_device *pwm)
 {
 	unsigned int id = pwm->id;
 
-	writeb(0x09, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
+	writel(0x09, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
 }
 
 static int __init ls1x_pwm_init(void)
