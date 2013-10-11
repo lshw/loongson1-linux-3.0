@@ -220,7 +220,7 @@ static void *cramfs_read(struct super_block *sb, unsigned int offset, unsigned i
 		return NULL;
 
 #ifdef CONFIG_MTD_NAND_LS1X
-	offset = cramfs_nand_transfer_offset(sb, offset);	//lxy
+//	offset = cramfs_nand_transfer_offset(sb, offset);	//lxy
 #endif
 	
 	blocknr = offset >> PAGE_CACHE_SHIFT;
@@ -316,7 +316,7 @@ static int cramfs_fill_super(struct super_block *sb, void *data, int silent)
 	sb->s_fs_info = sbi;
 
 #ifdef CONFIG_MTD_NAND_LS1X
-	cramfs_fill_nand(sb);		//lxy
+//	cramfs_fill_nand(sb);		//lxy
 #endif
 
 	/* Invalidate the read buffers on mount: think disk change.. */
@@ -326,7 +326,6 @@ static int cramfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	/* Read the first block and get the superblock from it */
 	memcpy(&super, cramfs_read(sb, 0, sizeof(super)), sizeof(super));
-	
 	mutex_unlock(&read_mutex);
 
 	/* Do sanity checks on the superblock */

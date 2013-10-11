@@ -169,6 +169,11 @@ static void matrix_keypad_scan(struct work_struct *work)
 	spin_unlock_irq(&keypad->lock);
 }
 
+static irqreturn_t matrix_keypad_hard_irq(int irq, void *handle)
+{
+	return IRQ_HANDLED;
+}
+
 static irqreturn_t matrix_keypad_interrupt(int irq, void *id)
 {
 	struct matrix_keypad *keypad = id;
@@ -342,7 +347,7 @@ static int __devinit init_matrix_gpio(struct platform_device *pdev,
 	} else {
 		for (i = 0; i < pdata->num_row_gpios; i++) {
 //			err = request_irq(gpio_to_irq(pdata->row_gpios[i]),
-			err = request_threaded_irq(gpio_to_irq(pdata->row_gpios[i]), NULL, 
+			err = request_threaded_irq(gpio_to_irq(pdata->row_gpios[i]), matrix_keypad_hard_irq, 
 					matrix_keypad_interrupt,
 					IRQF_DISABLED |
 					IRQF_TRIGGER_RISING |

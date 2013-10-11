@@ -1094,10 +1094,10 @@ static struct matrix_keypad_platform_data ls1bkbd_pdata = {
 	.col_gpios			= ls1bkbd_col_gpios,
 	.num_row_gpios		= ARRAY_SIZE(ls1bkbd_row_gpios),
 	.num_col_gpios		= ARRAY_SIZE(ls1bkbd_col_gpios),
-	.col_scan_delay_us	= 5,
-	.debounce_ms		= 20,
+	.col_scan_delay_us	= 2,
+	.debounce_ms		= 2,
 	.active_low			= 1,
-	.wakeup				= 1,
+//	.wakeup				= 1,
 	.no_autorepeat		= 1,
 };
 
