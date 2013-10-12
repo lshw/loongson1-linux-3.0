@@ -961,8 +961,8 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 };
 #endif
 
-#if defined(CONFIG_LS1B_SPI0)
-static struct spi_board_info ls1b_spi0_devices[] = {
+#if defined(CONFIG_LS1X_SPI0)
+static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{
 		.modalias	= "w25q64",
@@ -993,33 +993,33 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 #endif
 };
 	
-static struct resource ls1b_spi0_resource[] = {
+static struct resource ls1x_spi0_resource[] = {
 	[0]={
-		.start	= LS1B_BOARD_SPI0_BASE,
-		.end	= (LS1B_BOARD_SPI0_BASE + 0x6),
+		.start	= LS1X_SPI0_BASE,
+		.end	= (LS1X_SPI0_BASE + 0x6),
 		.flags	= IORESOURCE_MEM,
 	},
 	[1]={
-		.start	= LS1B_BOARD_SPI0_IRQ,
-		.end	= LS1B_BOARD_SPI0_IRQ,
+		.start	= LS1X_SPI0_IRQ,
+		.end	= LS1X_SPI0_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static struct ls1b_spi_info ls1b_spi0_platdata = {
-	.board_size = ARRAY_SIZE(ls1b_spi0_devices),
-	.board_info = ls1b_spi0_devices,
+static struct ls1x_spi_info ls1x_spi0_platdata = {
+	.board_size = ARRAY_SIZE(ls1x_spi0_devices),
+	.board_info = ls1x_spi0_devices,
 	.bus_num	= 0,
 	.num_cs		= SPI0_CS3 + 1,
 };
 
-static struct platform_device ls1b_spi0_device = {
-	.name		= "ls1b-spi",
+static struct platform_device ls1x_spi0_device = {
+	.name		= "ls1x-spi",
 	.id 		= 0,
-	.num_resources	= ARRAY_SIZE(ls1b_spi0_resource),
-	.resource	= ls1b_spi0_resource,
+	.num_resources	= ARRAY_SIZE(ls1x_spi0_resource),
+	.resource	= ls1x_spi0_resource,
 	.dev		= {
-		.platform_data	= &ls1b_spi0_platdata,//&ls1b_spi_devices,
+		.platform_data	= &ls1x_spi0_platdata,//&ls1x_spi_devices,
 	},
 };
 
@@ -1074,10 +1074,10 @@ static struct spi_board_info spi0_gpio_devices[] = {
 	},
 #endif
 };
-#endif //#ifdef CONFIG_LS1B_SPI0
+#endif //#ifdef CONFIG_LS1X_SPI0
 
-#if defined(CONFIG_LS1B_SPI1) /* SPI1 控制器 */
-static struct spi_board_info ls1b_spi1_devices[] = {
+#if defined(CONFIG_LS1X_SPI1) /* SPI1 控制器 */
+static struct spi_board_info ls1x_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
 		.modalias		= "mmc_spi",
@@ -1102,33 +1102,33 @@ static struct spi_board_info ls1b_spi1_devices[] = {
 	},
 };
 
-static struct resource ls1b_spi1_resource[] = {
+static struct resource ls1x_spi1_resource[] = {
 	[0]={
-		.start	= LS1B_BOARD_SPI1_BASE,
-		.end	= (LS1B_BOARD_SPI1_BASE + 0x6),
+		.start	= LS1X_SPI1_BASE,
+		.end	= (LS1X_SPI1_BASE + 0x6),
 		.flags	= IORESOURCE_MEM,
 	},
 	[1]={
-		.start	= LS1B_BOARD_SPI1_IRQ,
-		.end	= LS1B_BOARD_SPI1_IRQ,
+		.start	= LS1X_SPI1_IRQ,
+		.end	= LS1X_SPI1_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static struct ls1b_spi_info ls1b_spi1_platdata = {
-	.board_size = ARRAY_SIZE(ls1b_spi1_devices),
-	.board_info = ls1b_spi1_devices,
+static struct ls1x_spi_info ls1x_spi1_platdata = {
+	.board_size = ARRAY_SIZE(ls1x_spi1_devices),
+	.board_info = ls1x_spi1_devices,
 	.bus_num	= 1,
 	.num_cs		= 3,
 };
 
-static struct platform_device ls1b_spi1_device = {
-	.name		= "ls1b-spi",
+static struct platform_device ls1x_spi1_device = {
+	.name		= "ls1x-spi",
 	.id 		= 1,
-	.num_resources	= ARRAY_SIZE(ls1b_spi1_resource),
-	.resource	= ls1b_spi1_resource,
+	.num_resources	= ARRAY_SIZE(ls1x_spi1_resource),
+	.resource	= ls1x_spi1_resource,
 	.dev		= {
-		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
+		.platform_data	= &ls1x_spi1_platdata,//&ls1x_spi_devices,
 	},
 };
 #elif defined(CONFIG_SPI_GPIO)	/* 使用GPIO模拟SPI代替 */
@@ -1175,7 +1175,7 @@ static struct spi_board_info spi1_gpio_devices[] = {
 		.mode = SPI_MODE_0,
 	},
 };
-#endif	//#ifdef CONFIG_LS1B_SPI1
+#endif	//#ifdef CONFIG_LS1X_SPI1
 
 #if defined(CONFIG_SPI_GPIO) && defined(CONFIG_GPIO_74X165)
 struct spi_gpio_platform_data spigpio_74x165_data = {
@@ -1671,14 +1671,14 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_audio_device,
 #endif
 
-#if defined(CONFIG_LS1B_SPI0)
-	&ls1b_spi0_device,
+#if defined(CONFIG_LS1X_SPI0)
+	&ls1x_spi0_device,
 #elif defined(CONFIG_SPI_GPIO)
 	&spi0_gpio_device,
 #endif
 
-#if defined(CONFIG_LS1B_SPI1)
-	&ls1b_spi1_device,
+#if defined(CONFIG_LS1X_SPI1)
+	&ls1x_spi1_device,
 #elif defined(CONFIG_SPI_GPIO)
 	&spi1_gpio_device,
 #endif
@@ -1827,21 +1827,21 @@ int __init ls1b_platform_init(void)
 	ads7846_detect_penirq();
 #endif
 
-#if defined(CONFIG_LS1B_SPI0)
+#if defined(CONFIG_LS1X_SPI0)
 	/* disable gpio24-27 */
 	*(volatile unsigned int *)0xbfd010c0 &= ~(0xf << 24);
-	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
+	spi_register_board_info(ls1x_spi0_devices, ARRAY_SIZE(ls1x_spi0_devices));
 #elif defined(CONFIG_SPI_GPIO)
 	spi_register_board_info(spi0_gpio_devices, ARRAY_SIZE(spi0_gpio_devices));
 #endif
 
-#if defined(CONFIG_LS1B_SPI1)
+#if defined(CONFIG_LS1X_SPI1)
 	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
 	/* 编程需要注意 */
 	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);
 	/* disable gpio38-41 */
 	*(volatile unsigned int *)0xbfd010c4 &= ~(0xf << 6);
-	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
+	spi_register_board_info(ls1x_spi1_devices, ARRAY_SIZE(ls1x_spi1_devices));
 #elif defined(CONFIG_SPI_GPIO)
 	spi_register_board_info(spi1_gpio_devices, ARRAY_SIZE(spi1_gpio_devices));
 #endif

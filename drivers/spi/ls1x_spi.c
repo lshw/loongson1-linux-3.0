@@ -1,3 +1,13 @@
+/*
+ * Driver for Loongson1 SPI Controllers
+ *
+ * Copyright (C) 2013 Loongson Corporation
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 #include <linux/init.h>
 #include <linux/spinlock.h>
 #include <linux/workqueue.h>
@@ -14,32 +24,30 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/spi_bitbang.h>
 
-#include <asm/types.h>
-#include <asm/io.h>
-#include <asm/dma.h>
 #include <loongson1.h>
 #include <irq.h>
 #include <spi.h>
 
 #define USE_POLL
 
-#define REG_SPCR				0x00	//控制寄存器
-#define REG_SPSR				0x01	//状态寄存器
-#define REG_SPDR				0x02	//数据寄存器（TxFIFO）
-#define REG_TXFIFO    			0x02	//数据传输寄存器 输出
-#define REG_RXFIFO    			0x02	//数据传输寄存器 输入
-#define REG_SPER				0x03	//外部寄存器
-#define REG_PARAM     			0x04	//SPI Flash参数控制寄存器
-#define REG_SOFTCS    			0x05	//SPI Flash片选控制寄存器
-#define REG_PARAM2    			0x06	//SPI Flash时序控制寄存器
+#define REG_SPCR		0x00	//控制寄存器
+#define REG_SPSR		0x01	//状态寄存器
+#define REG_SPDR		0x02	//数据寄存器（TxFIFO）
+#define REG_TXFIFO		0x02	//数据传输寄存器 输出
+#define REG_RXFIFO		0x02	//数据传输寄存器 输入
+#define REG_SPER		0x03	//外部寄存器
+#define REG_PARAM		0x04	//SPI Flash参数控制寄存器
+#define REG_SOFTCS		0x05	//SPI Flash片选控制寄存器
+#define REG_PARAM2		0x06	//SPI Flash时序控制寄存器
 
-struct ls1b_spi_devstate {
+struct ls1x_spi_devstate {
 	unsigned int	hz;
+	unsigned int	mode;
 	u8		spcr;
 	u8		sper;
 };
 
-struct ls1b_spi {
+struct ls1x_spi {
 	/* bitbang has to be first */
 	struct spi_bitbang	 bitbang;
 	struct completion	 done;
@@ -58,17 +66,17 @@ struct ls1b_spi {
 	struct spi_master	*master;
 	struct spi_device	*curdev;
 	struct device		*dev;
-	struct ls1b_spi_info *pdata;
+	struct ls1x_spi_info *pdata;
 };
 
-static inline struct ls1b_spi *to_hw(struct spi_device *sdev)
+static inline struct ls1x_spi *to_hw(struct spi_device *sdev)
 {
 	return spi_master_get_devdata(sdev->master);
 }
 
-static void ls1b_spi_chipsel(struct spi_device *spi, int value)
+static void ls1x_spi_chipsel(struct spi_device *spi, int value)
 {
-	struct ls1b_spi *hw = to_hw(spi);
+	struct ls1x_spi *hw = to_hw(spi);
 	unsigned char cspol = spi->mode & SPI_CS_HIGH ? 1 : 0;
 	unsigned char chip_select = (0x01 << (spi->chip_select + 4));
 
@@ -91,16 +99,17 @@ static void ls1b_spi_chipsel(struct spi_device *spi, int value)
 	}
 }
 
-static int ls1b_spi_update_state(struct spi_device *spi,
+static int ls1x_spi_update_state(struct spi_device *spi,
 				    struct spi_transfer *t)
 {
-	struct ls1b_spi *hw = to_hw(spi);
-	struct ls1b_spi_devstate *cs = spi->controller_state;
+	struct ls1x_spi *hw = to_hw(spi);
+	struct ls1x_spi_devstate *cs = spi->controller_state;
 	unsigned int bpw;
 	unsigned int hz;
 	unsigned int div, div_tmp;
 	unsigned int bit;
 	unsigned long clk;
+	u8 spcr = readb(hw->regs + REG_SPCR);
 
 	bpw = t ? t->bits_per_word : spi->bits_per_word;
 	hz  = t ? t->speed_hz : spi->max_speed_hz;
@@ -114,6 +123,19 @@ static int ls1b_spi_update_state(struct spi_device *spi,
 	if (bpw != 8) {
 		dev_err(&spi->dev, "invalid bits-per-word (%d)\n", bpw);
 		return -EINVAL;
+	}
+
+	if (spi->mode != cs->mode) {
+		spcr &= ~0x0c;
+
+		if (spi->mode & SPI_CPHA)
+			spcr |= 0x4;
+
+		if (spi->mode & SPI_CPOL)
+			spcr |= 0x8;
+
+		cs->mode = spi->mode;
+		cs->spcr = spcr;
 	}
 
 	if (cs->hz != hz) {
@@ -157,25 +179,25 @@ static int ls1b_spi_update_state(struct spi_device *spi,
 		        clk, hz, div_tmp, bit);
 
 		cs->hz = hz;
-		cs->spcr = div_tmp & 3;
+		spcr |= (div_tmp & 3);
+		cs->spcr = spcr;
 		cs->sper = (div_tmp >> 2) & 3;
 	}
 
 	return 0;
 }
 
-static int ls1b_spi_setupxfer(struct spi_device *spi,
+static int ls1x_spi_setupxfer(struct spi_device *spi,
 				 struct spi_transfer *t)
 {
-	struct ls1b_spi_devstate *cs = spi->controller_state;
-	struct ls1b_spi *hw = to_hw(spi);
+	struct ls1x_spi_devstate *cs = spi->controller_state;
+	struct ls1x_spi *hw = to_hw(spi);
 	unsigned char val;
 	int ret;
 
-	ret = ls1b_spi_update_state(spi, t);
+	ret = ls1x_spi_update_state(spi, t);
 	if (!ret) {
-		val = readb(hw->regs + REG_SPCR);
-		writeb((val & ~3) | cs->spcr, hw->regs + REG_SPCR);
+		writeb(cs->spcr, hw->regs + REG_SPCR);
 		val = readb(hw->regs + REG_SPER);
 		writeb((val & ~3) | cs->sper, hw->regs + REG_SPER);
 	}
@@ -183,15 +205,15 @@ static int ls1b_spi_setupxfer(struct spi_device *spi,
 	return ret;
 }
 
-static int ls1b_spi_setup(struct spi_device *spi)
+static int ls1x_spi_setup(struct spi_device *spi)
 {
-	struct ls1b_spi_devstate *cs = spi->controller_state;
-	struct ls1b_spi *hw = to_hw(spi);
+	struct ls1x_spi_devstate *cs = spi->controller_state;
+	struct ls1x_spi *hw = to_hw(spi);
 	int ret;
 
 	/* allocate settings on the first call */
 	if (!cs) {
-		cs = kzalloc(sizeof(struct ls1b_spi_devstate), GFP_KERNEL);
+		cs = kzalloc(sizeof(struct ls1x_spi_devstate), GFP_KERNEL);
 		if (!cs) {
 			dev_err(&spi->dev, "no memory for controller state\n");
 			return -ENOMEM;
@@ -202,7 +224,7 @@ static int ls1b_spi_setup(struct spi_device *spi)
 	}
 
 	/* initialise the state from the device */
-	ret = ls1b_spi_update_state(spi, NULL);
+	ret = ls1x_spi_update_state(spi, NULL);
 	if (ret)
 		return ret;
 
@@ -216,19 +238,19 @@ static int ls1b_spi_setup(struct spi_device *spi)
 	return 0;
 }
 
-static void ls1b_spi_cleanup(struct spi_device *spi)
+static void ls1x_spi_cleanup(struct spi_device *spi)
 {
 	kfree(spi->controller_state);
 }
 
-static inline unsigned int hw_txbyte(struct ls1b_spi *hw, int count)
+static inline unsigned int hw_txbyte(struct ls1x_spi *hw, int count)
 {
 	return hw->tx ? hw->tx[count] : 0x00;
 }
 
-static int ls1b_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
+static int ls1x_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 {
-	struct ls1b_spi *hw = to_hw(spi);
+	struct ls1x_spi *hw = to_hw(spi);
 		
 	hw->tx = t->tx_buf;
 	hw->rx = t->rx_buf;
@@ -257,9 +279,9 @@ static int ls1b_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 }
 
 #ifndef USE_POLL
-static irqreturn_t ls1b_spi_irq(int irq, void *dev)
+static irqreturn_t ls1x_spi_irq(int irq, void *dev)
 {
-	struct ls1b_spi *hw = dev;
+	struct ls1x_spi *hw = dev;
 	unsigned int spsta = readb(hw->regs + REG_SPSR);
 	unsigned int count = hw->count;
 
@@ -285,16 +307,16 @@ static irqreturn_t ls1b_spi_irq(int irq, void *dev)
 }
 #endif
 
-static int ls1b_spi_probe(struct platform_device *pdev)
+static int ls1x_spi_probe(struct platform_device *pdev)
 {
-	struct ls1b_spi_info *pdata;
-	struct ls1b_spi *hw;
+	struct ls1x_spi_info *pdata;
+	struct ls1x_spi *hw;
 	struct spi_master *master;
 	struct resource *res;
 	int err = 0;
 	unsigned char val;
 
-	master = spi_alloc_master(&pdev->dev, sizeof(struct ls1b_spi));
+	master = spi_alloc_master(&pdev->dev, sizeof(struct ls1x_spi));
 	if (master == NULL) {
 		dev_err(&pdev->dev, "No memory for spi_master\n");
 		err = -ENOMEM;
@@ -302,7 +324,7 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 	}
 
 	hw = spi_master_get_devdata(master);
-	memset(hw, 0, sizeof(struct ls1b_spi));
+	memset(hw, 0, sizeof(struct ls1x_spi));
 
 	hw->master = spi_master_get(master);
 	hw->pdata = pdata = pdev->dev.platform_data;
@@ -328,12 +350,12 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 	/* setup the state for the bitbang driver */
 	
 	hw->bitbang.master         = hw->master;
-	hw->bitbang.setup_transfer = ls1b_spi_setupxfer;
-	hw->bitbang.chipselect     = ls1b_spi_chipsel;
-	hw->bitbang.txrx_bufs      = ls1b_spi_txrx;
+	hw->bitbang.setup_transfer = ls1x_spi_setupxfer;
+	hw->bitbang.chipselect     = ls1x_spi_chipsel;
+	hw->bitbang.txrx_bufs      = ls1x_spi_txrx;
 	
-	hw->master->setup  = ls1b_spi_setup;
-	hw->master->cleanup = ls1b_spi_cleanup;
+	hw->master->setup  = ls1x_spi_setup;
+	hw->master->cleanup = ls1x_spi_cleanup;
 
 	dev_dbg(hw->dev, "bitbang at %p\n", &hw->bitbang);
 
@@ -377,7 +399,7 @@ static int ls1b_spi_probe(struct platform_device *pdev)
 
 #ifndef USE_POLL
  	writeb(0xd0, hw->regs + REG_SPCR);
-	err = request_irq(hw->irq, ls1b_spi_irq, 0, pdev->name, hw);
+	err = request_irq(hw->irq, ls1x_spi_irq, 0, pdev->name, hw);
 	if (err) {
 		dev_err(&pdev->dev, "Cannot claim IRQ\n");
 		goto err_no_irq;
@@ -429,9 +451,9 @@ err_nomem:
 	return err;
 }
 
-static int ls1b_spi_remove(struct platform_device *dev)
+static int __exit ls1x_spi_remove(struct platform_device *dev)
 {
-	struct ls1b_spi *hw = platform_get_drvdata(dev);
+	struct ls1x_spi *hw = platform_get_drvdata(dev);
 
 	platform_set_drvdata(dev, NULL);
 
@@ -451,17 +473,17 @@ static int ls1b_spi_remove(struct platform_device *dev)
 }
 
 #ifdef CONFIG_PM
-static int ls1b_spi_suspend(struct device *dev)
+static int ls1x_spi_suspend(struct device *dev)
 {
-//	struct ls1b_spi *hw = platform_get_drvdata(pdev);
-	struct ls1b_spi *hw = platform_get_drvdata(to_platform_device(dev));
+//	struct ls1x_spi *hw = platform_get_drvdata(pdev);
+	struct ls1x_spi *hw = platform_get_drvdata(to_platform_device(dev));
 
 	return 0;
 }
 
-static int ls1b_spi_resume(struct device *dev)
+static int ls1x_spi_resume(struct device *dev)
 {
-	struct ls1b_spi *hw = platform_get_drvdata(to_platform_device(dev));
+	struct ls1x_spi *hw = platform_get_drvdata(to_platform_device(dev));
 	unsigned char val;
 
 /* program defaults into the registers */
@@ -476,39 +498,39 @@ static int ls1b_spi_resume(struct device *dev)
 	return 0;
 }
 
-static const struct dev_pm_ops ls1b_spi_pmops = {
-	.suspend	= ls1b_spi_suspend,
-	.resume		= ls1b_spi_resume,
+static const struct dev_pm_ops ls1x_spi_pmops = {
+	.suspend	= ls1x_spi_suspend,
+	.resume		= ls1x_spi_resume,
 };
 
-#define LS1B_SPI_PMOPS &ls1b_spi_pmops
+#define LS1X_SPI_PMOPS &ls1x_spi_pmops
 #else
-#define LS1B_SPI_PMOPS NULL
+#define LS1X_SPI_PMOPS NULL
 #endif /* CONFIG_PM */
 
-MODULE_ALIAS("platform:ls1b-spi");
-static struct platform_driver ls1b_spi_driver = {
-	.remove    = __exit_p(ls1b_spi_remove),
+MODULE_ALIAS("platform:ls1x-spi");
+static struct platform_driver ls1x_spi_driver = {
+	.remove    = __exit_p(ls1x_spi_remove),
 	.driver    = {
-		.name  = "ls1b-spi",
+		.name  = "ls1x-spi",
 		.owner = THIS_MODULE,
-		.pm    = LS1B_SPI_PMOPS,
+		.pm    = LS1X_SPI_PMOPS,
 	},
 };
 
-static int __init ls1b_spi_init(void)
+static int __init ls1x_spi_init(void)
 {
-	return platform_driver_probe(&ls1b_spi_driver, ls1b_spi_probe);
+	return platform_driver_probe(&ls1x_spi_driver, ls1x_spi_probe);
 }
 
-static void __exit ls1b_spi_exit(void)
+static void __exit ls1x_spi_exit(void)
 {
-	platform_driver_unregister(&ls1b_spi_driver);
+	platform_driver_unregister(&ls1x_spi_driver);
 }
 
-module_init(ls1b_spi_init);
-module_exit(ls1b_spi_exit);
+module_init(ls1x_spi_init);
+module_exit(ls1x_spi_exit);
 
-MODULE_DESCRIPTION("loongson 1B SPI Driver");
+MODULE_DESCRIPTION("loongson1 SPI Driver");
 MODULE_AUTHOR("tanghaifeng <tanghaifeng-gz@loongson.cn");
 MODULE_LICENSE("GPL");

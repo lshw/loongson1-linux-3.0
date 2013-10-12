@@ -535,8 +535,8 @@ static struct mmc_spi_platform_data mmc_spi = {
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
-#ifdef CONFIG_LS1B_SPI0
-static struct spi_board_info ls1b_spi0_devices[] = {
+#ifdef CONFIG_LS1X_SPI0
+static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{
 		.modalias	= "w25q64",
@@ -558,39 +558,39 @@ static struct spi_board_info ls1b_spi0_devices[] = {
 #endif
 };
 	
-static struct resource ls1b_spi0_resource[] = {
+static struct resource ls1x_spi0_resource[] = {
 	[0]={
-		.start	= LS1B_BOARD_SPI0_BASE,
-		.end	= (LS1B_BOARD_SPI0_BASE + 0x6),
+		.start	= LS1X_SPI0_BASE,
+		.end	= (LS1X_SPI0_BASE + 0x6),
 		.flags	= IORESOURCE_MEM,
 	},
 	[1]={
-		.start	= LS1B_BOARD_SPI0_IRQ,
-		.end	= LS1B_BOARD_SPI0_IRQ,
+		.start	= LS1X_SPI0_IRQ,
+		.end	= LS1X_SPI0_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static struct ls1b_spi_info ls1b_spi0_platdata = {
-	.board_size = ARRAY_SIZE(ls1b_spi0_devices),
-	.board_info = ls1b_spi0_devices,
+static struct ls1x_spi_info ls1x_spi0_platdata = {
+	.board_size = ARRAY_SIZE(ls1x_spi0_devices),
+	.board_info = ls1x_spi0_devices,
 	.bus_num	= 0,
 	.num_cs		= SPI0_CS3 + 1,
 };
 
-static struct platform_device ls1b_spi0_device = {
-	.name		= "ls1b-spi",
+static struct platform_device ls1x_spi0_device = {
+	.name		= "ls1x-spi",
 	.id 		= 0,
-	.num_resources	= ARRAY_SIZE(ls1b_spi0_resource),
-	.resource	= ls1b_spi0_resource,
+	.num_resources	= ARRAY_SIZE(ls1x_spi0_resource),
+	.resource	= ls1x_spi0_resource,
 	.dev		= {
-		.platform_data	= &ls1b_spi0_platdata,//&ls1b_spi_devices,
+		.platform_data	= &ls1x_spi0_platdata,//&ls1x_spi_devices,
 	},
 };
-#endif //#ifdef CONFIG_LS1B_SPI0
+#endif //#ifdef CONFIG_LS1X_SPI0
 
-#ifdef CONFIG_LS1B_SPI1 /* SPI1 控制器 */
-static struct spi_board_info ls1b_spi1_devices[] = {
+#ifdef CONFIG_LS1X_SPI1 /* SPI1 控制器 */
+static struct spi_board_info ls1x_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
 		.modalias		= "mmc_spi",
@@ -602,36 +602,36 @@ static struct spi_board_info ls1b_spi1_devices[] = {
 #endif
 };
 
-static struct resource ls1b_spi1_resource[] = {
+static struct resource ls1x_spi1_resource[] = {
 	[0]={
-		.start	= LS1B_BOARD_SPI1_BASE,
-		.end	= (LS1B_BOARD_SPI1_BASE + 0x6),
+		.start	= LS1X_SPI1_BASE,
+		.end	= (LS1X_SPI1_BASE + 0x6),
 		.flags	= IORESOURCE_MEM,
 	},
 	[1]={
-		.start	= LS1B_BOARD_SPI1_IRQ,
-		.end	= LS1B_BOARD_SPI1_IRQ,
+		.start	= LS1X_SPI1_IRQ,
+		.end	= LS1X_SPI1_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static struct ls1b_spi_info ls1b_spi1_platdata = {
-	.board_size = ARRAY_SIZE(ls1b_spi1_devices),
-	.board_info = ls1b_spi1_devices,
+static struct ls1x_spi_info ls1x_spi1_platdata = {
+	.board_size = ARRAY_SIZE(ls1x_spi1_devices),
+	.board_info = ls1x_spi1_devices,
 	.bus_num	= 1,
 	.num_cs		= 3,
 };
 
-static struct platform_device ls1b_spi1_device = {
-	.name		= "ls1b-spi",
+static struct platform_device ls1x_spi1_device = {
+	.name		= "ls1x-spi",
 	.id 		= 1,
-	.num_resources	= ARRAY_SIZE(ls1b_spi1_resource),
-	.resource	= ls1b_spi1_resource,
+	.num_resources	= ARRAY_SIZE(ls1x_spi1_resource),
+	.resource	= ls1x_spi1_resource,
 	.dev		= {
-		.platform_data	= &ls1b_spi1_platdata,//&ls1b_spi_devices,
+		.platform_data	= &ls1x_spi1_platdata,//&ls1x_spi_devices,
 	},
 };
-#endif	//#ifdef CONFIG_LS1B_SPI1
+#endif	//#ifdef CONFIG_LS1X_SPI1
 
 #ifdef CONFIG_CAN_SJA1000_PLATFORM
 #include <linux/can/platform/sja1000.h>
@@ -829,11 +829,11 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_audio_device,
 #endif
 
-#ifdef CONFIG_LS1B_SPI0
-	&ls1b_spi0_device,
+#ifdef CONFIG_LS1X_SPI0
+	&ls1x_spi0_device,
 #endif
-#ifdef CONFIG_LS1B_SPI1
-	&ls1b_spi1_device,
+#ifdef CONFIG_LS1X_SPI1
+	&ls1x_spi1_device,
 #endif
 
 #ifdef CONFIG_LS1X_WDT
@@ -933,12 +933,12 @@ int __init ls1b_platform_init(void)
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
 #endif
 
-#ifdef CONFIG_LS1B_SPI0
-	spi_register_board_info(ls1b_spi0_devices, ARRAY_SIZE(ls1b_spi0_devices));
+#ifdef CONFIG_LS1X_SPI0
+	spi_register_board_info(ls1x_spi0_devices, ARRAY_SIZE(ls1x_spi0_devices));
 #endif
 
-#ifdef CONFIG_LS1B_SPI1
-	spi_register_board_info(ls1b_spi1_devices, ARRAY_SIZE(ls1b_spi1_devices));
+#ifdef CONFIG_LS1X_SPI1
+	spi_register_board_info(ls1x_spi1_devices, ARRAY_SIZE(ls1x_spi1_devices));
 #endif
 
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));

@@ -46,8 +46,8 @@
 #define LS1X_GPIO_BASE	0x1fd010c0
 
 /* SPI regs */
-#define LS1B_BOARD_SPI0_BASE	0x1fe80000
-#define LS1B_BOARD_SPI1_BASE	0x1fec0000
+#define LS1X_SPI0_BASE	0x1fe80000
+#define LS1X_SPI1_BASE	0x1fec0000
 
 #define SPI0_CS0				0
 #define SPI0_CS1				1
