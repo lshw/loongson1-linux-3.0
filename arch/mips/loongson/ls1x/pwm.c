@@ -51,18 +51,16 @@ static struct clk *ls1x_pwm_clk;
 
 DEFINE_MUTEX(ls1x_pwm_mutex);
 
-struct pwm_device {
-	unsigned int id;
-	unsigned int gpio;
-	bool used;
-};
-
+#if defined(CONFIG_LS1A_MACH) || defined(CONFIG_LS1B_MACH)
 static struct pwm_device ls1x_pwm_list[] = {
 	{ 0, LS_GPIO_PWM0, false },
 	{ 1, LS_GPIO_PWM1, false },
 	{ 2, LS_GPIO_PWM2, false },
 	{ 3, LS_GPIO_PWM3, false },
 };
+#elif defined(CONFIG_LS1C_MACH)
+extern struct pwm_device ls1x_pwm_list[];
+#endif
 
 struct pwm_device *pwm_request(int id, const char *label)
 {

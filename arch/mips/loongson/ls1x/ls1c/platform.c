@@ -38,6 +38,15 @@
 #include <media/soc_camera.h>
 #include <media/soc_camera_platform.h>
 
+#if CONFIG_HAVE_PWM
+struct pwm_device ls1x_pwm_list[] = {
+	{ 0, 06, false },
+	{ 1, 92, false },
+	{ 2, 93, false },
+	{ 3, 37, false },
+};
+#endif
+
 #ifdef CONFIG_MTD_NAND_LS1X
 #include <ls1x_nand.h>
 #define	SZ_100M	(100*1024*1024)

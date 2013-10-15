@@ -137,6 +137,7 @@
 #include <regs-clk.h>
 #include <regs-mux.h>
 #include <regs-gpio.h>
+#include <ls1x_pwm.h>
 
 struct ls1b_usbh_data {
     u8      ports;      /* number of ports on root hub */
