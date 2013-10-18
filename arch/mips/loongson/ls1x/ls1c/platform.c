@@ -38,7 +38,7 @@
 #include <media/soc_camera.h>
 #include <media/soc_camera_platform.h>
 
-#if CONFIG_HAVE_PWM
+#if defined(CONFIG_HAVE_PWM)
 struct pwm_device ls1x_pwm_list[] = {
 	{ 0, 06, false },
 	{ 1, 92, false },

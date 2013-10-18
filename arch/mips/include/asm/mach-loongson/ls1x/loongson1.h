@@ -109,6 +109,9 @@
 /*	HPET timer	*/
 #define	LS1A_HPET_BASE		0x1fe6c000
 
+/* ADC */
+#define LS1X_ADC_BASE		0x1fe74000
+/* NAND FLASH */
 #define LS1X_NAND_BASE		0x1fe78000
 
 /* APB BUS control regs */
