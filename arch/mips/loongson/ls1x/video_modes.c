@@ -121,7 +121,7 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 32,	// 512-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
-	{	//AT070TN93
+/*	{	//AT070TN93
 		.name	= "AT070TN93",
 		.pixclock	= 32552,
 		.refresh	= 60,
@@ -133,6 +133,20 @@ static struct fb_videomode video_modes[] = {
 		.vsync_len	= 3,		// 484-481
 		.upper_margin	= 16,	// 500-484
 		.lower_margin	= 1,	// 481-480
+		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
+	},*/
+	{	//HX8264 HV mode
+		.name	= "HX8264",
+		.pixclock	= 34209,
+		.refresh	= 60,
+		.xres		= 800,
+		.yres		= 480,
+		.hsync_len	= 48,		// 888-840
+		.left_margin	= 40,	// 928-888
+		.right_margin	= 40,	// 840-800
+		.vsync_len	= 3,		// 496-493
+		.upper_margin	= 29,	// 525-496
+		.lower_margin	= 13,	// 493-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
 	{	//VESA 800x600@75Hz
