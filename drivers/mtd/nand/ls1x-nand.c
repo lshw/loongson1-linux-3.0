@@ -48,7 +48,7 @@ static void __iomem *order_addr_in;
 #define NAND_CS_RDY		0x20
 
 /* NAND_TIMING寄存器定义 */
-#define HOLD_CYCLE	0x02
+#define HOLD_CYCLE	0x04
 #define WAIT_CYCLE	0x0c
 
 #define DMA_REQ			(0x1 << 25)

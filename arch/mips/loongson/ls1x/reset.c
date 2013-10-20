@@ -24,7 +24,7 @@ static void ls1x_restart(char *command)
 	writel(1, wdt_base + WDT_SET);
 
 #ifdef CONFIG_LS1A_CLOUD_TERMIAL
-	ls1b_gpio_direction_output(NULL, 0, 0);
+	gpio_direction_output(0, 0);
 #endif
 	
 	while (1) {
