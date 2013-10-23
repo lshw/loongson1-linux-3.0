@@ -54,7 +54,7 @@ struct ls1xfb_info {
 	u32			pseudo_palette[16];
 
 	int			pix_fmt;
-	unsigned		active:1;
+	unsigned		de_mode:1;
 };
 
 /*
@@ -76,7 +76,7 @@ struct ls1xfb_mach_info {
 	 */
 	unsigned	invert_pixclock:1;
 	unsigned	invert_pixde:1;
-	unsigned	active:1;
+	unsigned	de_mode:1;
 	unsigned	enable_lcd:1;
 };
 

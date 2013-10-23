@@ -89,7 +89,7 @@ static struct fb_videomode video_modes[] = {
 		.left_margin	= 2,	// 525-523
 		.right_margin	= 2,	// 482-480
 		.vsync_len	= 10,		// 284-274
-		.upper_margin	= 2,	// 286-284
+		.upper_margin	= 4,	// 288-284
 		.lower_margin	= 2,	// 274-272
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},

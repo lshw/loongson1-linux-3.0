@@ -404,7 +404,7 @@ static void set_dumb_panel_control(struct fb_info *info)
 	/*
 	 * Preserve enable flag.
 	 */
-	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF) & 0x00000101;
+	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF) & 0x00000100;
 
 	if (unlikely(vga_mode)) {
 		/* have to set 0x80001310 */
@@ -412,16 +412,19 @@ static void set_dumb_panel_control(struct fb_info *info)
 	} else {
 		x |= mi->invert_pixde ? LS1X_FB_PANEL_CONF_DE_POL : 0;
 		x |= mi->invert_pixclock ? LS1X_FB_PANEL_CONF_CLK_POL : 0;
+		x |= mi->de_mode ? LS1X_FB_PANEL_CONF_DE : 0;
 		writel(x, fbi->reg_base + LS1X_FB_PANEL_CONF);
 	}
 
-	x = readl(fbi->reg_base + LS1X_FB_HSYNC) & ~LS1X_FB_HSYNC_POL;
-	x |= (info->var.sync & FB_SYNC_HOR_HIGH_ACT) ? LS1X_FB_HSYNC_POL : 0;
-	writel(x, fbi->reg_base + LS1X_FB_HSYNC);
+	if (!mi->de_mode) {
+		x = readl(fbi->reg_base + LS1X_FB_HSYNC) & ~LS1X_FB_HSYNC_POL;
+		x |= (info->var.sync & FB_SYNC_HOR_HIGH_ACT) ? LS1X_FB_HSYNC_POL : 0;
+		writel(x, fbi->reg_base + LS1X_FB_HSYNC);
 
-	x = readl(fbi->reg_base + LS1X_FB_VSYNC) & ~LS1X_FB_VSYNC_POL;
-	x |= (info->var.sync & FB_SYNC_VERT_HIGH_ACT) ? LS1X_FB_VSYNC_POL : 0;
-	writel(x, fbi->reg_base + LS1X_FB_VSYNC);
+		x = readl(fbi->reg_base + LS1X_FB_VSYNC) & ~LS1X_FB_VSYNC_POL;
+		x |= (info->var.sync & FB_SYNC_VERT_HIGH_ACT) ? LS1X_FB_VSYNC_POL : 0;
+		writel(x, fbi->reg_base + LS1X_FB_VSYNC);
+	}
 }
 
 static void set_dumb_screen_dimensions(struct fb_info *info)
@@ -490,14 +493,19 @@ static int ls1xfb_set_par(struct fb_info *info)
 	writel((readl(fbi->reg_base + LS1X_FB_VDISPLAY) & ~LS1X_FB_VDISPLAY_END) | (var->yres),
 		fbi->reg_base + LS1X_FB_VDISPLAY);	/* 显示屏中显示区的行数 */
 
-	writel((readl(fbi->reg_base + LS1X_FB_HSYNC) & 0xc0000000) | 0x40000000 | 
-			((var->right_margin + var->xres + var->hsync_len) << 16) | 
-			(var->right_margin + var->xres),
-			fbi->reg_base + LS1X_FB_HSYNC);
-	writel((readl(fbi->reg_base + LS1X_FB_VSYNC) & 0xc0000000) | 0x40000000 | 
-			((var->lower_margin + var->yres + var->vsync_len) << 16) | 
-			(var->lower_margin + var->yres),
-			fbi->reg_base + LS1X_FB_VSYNC);
+	if (mi->de_mode) {
+		writel(0x00000000, fbi->reg_base + LS1X_FB_HSYNC);
+		writel(0x00000000, fbi->reg_base + LS1X_FB_VSYNC);
+	} else {
+		writel((readl(fbi->reg_base + LS1X_FB_HSYNC) & 0xc0000000) | 0x40000000 | 
+				((var->right_margin + var->xres + var->hsync_len) << 16) | 
+				(var->right_margin + var->xres),
+				fbi->reg_base + LS1X_FB_HSYNC);
+		writel((readl(fbi->reg_base + LS1X_FB_VSYNC) & 0xc0000000) | 0x40000000 | 
+				((var->lower_margin + var->yres + var->vsync_len) << 16) | 
+				(var->lower_margin + var->yres),
+				fbi->reg_base + LS1X_FB_VSYNC);
+	}
 
 	/*
 	 * Configure global panel parameters.
@@ -689,7 +697,7 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	fbi->info = info;
 	fbi->clk = clk;
 	fbi->dev = info->dev = &pdev->dev;
-	fbi->active = mi->active;
+	fbi->de_mode = mi->de_mode;
 
 	/*
 	 * Initialise static fb parameters.

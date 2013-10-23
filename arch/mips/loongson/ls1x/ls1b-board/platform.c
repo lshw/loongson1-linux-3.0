@@ -645,7 +645,7 @@ struct ls1xfb_mach_info ls1x_lcd0_info = {
 	.modes			= video_modes,
 	.num_modes		= ARRAY_SIZE(video_modes),
 	.pix_fmt		= PIX_FMT_RGB565,
-	.active			= 1,
+	.de_mode		= 1,
 	/* 根据lcd屏修改invert_pixclock和invert_pixde参数(0或1)，部分lcd可能显示不正常 */
 	.invert_pixclock	= 0,
 	.invert_pixde	= 0,
