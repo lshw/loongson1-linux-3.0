@@ -20,17 +20,17 @@
 
 //static DEFINE_SPINLOCK(gpio_lock);
 
-int gpio_to_irq(unsigned gpio)
+static inline int ls1x_gpio_to_irq(struct gpio_chip *chip, unsigned gpio)
 {
 	return LS1X_GPIO_FIRST_IRQ + gpio;
 }
-EXPORT_SYMBOL_GPL(gpio_to_irq);
+//EXPORT_SYMBOL_GPL(gpio_to_irq);
 
-int irq_to_gpio(unsigned irq)
+static inline int ls1x_irq_to_gpio(unsigned irq)
 {
 	return irq - LS1X_GPIO_FIRST_IRQ;
 }
-EXPORT_SYMBOL_GPL(irq_to_gpio);
+//EXPORT_SYMBOL_GPL(irq_to_gpio);
 
 /* gpio group 0 */
 static int ls1x_gpio0_get_value(struct gpio_chip *chip, unsigned gpio)
@@ -292,6 +292,7 @@ static struct gpio_chip ls1x_chip[] = {
 		.get                    = ls1x_gpio0_get_value,
 		.set                    = ls1x_gpio0_set_value,
 		.free					= ls1x_gpio0_free,
+		.to_irq					= ls1x_gpio_to_irq,
 		.base                   = 0,
 		.ngpio                  = 32,
 	},
@@ -302,6 +303,7 @@ static struct gpio_chip ls1x_chip[] = {
 		.get                    = ls1x_gpio1_get_value,
 		.set                    = ls1x_gpio1_set_value,
 		.free					= ls1x_gpio1_free,
+		.to_irq					= ls1x_gpio_to_irq,
 		.base                   = 32,
 		.ngpio                  = 32,
 	},
@@ -313,6 +315,7 @@ static struct gpio_chip ls1x_chip[] = {
 		.get                    = ls1x_gpio2_get_value,
 		.set                    = ls1x_gpio2_set_value,
 		.free					= ls1x_gpio2_free,
+		.to_irq					= ls1x_gpio_to_irq,
 		.base                   = 64,
 		.ngpio                  = 32,
 	},
@@ -325,6 +328,7 @@ static struct gpio_chip ls1x_chip[] = {
 		.get                    = ls1x_gpio3_get_value,
 		.set                    = ls1x_gpio3_set_value,
 		.free					= ls1x_gpio3_free,
+		.to_irq					= ls1x_gpio_to_irq,
 		.base                   = 96,
 		.ngpio                  = 32,
 	},

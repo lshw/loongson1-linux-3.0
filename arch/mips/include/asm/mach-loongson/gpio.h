@@ -13,30 +13,30 @@
 #ifndef	__STLS2F_GPIO_H
 #define	__STLS2F_GPIO_H
 
-#include <irq.h>
+#if defined(CONFIG_CPU_LOONGSON1A) || defined(CONFIG_CPU_LOONGSON1B) || defined(CONFIG_CPU_LOONGSON1C)
+
+#include <asm/mach-loongson/ls1x/ls1x_gpio.h>
+
+#else
+
 #include <asm-generic/gpio.h>
 
 extern void gpio_set_value(unsigned gpio, int value);
 extern int gpio_get_value(unsigned gpio);
 extern int gpio_cansleep(unsigned gpio);
-extern int ls1b_gpio_direction_input(struct gpio_chip *chip, unsigned gpio);
-extern int ls1b_gpio_direction_output(struct gpio_chip *chip,
-		unsigned gpio, int level);
-extern void ls1b_gpio_free(struct gpio_chip *chip, unsigned gpio);
 
 /* The chip can do interrupt
  * but it has not been tested and doc not clear
  */
 static inline int gpio_to_irq(int gpio)
 {
-//	return -EINVAL;
-	return LS1X_GPIO_FIRST_IRQ + gpio;
+	return -EINVAL;
 }
 
-static inline int irq_to_gpio(int irq)
+static inline int irq_to_gpio(int gpio)
 {
-//	return -EINVAL;
-	return irq - LS1X_GPIO_FIRST_IRQ;
+	return -EINVAL;
 }
 
+#endif
 #endif				/* __STLS2F_GPIO_H */
