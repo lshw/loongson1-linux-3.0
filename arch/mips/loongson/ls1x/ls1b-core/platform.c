@@ -267,15 +267,50 @@ static struct platform_device ls1x_wdt_device = {
 };
 #endif //#ifdef CONFIG_LS1X_WDT
 
-/*
-*RTC
-*/
-#ifdef CONFIG_RTC_DRV_LOONGSON1
+/* RTC */
+#ifdef CONFIG_RTC_DRV_RTC_LOONGSON1
+static struct resource ls1x_rtc_resource[] = {
+	[0]={
+		.start      = LS1X_RTC_BASE,
+		.end        = LS1X_RTC_BASE + SZ_16K - 1,
+		.flags      = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start      = LS1X_RTC_INT0_IRQ,
+		.end        = LS1X_RTC_INT0_IRQ,
+		.flags      = IORESOURCE_IRQ,
+	},
+	[2] = {
+		.start      = LS1X_RTC_INT1_IRQ,
+		.end        = LS1X_RTC_INT1_IRQ,
+		.flags      = IORESOURCE_IRQ,
+	},
+	[3] = {
+		.start      = LS1X_RTC_INT2_IRQ,
+		.end        = LS1X_RTC_INT2_IRQ,
+		.flags      = IORESOURCE_IRQ,
+	},
+	[4] = {
+		.start      = LS1X_RTC_TICK_IRQ,
+		.end        = LS1X_RTC_TICK_IRQ,
+		.flags      = IORESOURCE_IRQ,
+	},
+};
+
 static struct platform_device ls1x_rtc_device = {
 	.name       = "ls1x-rtc",
-	.id         = -1,
+	.id         = 0,
+	.num_resources  = ARRAY_SIZE(ls1x_rtc_resource),
+	.resource   = ls1x_rtc_resource,
 };
-#endif //#ifdef CONFIG_RTC_DRV_LOONGSON1
+#endif //#ifdef CONFIG_RTC_DRV_RTC_LOONGSON1
+
+#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
+static struct platform_device ls1x_toy_device = {
+	.name       = "ls1x-toy",
+	.id         = 1,
+};
+#endif //#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
 
 /*
 *I2C
@@ -1691,8 +1726,11 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_wdt_device,
 #endif
 
-#ifdef CONFIG_RTC_DRV_LOONGSON1
+#ifdef CONFIG_RTC_DRV_RTC_LOONGSON1
 	&ls1x_rtc_device,
+#endif
+#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
+	&ls1x_toy_device,
 #endif
 
 #ifdef CONFIG_I2C_LS1X
