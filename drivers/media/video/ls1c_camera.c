@@ -40,7 +40,7 @@
 #include <irq.h>
 #include <loongson1.h>
 
-//#define YUV_FMT
+#define YUV_FMT
 
 /*
  * camera registers
