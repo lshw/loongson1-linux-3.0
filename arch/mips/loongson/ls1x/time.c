@@ -31,23 +31,23 @@
 #define TIMER_CTRL	0x0c
 
 #if defined(CONFIG_TIMER_USE_PWM0)
-#define LS1X_TIMER_BASE	LS1B_PWM0_BASE
+#define LS1X_TIMER_BASE	LS1X_PWM0_BASE
 #define LS1X_TIMER_IRQ	17
 
 #elif defined(CONFIG_TIMER_USE_PWM1)
-#define LS1X_TIMER_BASE	LS1B_PWM1_BASE
+#define LS1X_TIMER_BASE	LS1X_PWM1_BASE
 #define LS1X_TIMER_IRQ	18
 
 #elif defined(CONFIG_TIMER_USE_PWM2)
-#define LS1X_TIMER_BASE	LS1B_PWM2_BASE
+#define LS1X_TIMER_BASE	LS1X_PWM2_BASE
 #define LS1X_TIMER_IRQ	19
 
 #elif defined(CONFIG_TIMER_USE_PWM3)
-#define LS1X_TIMER_BASE	LS1B_PWM3_BASE
+#define LS1X_TIMER_BASE	LS1X_PWM3_BASE
 #define LS1X_TIMER_IRQ	20
 
 #else
-#define LS1X_TIMER_BASE	LS1B_PWM0_BASE
+#define LS1X_TIMER_BASE	LS1X_PWM0_BASE
 #define LS1X_TIMER_IRQ	17
 #endif
 
@@ -120,12 +120,12 @@ static irqreturn_t ls1x_clockevent_irq(int irq, void *devid)
 {
 	struct clock_event_device *cd = devid;
 
-	writel(readl(ls1x_timer_base+TIMER_CTRL) | 0x40, ls1x_timer_base + TIMER_CTRL);
-	if (cd->mode != CLOCK_EVT_MODE_PERIODIC)
-		writel(readl(ls1x_timer_base+TIMER_CTRL) & 0xfe, ls1x_timer_base + TIMER_CTRL);
+//	writel(readl(ls1x_timer_base+TIMER_CTRL) | 0x40, ls1x_timer_base + TIMER_CTRL);
+//	if (cd->mode != CLOCK_EVT_MODE_PERIODIC)
+//		writel(readl(ls1x_timer_base+TIMER_CTRL) & 0xfe, ls1x_timer_base + TIMER_CTRL);
 
-//	writel(0x00, ls1x_timer_base + TIMER_CNTR);
-	writel(0x29, ls1x_timer_base + TIMER_CTRL);
+	writel(0x00, ls1x_timer_base + TIMER_CNTR);
+	writel(0x429, ls1x_timer_base + TIMER_CTRL);
 
 	cd->event_handler(cd);
 
@@ -141,9 +141,9 @@ static void ls1x_clockevent_set_mode(enum clock_event_mode mode,
 		writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_HRC);
 		writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_LRC);
 		writel(0x00, ls1x_timer_base + TIMER_CNTR);
-		writel(0x29, ls1x_timer_base + TIMER_CTRL);
+		writel(0x429, ls1x_timer_base + TIMER_CTRL);
 	case CLOCK_EVT_MODE_RESUME:
-		writel(0x29, ls1x_timer_base + TIMER_CTRL);
+		writel(0x429, ls1x_timer_base + TIMER_CTRL);
 		break;
 	case CLOCK_EVT_MODE_ONESHOT:
 	case CLOCK_EVT_MODE_SHUTDOWN:
@@ -162,7 +162,7 @@ static int ls1x_clockevent_set_next(unsigned long evt,
 	writel(evt, ls1x_timer_base + TIMER_LRC);
 	
 	writel(0x00, ls1x_timer_base + TIMER_CNTR);
-	writel(0x29, ls1x_timer_base + TIMER_CTRL);
+	writel(0x429, ls1x_timer_base + TIMER_CTRL);
 
 	return 0;
 }
@@ -207,7 +207,7 @@ void __init setup_ls1x_timer(void)
 
 	clockevents_register_device(&ls1x_clockevent);
 
-	ls1x_clocksource.rating = 200 + clk_rate / 10000000;
+	ls1x_clocksource.rating = clk_rate / 10000000;
 	ret = clocksource_register_hz(&ls1x_clocksource, clk_rate);
 
 	if (ret)
@@ -222,5 +222,5 @@ void __init setup_ls1x_timer(void)
 	writel(ls1x_jiffies_per_tick, ls1x_timer_base + TIMER_LRC);
 
 	writel(0x00, ls1x_timer_base + TIMER_CNTR);
-	writel(0x29, ls1x_timer_base + TIMER_CTRL);
+	writel(0x429, ls1x_timer_base + TIMER_CTRL);
 }

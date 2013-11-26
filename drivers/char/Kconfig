@@ -200,12 +200,6 @@ config LS1B_PWM_DRIVER
 	help
 	 pwm.
 
-config LS1B_BBDIO
-	bool "ls1b bobodog IO driver"
-	default	n
-	help
-	  ls1b bobodog IO driver.
-
 config LS1B_IR
 	bool "ls1b ir driver"
 	default	n

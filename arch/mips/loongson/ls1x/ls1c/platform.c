@@ -739,6 +739,57 @@ static struct platform_device ls1x_sja1000_1 = {
 	.num_resources = ARRAY_SIZE(ls1x_sja1000_resources_1),
 };
 #endif //#ifdef CONFIG_LS1X_CAN1
+
+static void ls1x_can_setup(void)
+{
+	struct sja1000_platform_data *sja1000_pdata;
+	struct clk *clk;
+
+	clk = clk_get(NULL, "apb");
+	if (IS_ERR(clk))
+		panic("unable to get apb clock, err=%ld", PTR_ERR(clk));
+
+	#ifdef CONFIG_LS1X_CAN0
+	sja1000_pdata = &ls1x_sja1000_platform_data_0;
+	sja1000_pdata->osc_freq = clk_get_rate(clk);
+	#endif
+	#ifdef CONFIG_LS1X_CAN1
+	sja1000_pdata = &ls1x_sja1000_platform_data_1;
+	sja1000_pdata->osc_freq = clk_get_rate(clk);
+	#endif
+
+#ifdef	CONFIG_LS1A_MACH
+	#ifdef CONFIG_LS1X_CAN0
+	/* CAN0复用设置 */
+//	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 67);
+	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
+	#endif
+	#ifdef CONFIG_LS1X_CAN1
+	/* CAN1复用设置 */
+//	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 69);
+	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
+	#endif
+#elif	CONFIG_LS1B_MACH
+	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
+	#ifdef CONFIG_LS1X_CAN0
+	/* CAN0复用设置 */
+//	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 39);
+	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
+	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
+	#endif
+	#ifdef CONFIG_LS1X_CAN1
+	/* CAN1复用设置 */
+//	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
+//	ls1b_gpio_free(NULL, 41);
+	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
+	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
+	#endif
+#endif
+}
+
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
 #ifdef	CONFIG_USB_DWC_OTG_LPM
@@ -929,47 +980,7 @@ int __init ls1b_platform_init(void)
 #endif
 
 #ifdef CONFIG_CAN_SJA1000_PLATFORM
-	{
-	#ifdef CONFIG_LS1X_CAN0
-	struct sja1000_platform_data *sja1000_pdata = &ls1x_sja1000_platform_data_0;
-	sja1000_pdata->osc_freq = clk_get_rate(clk);
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	sja1000_pdata = &ls1x_sja1000_platform_data_1;
-	sja1000_pdata->osc_freq = clk_get_rate(clk);
-	#endif
-
-#ifdef	CONFIG_LS1A_MACH
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 67);
-	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 69);
-	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
-	#endif
-#elif	CONFIG_LS1B_MACH
-	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 39);
-	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 41);
-	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
-	#endif
-#endif
-	}
+	ls1x_can_setup();
 #endif	//#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
 #ifdef CONFIG_I2C_LS1X

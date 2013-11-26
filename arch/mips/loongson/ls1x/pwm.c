@@ -172,7 +172,7 @@ static int __init ls1x_pwm_init(void)
 {
 	int ret = 0;
 
-	ls1x_pwm_base = ioremap(LS1B_PWM0_BASE, 0xf);
+	ls1x_pwm_base = ioremap(LS1X_PWM0_BASE, 0xf);
 	if (!ls1x_pwm_base)
 		panic("Failed to ioremap timer registers");
 

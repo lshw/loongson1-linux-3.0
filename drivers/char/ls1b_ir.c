@@ -133,7 +133,9 @@ static int ls1b_ir_open(struct inode *inode, struct file *filep)
 	if (ret < 0)
 		return ret;
 	gpio_direction_input(GPIO_IR);
-	ret = request_irq(gpio_to_irq(GPIO_IR), ls1b_ir_irq_handler, IRQF_TRIGGER_FALLING, "ls1b_ir", NULL);
+
+	ls1b_ir_irq = gpio_to_irq(GPIO_IR);
+	ret = request_irq(ls1b_ir_irq, ls1b_ir_irq_handler, IRQF_TRIGGER_FALLING, "ls1b_ir", NULL);
 	if (ret) {
 		printk("IR:ir_irq_handler resigered Error:%d\n", ret);
 		return ret;

@@ -59,10 +59,10 @@
 #define SPI1_CS2				2
 
 /* pwm regs */
-#define LS1B_PWM0_BASE	0x1fe5c000
-#define LS1B_PWM1_BASE	0x1fe5c010
-#define LS1B_PWM2_BASE	0x1fe5c020
-#define LS1B_PWM3_BASE	0x1fe5c030
+#define LS1X_PWM0_BASE	0x1fe5c000
+#define LS1X_PWM1_BASE	0x1fe5c010
+#define LS1X_PWM2_BASE	0x1fe5c020
+#define LS1X_PWM3_BASE	0x1fe5c030
 
 /* gamc regs */
 #define LS1X_GMAC0_BASE		0x1fe10000
