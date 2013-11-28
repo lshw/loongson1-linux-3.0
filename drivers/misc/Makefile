@@ -2,6 +2,7 @@
 # Makefile for misc devices that really don't fit anywhere else.
 #
 
+obj-$(CONFIG_LS1X_PWM_AUDIO)	+= ls1x_pwm_audio.o
 obj-$(CONFIG_USB_CH372)	+= ch372_usb_dev.o
 obj-$(CONFIG_EASY_DAB_AUDIO)	+= easy_spi_dab.o	
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/

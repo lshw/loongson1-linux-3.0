@@ -20,6 +20,12 @@ menuconfig MISC_DEVICES
 
 if MISC_DEVICES
 
+config LS1X_PWM_AUDIO
+	tristate "loongson1 pwm audio (EXPERIMENTAL)"
+	depends on EXPERIMENTAL && (LS1A_MACH || LS1B_MACH || LS1C_MACH)
+	help
+	 Say Y here if you want to build a PWM audio driver for loongson1.
+
 config USB_CH372
 	tristate "ch372 usb device driver (EXPERIMENTAL)"
 	depends on EXPERIMENTAL
