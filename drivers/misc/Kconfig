@@ -26,6 +26,12 @@ config LS1X_PWM_AUDIO
 	help
 	 Say Y here if you want to build a PWM audio driver for loongson1.
 
+config PWM_RFID
+	tristate "loongson1 pwm rfid (EXPERIMENTAL)"
+	depends on EXPERIMENTAL && (LS1A_MACH || LS1B_MACH || LS1C_MACH)
+	help
+	 Say Y here if you want to build a PWM rfid driver for loongson1.
+
 config USB_CH372
 	tristate "ch372 usb device driver (EXPERIMENTAL)"
 	depends on EXPERIMENTAL
