@@ -1002,6 +1002,9 @@ extern void remove_conflicting_framebuffers(struct apertures_struct *a,
 				const char *name, bool primary);
 extern int fb_prepare_logo(struct fb_info *fb_info, int rotate);
 extern int fb_show_logo(struct fb_info *fb_info, int rotate);
+#ifdef CONFIG_LOGO_ANIMATION
+extern int fb_show_animation_logo(struct fb_info *info, int rotate);
+#endif
 extern char* fb_get_buffer_offset(struct fb_info *info, struct fb_pixmap *buf, u32 size);
 extern void fb_pad_unaligned_buffer(u8 *dst, u32 d_pitch, u8 *src, u32 idx,
 				u32 height, u32 shift_high, u32 shift_low, u32 mod);

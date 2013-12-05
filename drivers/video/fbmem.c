@@ -670,6 +670,127 @@ int fb_prepare_logo(struct fb_info *info, int rotate) { return 0; }
 int fb_show_logo(struct fb_info *info, int rotate) { return 0; }
 #endif /* CONFIG_LOGO */
 
+/******************************************************************************/
+#ifdef CONFIG_LOGO_ANIMATION
+
+#define FB_LOGO_EX_NUM_MAX 10
+#define ANIMATION_UPDATE_TIME (HZ/4)
+
+static struct kobject *animation_logo_kobj;
+static struct timer_list timer;
+
+static struct logo_data_animation {
+	const struct linux_logo *logo;
+	unsigned int n;
+} fb_logo_animation[FB_LOGO_EX_NUM_MAX];
+
+static unsigned int fb_animation_num;
+static unsigned int fb_animation_current_num;
+static int animation_rotate;
+static int animation_off = 0;
+
+/*
+ * The "animation" file where a static variable is read from and written to.
+ */
+static ssize_t animation_show(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf)
+{
+	return sprintf(buf, "%d\n", animation_off);
+}
+
+static ssize_t animation_store(struct kobject *kobj, struct kobj_attribute *attr,
+			 const char *buf, size_t count)
+{
+	sscanf(buf, "%du", &animation_off);
+	return count;
+}
+
+static struct kobj_attribute animation_attribute =
+	__ATTR(animation_off, 0666, animation_show, animation_store);
+
+/*
+ * Create a group of attributes so that we can create and destroy them all
+ * at once.
+ */
+static struct attribute *attrs[] = {
+	&animation_attribute.attr,
+	NULL,	/* need to NULL terminate the list of attributes */
+};
+
+static struct attribute_group attr_group = {
+	.attrs = attrs,
+};
+
+static void fb_append_animation_logo(const struct linux_logo *logo, unsigned int n)
+{
+	if (!n || fb_animation_num == FB_LOGO_EX_NUM_MAX)
+		return;
+
+	fb_logo_animation[fb_animation_num].logo = logo;
+	fb_logo_animation[fb_animation_num].n = n;
+	fb_animation_num++;
+}
+
+static void animation_timer(unsigned long data)
+{
+	struct fb_info *info = (struct fb_info *)data;
+
+	if (system_state == SYSTEM_RUNNING) {
+		del_timer(&timer);
+		return;
+	}
+	if (animation_off) {
+		del_timer(&timer);
+		return;
+	}
+	fb_show_logo_line(info, animation_rotate, fb_logo_animation[fb_animation_current_num].logo, 0, 1);
+	fb_animation_current_num++;
+	if (fb_animation_current_num > fb_animation_num) {
+		fb_animation_current_num = 0;
+	}
+	mod_timer(&timer, jiffies + ANIMATION_UPDATE_TIME);
+}
+
+int fb_show_animation_logo(struct fb_info *info, int rotate)
+{
+	int retval;
+
+	animation_logo_kobj = kobject_create_and_add("animation_logo", kernel_kobj);
+	if (!animation_logo_kobj)
+		return -ENOMEM;
+
+	/* Create the files associated with this kobject */
+	retval = sysfs_create_group(animation_logo_kobj, &attr_group);
+	if (retval)
+		kobject_put(animation_logo_kobj);
+
+	fb_animation_num = 0;
+	fb_animation_current_num = 0;
+	animation_rotate = rotate;
+
+	fb_append_animation_logo(&logo_linux_clut224, 1);
+	fb_append_animation_logo(&logo_dec_clut224, 1);
+	fb_append_animation_logo(&logo_linux_clut224, 1);
+	fb_append_animation_logo(&logo_dec_clut224, 1);
+//	fb_append_animation_logo(&logo_linux_clut224, 1);
+
+/*	fb_show_logo_line(info, rotate, fb_logo_animation[0].logo, 0, 1);*/
+
+	/* setup the timer */
+	init_timer(&timer);
+	timer.function = animation_timer;
+	timer.data = (unsigned long)info;
+
+	timer.expires = jiffies + ANIMATION_UPDATE_TIME;
+	add_timer(&timer);
+
+	return retval;
+}
+
+EXPORT_SYMBOL(fb_show_animation_logo);
+#endif
+/******************************************************************************/
+
 static void *fb_seq_start(struct seq_file *m, loff_t *pos)
 {
 	mutex_lock(&registration_lock);
