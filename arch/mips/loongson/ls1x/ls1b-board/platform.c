@@ -1890,6 +1890,75 @@ static struct platform_device am2301_device = {
 };
 #endif
 
+#if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
+#include <linux/gpio_keys.h>
+static struct gpio_keys_button gpio_buttons[] = {
+	{
+		.code			= KEY_A,
+		.gpio			= 38,
+		.active_low		= 1,
+		.desc			= "test0",
+//		.wakeup			= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code			= KEY_B,
+		.gpio			= 39,
+		.active_low		= 1,
+		.desc			= "test1",
+//		.wakeup			= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+};
+
+static struct gpio_keys_platform_data gpio_key_info = {
+	.buttons	= gpio_buttons,
+	.nbuttons	= ARRAY_SIZE(gpio_buttons),
+	.rep	= 1,	/* enable input subsystem auto repeat */
+};
+
+static struct platform_device keys_gpio = {
+	.name	= "gpio-keys",
+	.id	= -1,
+	.dev	= {
+		.platform_data	= &gpio_key_info,
+	},
+};
+#endif
+
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#include <linux/leds.h>
+struct gpio_led gpio_leds[] = {
+	{
+		.name			= "led_green0",
+		.gpio			= 38,
+		.active_low		= 1,
+		.default_trigger	= "timer",
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	},
+	{
+		.name			= "led_green1",
+		.gpio			= 39,
+		.active_low		= 1,
+		.default_trigger	= "heartbeat",
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	},
+};
+
+static struct gpio_led_platform_data gpio_led_info = {
+	.leds		= gpio_leds,
+	.num_leds	= ARRAY_SIZE(gpio_leds),
+};
+
+static struct platform_device leds = {
+	.name	= "leds-gpio",
+	.id	= -1,
+	.dev	= {
+		.platform_data	= &gpio_led_info,
+	}
+};
+#endif //#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
@@ -2034,6 +2103,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #if defined(CONFIG_SENSORS_AM2301) || defined(CONFIG_SENSORS_AM2301_MODULE)
 	&am2301_device,
+#endif
+#if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
+	&keys_gpio,
+#endif
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+	&leds,
 #endif
 };
 
