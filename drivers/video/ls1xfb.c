@@ -37,6 +37,14 @@
 #define DRIVER_NAME_4 "ls1bvga"
 #define DRIVER_NAME_5 "ls1xvga"
 
+/* 如果PMON已配置好LCD控制器，这里可以不用再次初始化，可以避免屏幕切换时的花屏 */
+#define INIT_AGAIN
+#ifdef INIT_AGAIN
+#define writel_reg(val, addr)	writel(val, addr);
+#else
+#define writel_reg(val, addr)
+#endif
+
 #define DEFAULT_REFRESH		75	/* Hz */
 #define DEFAULT_XRES	800
 #define DEFAULT_YRES	600
@@ -408,22 +416,22 @@ static void set_dumb_panel_control(struct fb_info *info)
 
 	if (unlikely(vga_mode)) {
 		/* have to set 0x80001310 */
-		writel(x | 0x80001310, fbi->reg_base + LS1X_FB_PANEL_CONF);
+		writel_reg(x | 0x80001310, fbi->reg_base + LS1X_FB_PANEL_CONF);
 	} else {
 		x |= mi->invert_pixde ? LS1X_FB_PANEL_CONF_DE_POL : 0;
 		x |= mi->invert_pixclock ? LS1X_FB_PANEL_CONF_CLK_POL : 0;
 		x |= mi->de_mode ? LS1X_FB_PANEL_CONF_DE : 0;
-		writel(x, fbi->reg_base + LS1X_FB_PANEL_CONF);
+		writel_reg(x, fbi->reg_base + LS1X_FB_PANEL_CONF);
 	}
 
 	if (!mi->de_mode) {
 		x = readl(fbi->reg_base + LS1X_FB_HSYNC) & ~LS1X_FB_HSYNC_POL;
 		x |= (info->var.sync & FB_SYNC_HOR_HIGH_ACT) ? LS1X_FB_HSYNC_POL : 0;
-		writel(x, fbi->reg_base + LS1X_FB_HSYNC);
+		writel_reg(x, fbi->reg_base + LS1X_FB_HSYNC);
 
 		x = readl(fbi->reg_base + LS1X_FB_VSYNC) & ~LS1X_FB_VSYNC_POL;
 		x |= (info->var.sync & FB_SYNC_VERT_HIGH_ACT) ? LS1X_FB_VSYNC_POL : 0;
-		writel(x, fbi->reg_base + LS1X_FB_VSYNC);
+		writel_reg(x, fbi->reg_base + LS1X_FB_VSYNC);
 	}
 }
 
@@ -437,9 +445,9 @@ static void set_dumb_screen_dimensions(struct fb_info *info)
 	x = v->xres + v->right_margin + v->hsync_len + v->left_margin;
 	y = v->yres + v->lower_margin + v->vsync_len + v->upper_margin;
 
-	writel((readl(fbi->reg_base + LS1X_FB_HDISPLAY) & ~LS1X_FB_HDISPLAY_TOTAL) | (x << 16), 
+	writel_reg((readl(fbi->reg_base + LS1X_FB_HDISPLAY) & ~LS1X_FB_HDISPLAY_TOTAL) | (x << 16), 
 		fbi->reg_base + LS1X_FB_HDISPLAY);
-	writel((readl(fbi->reg_base + LS1X_FB_VDISPLAY) & ~LS1X_FB_HDISPLAY_TOTAL) | (y << 16), 
+	writel_reg((readl(fbi->reg_base + LS1X_FB_VDISPLAY) & ~LS1X_FB_HDISPLAY_TOTAL) | (y << 16), 
 		fbi->reg_base + LS1X_FB_VDISPLAY);
 }
 
@@ -464,7 +472,7 @@ static int ls1xfb_set_par(struct fb_info *info)
 	 * Disable panel output while we setup the display.
 	 */
 	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF);
-	writel(x & ~LS1X_FB_PANEL_CONF_DE, fbi->reg_base + LS1X_FB_PANEL_CONF);
+	writel_reg(x & ~LS1X_FB_PANEL_CONF_DE, fbi->reg_base + LS1X_FB_PANEL_CONF);
 
 	/*
 	 * convet var to video mode
@@ -488,20 +496,20 @@ static int ls1xfb_set_par(struct fb_info *info)
 	set_dumb_panel_control(info);
 	set_dumb_screen_dimensions(info);
 
-	writel((readl(fbi->reg_base + LS1X_FB_HDISPLAY) & ~LS1X_FB_HDISPLAY_END) | (var->xres),
+	writel_reg((readl(fbi->reg_base + LS1X_FB_HDISPLAY) & ~LS1X_FB_HDISPLAY_END) | (var->xres),
 		fbi->reg_base + LS1X_FB_HDISPLAY);	/* 显示屏一行中显示区的像素数 */
-	writel((readl(fbi->reg_base + LS1X_FB_VDISPLAY) & ~LS1X_FB_VDISPLAY_END) | (var->yres),
+	writel_reg((readl(fbi->reg_base + LS1X_FB_VDISPLAY) & ~LS1X_FB_VDISPLAY_END) | (var->yres),
 		fbi->reg_base + LS1X_FB_VDISPLAY);	/* 显示屏中显示区的行数 */
 
 	if (mi->de_mode) {
-		writel(0x00000000, fbi->reg_base + LS1X_FB_HSYNC);
-		writel(0x00000000, fbi->reg_base + LS1X_FB_VSYNC);
+		writel_reg(0x00000000, fbi->reg_base + LS1X_FB_HSYNC);
+		writel_reg(0x00000000, fbi->reg_base + LS1X_FB_VSYNC);
 	} else {
-		writel((readl(fbi->reg_base + LS1X_FB_HSYNC) & 0xc0000000) | 0x40000000 | 
+		writel_reg((readl(fbi->reg_base + LS1X_FB_HSYNC) & 0xc0000000) | 0x40000000 | 
 				((var->right_margin + var->xres + var->hsync_len) << 16) | 
 				(var->right_margin + var->xres),
 				fbi->reg_base + LS1X_FB_HSYNC);
-		writel((readl(fbi->reg_base + LS1X_FB_VSYNC) & 0xc0000000) | 0x40000000 | 
+		writel_reg((readl(fbi->reg_base + LS1X_FB_VSYNC) & 0xc0000000) | 0x40000000 | 
 				((var->lower_margin + var->yres + var->vsync_len) << 16) | 
 				(var->lower_margin + var->yres),
 				fbi->reg_base + LS1X_FB_VSYNC);
@@ -512,24 +520,24 @@ static int ls1xfb_set_par(struct fb_info *info)
 	 */
 	x = readl(fbi->reg_base + LS1X_FB_CONF) & ~LS1X_FB_CONF_FORMAT;
 	if (fbi->pix_fmt > 3) {
-		writel(x | LS1X_FB_CONF_RESET | 4, fbi->reg_base + LS1X_FB_CONF);
+		writel_reg(x | LS1X_FB_CONF_RESET | 4, fbi->reg_base + LS1X_FB_CONF);
 	}
 	else {
-		writel(x | LS1X_FB_CONF_RESET | fbi->pix_fmt, fbi->reg_base + LS1X_FB_CONF);
+		writel_reg(x | LS1X_FB_CONF_RESET | fbi->pix_fmt, fbi->reg_base + LS1X_FB_CONF);
 	}
 
 #if defined(CONFIG_LS1C_MACH)
-	writel((info->fix.line_length + 0x7f) & ~0x7f, fbi->reg_base + LS1X_FB_STRIDE);
+	writel_reg((info->fix.line_length + 0x7f) & ~0x7f, fbi->reg_base + LS1X_FB_STRIDE);
 #else
-	writel((info->fix.line_length + 0xff) & ~0xff, fbi->reg_base + LS1X_FB_STRIDE);
+	writel_reg((info->fix.line_length + 0xff) & ~0xff, fbi->reg_base + LS1X_FB_STRIDE);
 #endif
-	writel(0, fbi->reg_base + LS1X_FB_ORIGIN);
+	writel_reg(0, fbi->reg_base + LS1X_FB_ORIGIN);
 
 	/*
 	 * Re-enable panel output.
 	 */
 	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF);
-	writel(x | LS1X_FB_PANEL_CONF_DE, fbi->reg_base + LS1X_FB_PANEL_CONF);
+	writel_reg(x | LS1X_FB_PANEL_CONF_DE, fbi->reg_base + LS1X_FB_PANEL_CONF);
 
 	return 0;
 }
@@ -785,10 +793,10 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 		u32 x;
 		int timeout = 204800;
 		x = readl(fbi->reg_base + LS1X_FB_CONF);
-		writel(x & ~LS1X_FB_CONF_RESET, fbi->reg_base + LS1X_FB_CONF);
-//		writel(x & ~LS1X_FB_CONF_OUT_EN, fbi->reg_base + LS1X_FB_CONF);
+		writel_reg(x & ~LS1X_FB_CONF_RESET, fbi->reg_base + LS1X_FB_CONF);
+//		writel_reg(x & ~LS1X_FB_CONF_OUT_EN, fbi->reg_base + LS1X_FB_CONF);
 		x = readl(fbi->reg_base + LS1X_FB_CONF);	/* 不知道为什么这里需要读一次 */
-		writel(x & ~LS1X_FB_CONF_RESET, fbi->reg_base + LS1X_FB_CONF);
+		writel_reg(x & ~LS1X_FB_CONF_RESET, fbi->reg_base + LS1X_FB_CONF);
 		x = readl(fbi->reg_base + LS1X_FB_CONF);
 
 		ls1xfb_set_par(info);
@@ -796,10 +804,10 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 		/* 不知道为什么要设置多次才有效,且对LS1X_FB_CONF寄存器的设置不能放在ls1xfb_set_par函数里，
 		因为在设置format字段后再设置LS1X_FB_CONF_OUT_EN位会使format字段设置失效 */
 		x = readl(fbi->reg_base + LS1X_FB_CONF);
-		writel(x | LS1X_FB_CONF_OUT_EN, fbi->reg_base + LS1X_FB_CONF);
+		writel_reg(x | LS1X_FB_CONF_OUT_EN, fbi->reg_base + LS1X_FB_CONF);
 		do {
 			x = readl(fbi->reg_base + LS1X_FB_CONF);
-			writel(x | LS1X_FB_CONF_OUT_EN, fbi->reg_base + LS1X_FB_CONF);
+			writel_reg(x | LS1X_FB_CONF_OUT_EN, fbi->reg_base + LS1X_FB_CONF);
 		} while (((x & LS1X_FB_CONF_OUT_EN) == 0)
 				&& (timeout-- > 0));
 	}
