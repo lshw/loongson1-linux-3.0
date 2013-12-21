@@ -497,6 +497,12 @@ config I2C_LS1X
 	  This supports the use of the I2C interface on Loongson1
 	  processors.
 
+config LS1X_I2C_CLOCK
+	int "I2C bus clock of Loongson1 I2C Controller (KHz)"
+	depends on I2C_LS1X
+	default "100"
+	help
+	  The range from 0-400 KHz
 
 config I2C_OMAP
 	tristate "OMAP I2C adapter"

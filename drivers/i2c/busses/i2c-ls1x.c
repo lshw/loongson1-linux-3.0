@@ -20,8 +20,7 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 
-//#define I2C_CLOCK		400000		/* Hz. max 400 Kbits/sec */
-#define I2C_CLOCK		100000		/* Hz. max 100 Kbits/sec */
+#define I2C_CLOCK	CONFIG_LS1X_I2C_CLOCK		/* Hz. max 400 Kbits/sec */
 
 /* registers */
 #define OCI2C_PRELOW		0
@@ -312,7 +311,7 @@ static void __exit ls1x_i2c_exit(void)
 	platform_driver_unregister(&ls1x_i2c_driver);
 }
 
-module_init(ls1x_i2c_init);
+arch_initcall(ls1x_i2c_init);
 module_exit(ls1x_i2c_exit);
 
 MODULE_AUTHOR("TangHaifeng <tanghaifeng-gz@loongson.cn>");
