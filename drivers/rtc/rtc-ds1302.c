@@ -83,7 +83,72 @@ static inline int ds1302_rxbit(void)
 }
 
 #else
-#error "Add support for your platform"
+/* Add support for your platform */
+#include <linux/gpio.h>
+#include <linux/delay.h>
+#define	RTC_RESET	198	//PCA9555_GPIO_BASE_1 186 + 12
+#define	RTC_IODATA	197	//PCA9555_GPIO_BASE_1 186 + 11
+#define	RTC_SCLK	196	//PCA9555_GPIO_BASE_1 186 + 10
+
+#define ds1302_set_tx()	(gpio_direction_output(RTC_IODATA, 1))
+#define ds1302_set_rx()	(gpio_direction_input(RTC_IODATA))
+
+static inline int ds1302_hw_init(void)
+{
+	int ret;
+
+	ret = gpio_request(RTC_RESET, "rtc_reset");
+	if (ret < 0)
+		goto err;
+	gpio_direction_output(RTC_RESET, 0);
+
+	ret = gpio_request(RTC_IODATA, "rtc_iodata");
+	if (ret < 0)
+		goto err;
+	gpio_direction_input(RTC_IODATA);
+
+	ret = gpio_request(RTC_SCLK, "rtc_sclk");
+	if (ret < 0)
+		goto err;
+	gpio_direction_output(RTC_SCLK, 0);
+
+	return 0;
+err:
+	return ret;
+}
+
+static inline void ds1302_reset(void)
+{
+	gpio_set_value(RTC_RESET, 0);
+	gpio_set_value(RTC_IODATA, 0);
+	gpio_set_value(RTC_SCLK, 0);
+}
+
+static inline void ds1302_clock(void)
+{
+	gpio_set_value(RTC_SCLK, 1);
+	gpio_set_value(RTC_SCLK, 0);
+}
+
+static inline void ds1302_start(void)
+{
+	gpio_set_value(RTC_RESET, 1);
+}
+
+static inline void ds1302_stop(void)
+{
+	gpio_set_value(RTC_RESET, 0);
+}
+
+static inline void ds1302_txbit(int bit)
+{
+	gpio_set_value(RTC_IODATA, bit);
+}
+
+static inline int ds1302_rxbit(void)
+{
+	return gpio_get_value(RTC_IODATA);
+}
 #endif
 
 static void ds1302_sendbits(unsigned int val)
