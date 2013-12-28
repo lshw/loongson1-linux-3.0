@@ -82,12 +82,12 @@
 
 struct timeval t_start,t_end;
 
-    long cost_time = 0; 
+long cost_time = 0; 
 static unsigned int flag = 0;
 static unsigned int buf_init_cnt = 0;
 struct timer_list my_timer;
-struct timex  txc;
-struct rtc_time tm;
+//struct timex  txc;
+//struct rtc_time tm;
 
 //static void ls1c_camera_irq(int irq, void *data);
 static irqreturn_t ls1c_camera_irq(int irq, void *data);
@@ -262,15 +262,15 @@ out:
 
 
 /* Called under spinlock_irqsave(&pcdev->lock, ...) */
-static int cnt = 0;
+//static int cnt = 0;
 static void ls1c_videobuf_queue(struct videobuf_queue *vq,
 						struct videobuf_buffer *vb)
 {
-	struct timex  txc;
-	struct rtc_time tm;
-	do_gettimeofday(&(txc.time));
-	rtc_time_to_tm(txc.time.tv_sec,&tm);
-	printk("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+//	struct timex  txc;
+//	struct rtc_time tm;
+//	do_gettimeofday(&(txc.time));
+//	rtc_time_to_tm(txc.time.tv_sec,&tm);
+//	printk("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
 //	printk("---------ls1c_videobuf_queue %d---------\n" ,flag);
 	struct soc_camera_device *icd = vq->priv_data;
 	struct soc_camera_host *ici = to_soc_camera_host(icd->dev.parent);
@@ -280,10 +280,15 @@ static void ls1c_videobuf_queue(struct videobuf_queue *vq,
 	unsigned int ret;
 	struct videobuf_buffer *vbuf;
 	unsigned long flags;
+	
+	static int queue_cnt = 0;
+	
+	
 	//printk("-------pcdev 0x%x----------\n", pcdev);
 	temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
 	//printk("------config 0x%x-------\n", temp);
-	while (temp & 0x40000000) { 
+	while (temp & 0x40000000)
+	{
 		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
 		temp |= (1 << 29);
 	//	printk("----29 bits--------\n");
@@ -296,24 +301,26 @@ static void ls1c_videobuf_queue(struct videobuf_queue *vq,
 	list_add_tail(&vb->queue, &pcdev->capture);
 	vb->state = VIDEOBUF_ACTIVE;
 
-#if 0
-	if (!pcdev->active) {
-		pcdev->active = buf;
-
-		/* setup sg list for future DMA */
-		if (!ls1c_camera_setup_dma(pcdev)) {
-			unsigned int temp;
-			/* enable SOF irq */
-			temp = __raw_readl(pcdev->base + CSICR1) |
-				CSICR1_SOF_INTEN;
-			__raw_writel(temp, pcdev->base + CSICR1);
-		}
-	}
-#else
+//#if 0
+//	if (!pcdev->active) {
+//		pcdev->active = buf;
+//
+//		/* setup sg list for future DMA */
+//		if (!ls1c_camera_setup_dma(pcdev)) {
+//			unsigned int temp;
+//			/* enable SOF irq */
+//			temp = __raw_readl(pcdev->base + CSICR1) |
+//				CSICR1_SOF_INTEN;
+//			__raw_writel(temp, pcdev->base + CSICR1);
+//		}
+//	}
+//#else
 	//printk("count = %d \n", cnt);
-	cnt++;
-	if (buf_init_cnt < LS1C_CAM_DMA_CNT) {
-		if (!pcdev->active) {
+//	cnt++;
+	if (buf_init_cnt < LS1C_CAM_DMA_CNT)
+	{
+		if (!pcdev->active)
+		{
 			pcdev->active = buf;
 			//printk("-----------pcdev->active = buf\n");
 //			vbuf = &pcdev->active->vb;
@@ -324,13 +331,20 @@ static void ls1c_videobuf_queue(struct videobuf_queue *vq,
 		__raw_writel(temp, pcdev->base + (CAM_DMA0_CONFIG + buf_init_cnt * 8));
 		buf_init_cnt++;
 
-			temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
-			temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
-			__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
+		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
+		temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
+		__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);		//start camera
+		
+//		printk("v_queue: %d, %d\n", ++queue_cnt, buf_init_cnt);
+		
 #ifdef	POLL_CAMERA
-			if (flag) {
+			if (flag)
+			{
 			//printk("---------ls1c_camera_thread--------\n");
 				flag = 0 ;
+//				temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
+//				temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
+//				__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);		//start camera
 				tsk = kthread_run(camera_thread, thread_data, "ls1c_camera_thread");
 			}
 #endif
@@ -338,18 +352,18 @@ static void ls1c_videobuf_queue(struct videobuf_queue *vq,
 			//temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
 			//__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
 		if (buf_init_cnt == LS1C_CAM_DMA_CNT) {
-#if 0
-//#ifdef	POLL_CAMERA
-			if (flag) {
-			printk("---------ls1c_camera_thread--------\n");
-			flag = 0 ;
-			tsk = kthread_run(camera_thread, thread_data, "ls1c_camera_thread");
-			}
+//#if 0
+////#ifdef	POLL_CAMERA
+//			if (flag) {
+//			printk("---------ls1c_camera_thread--------\n");
+//			flag = 0 ;
+//			tsk = kthread_run(camera_thread, thread_data, "ls1c_camera_thread");
+//			}
+////#endif
+//			temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
+//			temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
+//			__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
 //#endif
-			temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
-			temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
-			__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
-#endif
 			buf_init_cnt = 0;
 			//enable_irq(36);
 		
@@ -358,7 +372,7 @@ static void ls1c_videobuf_queue(struct videobuf_queue *vq,
 		}
 
 	}
-#endif
+//#endif
 }
 
 static void ls1c_videobuf_release(struct videobuf_queue *vq,
@@ -394,13 +408,13 @@ static void ls1c_videobuf_release(struct videobuf_queue *vq,
 }
 
 #ifdef	POLL_CAMERA
-static long passtime=0;
-static long stime=0;
-static long etime=0;
-static int times=0;
-static int chg = 0;
-static long sums = 0;
-static int sped = 0;
+//static long passtime=0;
+//static long stime=0;
+//static long etime=0;
+//static int times=0;
+//static int chg = 0;
+//static long sums = 0;
+//static int sped = 0;
 static int camera_thread(void *pthread_data)
 {
 	struct ls1c_camera_dev *pcdev = (struct ls1c_camera_dev *)pthread_data;
@@ -410,41 +424,64 @@ static int camera_thread(void *pthread_data)
 	unsigned int temp;
 	struct videobuf_buffer *vbuf;
 	unsigned long flags;
-
-	while (1) {
+	
+//	struct timex  txc;
+//	struct rtc_time tm;
+	static int sche_cnt = 0;
+//	static int last_sec = 0;
+	while (1)
+	{
+//		do_gettimeofday(&(txc.time));
+//		rtc_time_to_tm(txc.time.tv_sec,&tm);
+//		if(last_sec != tm.tm_sec)
+//		{
+//			last_sec = tm.tm_sec;
+//			sche_cnt = 0;
+//		}
+//		printk("camera_thread: %d\n", ++sche_cnt);
+		
+		//hbm added, begin
+//		set_current_state(TASK_UNINTERRUPTIBLE);
+		
+//		if (kthread_should_stop())
+//			break;
+		//hbm added, end
+		
 		//printk ("lxy: in %s !\n", __FUNCTION__);
 		//printk("tsped %d \n", sped);
 		//sped++;
 		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
 		//printk("temp 0x%x---------\n", temp);
-		if ((temp & 0xf00000) == 0)
+		if ((temp & 0xf00000) == 0)	//dma buffer is empty
 			goto schedu;
 
 
-#if 0
-		while (temp & 0x40000000) { 
-		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
-		temp |= (1 << 29);
-		printk("----29 bits--------\n");
-		__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
-		}
-#endif
-#if 0
-		if (unlikely(!pcdev->active)) {
-//			dev_err(dev, "DMA End IRQ with no active buffer\n");
-			goto schedu;
-		}
-#else
-		if (list_empty(&pcdev->capture)) {
+//#if 0
+//		while (temp & 0x40000000) { 
+//		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
+//		temp |= (1 << 29);
+//		printk("----29 bits--------\n");
+//		__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
+//		}
+//#endif
+//#if 0
+//		if (unlikely(!pcdev->active)) {
+////			dev_err(dev, "DMA End IRQ with no active buffer\n");
+//			goto schedu;
+//		}
+//#else
+		if (list_empty(&pcdev->capture))	//nothing in capture
+		{
 			pcdev->active = NULL;
 			goto schedu;
 		}
 		
-		if (unlikely(!pcdev->active)) {
+		if (unlikely(!pcdev->active))	//current video buffer is empty
+		{
 			pcdev->active = list_entry(pcdev->capture.next,
 					struct ls1c_camera_buffer, vb.queue);
 		}
-#endif
+//#endif
 
 		//printk ("lxy: ------> put data to user space !\n");
 		//spin_lock_irqsave(&pcdev->lock, flags); 
@@ -459,25 +496,33 @@ static int camera_thread(void *pthread_data)
 		vb->state = VIDEOBUF_DONE;
 		do_gettimeofday(&vb->ts);
 		
-#if 0
-		if (chg) {
-			stime = vb->ts.tv_usec ;
-			chg = 0;
-		} else {
-			etime = vb->ts.tv_usec;
-			chg = 1;
-		}
-		
-		passtime = abs(etime - stime);
-		sums += passtime;
-		printk("counts %d two frames interval 0d%ld us\n", times,sums);
-		times++;
-#endif
+//#if 0
+//		if (chg) {
+//			stime = vb->ts.tv_usec ;
+//			chg = 0;
+//		} else {
+//			etime = vb->ts.tv_usec;
+//			chg = 1;
+//		}
+//		
+//		passtime = abs(etime - stime);
+//		sums += passtime;
+//		printk("counts %d two frames interval 0d%ld us\n", times,sums);
+//		times++;
+//#endif
 
 		vb->field_count++;
 		wake_up(&vb->done);
-
-		if (list_empty(&pcdev->capture)) {
+		
+		msleep(20);
+		
+//		schedule_timeout(5);	//hbm added, HZ:250 --- 1s; 5*1/250 = 20ms
+		
+//		printk("ct: %d\n", ++sche_cnt);
+		
+		
+		if (list_empty(&pcdev->capture))	//nothing in capture
+		{
 			pcdev->active = NULL;
 			goto schedu;
 		}
@@ -487,23 +532,43 @@ static int camera_thread(void *pthread_data)
 			
 		vbuf = &pcdev->active->vb;
 		
+//		schedule_timeout(5);	//hbm added, HZ:250 --- 1s; 5*1/250 = 20ms
+		
+//		continue;
+		
+//		schedule();	
+//
+//		if (kthread_should_stop())
+//			break;
+//		
+//		continue;
+		
 		//spin_unlock_irqrestore(&pcdev->lock, flags); 
-#if 0
-		temp = (unsigned int)videobuf_to_dma_contig(vbuf);
-		__raw_writel(temp, pcdev->base + (CAM_DMA0_CONFIG + 0));
-		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
-		temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
-		__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
-#endif
+//#if 0
+//		temp = (unsigned int)videobuf_to_dma_contig(vbuf);
+//		__raw_writel(temp, pcdev->base + (CAM_DMA0_CONFIG + 0));
+//		temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
+//		temp |= (1 << LS1C_CAM_START) /*| (1 << 13) & (~(1<<11))*/;
+//		__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
+//#endif
 schedu:
+//		printk("camera_thread scheduled out......\n");
+		msleep(10);
 		schedule();
+		
+//		schedule_timeout(5);	//hbm added, HZ:250 --- 1s; 5*1/250 = 4ms
+		//hbm commended, begin
+//		msleep(10);
+//		schedule();	
 
 		if (kthread_should_stop())
 			break;
+		//hbm commended, end
 	}
 out:
 	return 0;
 }
+
 #else
 static irqreturn_t ls1c_camera_irq(int irq, void *data)
 //static void ls1c_camera_irq(int irq, void *data)
@@ -546,6 +611,7 @@ static irqreturn_t ls1c_camera_irq(int irq, void *data)
 		return IRQ_HANDLED;
 		//return;
 	}
+	
 	pcdev->active = list_entry(pcdev->capture.next,
 				   struct ls1c_camera_buffer, vb.queue);
 	printk("----------finish process irq--------\n");
@@ -553,7 +619,7 @@ static irqreturn_t ls1c_camera_irq(int irq, void *data)
 	temp = __raw_readl(pcdev->base + CAM_CAMIF_CONFIG);
 	temp |= (1 << 29);
 	__raw_writel(temp, pcdev->base + CAM_CAMIF_CONFIG);
-	enable_irq(36);
+//	enable_irq(36);	//hbm delete
 out:
 	//spin_unlock_irqrestore(&pcdev->lock, flags); 
 	//printk("--------out-------\n");
@@ -585,30 +651,30 @@ static void ls1c_camera_init_videobuf(struct videobuf_queue *q,
 				sizeof(struct ls1c_camera_buffer), icd, &icd->video_lock);
 }
 
-#if 0
-static int mclk_get_divisor(struct ls1c_camera_dev *pcdev)
-{
-	return 1;
-#if 0
-	unsigned int mclk = pcdev->mclk;
-	unsigned long div;
-	unsigned long lcdclk;
-
-	lcdclk = clk_get_rate(pcdev->clk);
-
-	/*
-	 * We verify platform_mclk_10khz != 0, so if anyone breaks it, here
-	 * they get a nice Oops
-	 */
-	div = (lcdclk + 2 * mclk - 1) / (2 * mclk) - 1;
-
-	dev_dbg(pcdev->icd->dev.parent,
-		"System clock %lukHz, target freq %dkHz, divisor %lu\n",
-		lcdclk / 1000, mclk / 1000, div);
-	return div;
-#endif
-}
-#endif
+//#if 0
+//static int mclk_get_divisor(struct ls1c_camera_dev *pcdev)
+//{
+//	return 1;
+//#if 0
+//	unsigned int mclk = pcdev->mclk;
+//	unsigned long div;
+//	unsigned long lcdclk;
+//
+//	lcdclk = clk_get_rate(pcdev->clk);
+//
+//	/*
+//	 * We verify platform_mclk_10khz != 0, so if anyone breaks it, here
+//	 * they get a nice Oops
+//	 */
+//	div = (lcdclk + 2 * mclk - 1) / (2 * mclk) - 1;
+//
+//	dev_dbg(pcdev->icd->dev.parent,
+//		"System clock %lukHz, target freq %dkHz, divisor %lu\n",
+//		lcdclk / 1000, mclk / 1000, div);
+//	return div;
+//#endif
+//}
+//#endif
 
 static void ls1c_camera_activate(struct ls1c_camera_dev *pcdev)
 {
@@ -935,29 +1001,29 @@ static struct soc_camera_host_ops ls1c_soc_camera_host_ops = {
 	.querycap	= ls1c_camera_querycap,
 };
 
-static void four_secs_timer(unsigned long arg) 
-{
-	*(unsigned int*)(0xbfd0105c) |= (1<<4); 
-	//*(unsigned int*)(0xbfd0106c) |= (1<<4);
-	//*(unsigned int*)(0xbfd01068) &= ~(1<<4);
-	printk("---------irq sr 0x%x-------\n", *(unsigned int *)(0xbfd01058));
-	printk("---------irq en 0x%x-------\n", *(unsigned int *)(0xbfd0105c));
-	printk("---------irq set 0x%x-------\n", *(unsigned int *)(0xbfd01060));
-	printk("---------irq clr 0x%x-------\n", *(unsigned int *)(0xbfd01064));
-	printk("---------irq pol 0x%x-------\n", *(unsigned int *)(0xbfd01068));
-	printk("---------irq edge 0x%x-------\n", *(unsigned int *)(0xbfd0106c));
-	my_timer.expires = jiffies + HZ * 5; 
-	add_timer(&my_timer);
-}
+//static void four_secs_timer(unsigned long arg) 
+//{
+//	*(unsigned int*)(0xbfd0105c) |= (1<<4); 
+//	//*(unsigned int*)(0xbfd0106c) |= (1<<4);
+//	//*(unsigned int*)(0xbfd01068) &= ~(1<<4);
+//	printk("---------irq sr 0x%x-------\n", *(unsigned int *)(0xbfd01058));
+//	printk("---------irq en 0x%x-------\n", *(unsigned int *)(0xbfd0105c));
+//	printk("---------irq set 0x%x-------\n", *(unsigned int *)(0xbfd01060));
+//	printk("---------irq clr 0x%x-------\n", *(unsigned int *)(0xbfd01064));
+//	printk("---------irq pol 0x%x-------\n", *(unsigned int *)(0xbfd01068));
+//	printk("---------irq edge 0x%x-------\n", *(unsigned int *)(0xbfd0106c));
+//	my_timer.expires = jiffies + HZ * 5; 
+//	add_timer(&my_timer);
+//}
 
 static int __init ls1c_camera_probe(struct platform_device *pdev)
 {
-#if 0
-	init_timer(&my_timer); 
-	my_timer.function = &four_secs_timer;
-	my_timer.expires = jiffies + HZ * 10; 
-	add_timer(&my_timer);
-#endif
+//#if 0
+//	init_timer(&my_timer); 
+//	my_timer.function = &four_secs_timer;
+//	my_timer.expires = jiffies + HZ * 10; 
+//	add_timer(&my_timer);
+//#endif
 
 	struct ls1c_camera_dev *pcdev;
 	struct resource *res;
@@ -973,13 +1039,13 @@ static int __init ls1c_camera_probe(struct platform_device *pdev)
 		goto exit;
 	}
 
-#if 0
-	clk = clk_get(&pdev->dev, "camera_clk");
-	if (IS_ERR(clk)) {
-		err = PTR_ERR(clk);
-		goto exit;
-	}
-#endif
+//#if 0
+//	clk = clk_get(&pdev->dev, "camera_clk");
+//	if (IS_ERR(clk)) {
+//		err = PTR_ERR(clk);
+//		goto exit;
+//	}
+//#endif
 
 	pcdev = kzalloc(sizeof(*pcdev), GFP_KERNEL);
 	if (!pcdev) {
@@ -1110,3 +1176,4 @@ MODULE_DESCRIPTION("LS1C_SoC Camera Host driver");
 MODULE_AUTHOR("linxiyuan <linxiyuan-gz@foxmail.com>");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:" DRIVER_NAME);
+

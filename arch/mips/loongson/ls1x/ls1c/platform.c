@@ -469,7 +469,7 @@ static struct plat_stmmacphy_data  phy0_private_data = {
 #ifdef CONFIG_RTL8305SC
 	.phy_addr = 4,
 #else
-	.phy_addr = 0,
+	.phy_addr = 0,	/* -1自动检测 */
 #endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_RMII,

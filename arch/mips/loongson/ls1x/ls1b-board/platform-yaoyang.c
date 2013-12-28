@@ -677,7 +677,7 @@ static struct plat_stmmacphy_data  phy0_private_data = {
 #ifdef CONFIG_RTL8305SC
 	.phy_addr = 4,
 #else
-	.phy_addr = 0,
+	.phy_addr = 0,	/* -1自动检测 */
 #endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
@@ -735,7 +735,7 @@ struct platform_device ls1x_gmac1_mac = {
 
 static struct plat_stmmacphy_data  phy1_private_data = {
 	.bus_id = 1,
-	.phy_addr = 1,
+	.phy_addr = 0,	/* -1自动检测 */
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_MII,
 	
