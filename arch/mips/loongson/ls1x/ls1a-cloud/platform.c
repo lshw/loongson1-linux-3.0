@@ -17,7 +17,6 @@
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
-#include <linux/spi/ads7846.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/spi/spi_gpio.h>
 #include <linux/mmc/host.h>
@@ -753,40 +752,6 @@ static struct mmc_spi_platform_data mmc_spi = {
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-#define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
-int ads7846_pendown_state(void)
-{
-	return !gpio_get_value(ADS7846_GPIO_IRQ);
-}
-
-static void ads7846_detect_penirq(void)
-{
-	/* GPIO输入使能 */
-	gpio_request(ADS7846_GPIO_IRQ, "ads7846 gpio irq");
-	gpio_direction_input(ADS7846_GPIO_IRQ);
-	/* SPI0 CS1片选 */
-	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) | SPI0_USE_CAN0_TX, LS1X_MUX_CTRL0);
-}
-	
-static struct ads7846_platform_data ads_info = {
-	.model				= 7846,
-	.vref_delay_usecs	= 1,
-	.keep_vref_on		= 0,
-	.settle_delay_usecs	= 10,
-//	.x_plate_ohms		= 800,
-	.pressure_min		= 0,
-	.pressure_max		= 1024,
-	.debounce_rep		= 3,
-	.debounce_max		= 10,
-	.debounce_tol		= 50,
-	.get_pendown_state	= ads7846_pendown_state,
-	.filter_init		= NULL,
-	.filter 			= NULL,
-	.filter_cleanup 	= NULL,
-};
-#endif /* TOUCHSCREEN_ADS7846 */
-
 #ifdef CONFIG_LCD_JBT6K74
 /* JBT6k74 display controller */
 static void gta02_jbt6k74_probe_completed(struct device *dev)
@@ -808,17 +773,6 @@ static struct spi_board_info ls1x_spi0_devices[] = {
 		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
-	},
-#endif
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-	{
-		.modalias = "ads7846",
-		.platform_data = &ads_info,
-		.bus_num 		= 0,
-		.chip_select 	= SPI0_CS1,
-		.max_speed_hz 	= 2500000,
-		.mode 			= SPI_MODE_1,
-		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
 };
@@ -932,18 +886,6 @@ static struct spi_board_info spi_gpio_devices[] = {
 		.chip_select	= 0,
 		.max_speed_hz	= 80000000,
 		.platform_data	= &flash,
-	},
-#endif
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-	{
-		.modalias = "ads7846",
-		.platform_data = &ads_info,
-		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
-		.controller_data = (void *)67,	/*gpio67*/
-		.chip_select 	= 1,
-		.max_speed_hz 	= 2500000,
-		.mode 			= SPI_MODE_1,
-		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
 	},
 #endif
 #ifdef CONFIG_LCD_JBT6K74
@@ -1447,10 +1389,6 @@ int __init ls1b_platform_init(void)
 	/* 轮询方式或中断方式探测card的插拔 */
 	gpio_request(DETECT_GPIO, "MMC_SPI GPIO detect");
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-	ads7846_detect_penirq();
 #endif
 
 #ifdef CONFIG_LS1X_SPI0

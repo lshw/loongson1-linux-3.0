@@ -91,7 +91,7 @@ static void ls1x_spi_chipsel(struct spi_device *spi, int value)
 
 		case BITBANG_CS_ACTIVE:
 			if (cspol) {
-				writeb((chip_select | 0x0F), hw->regs + REG_SOFTCS);
+				writeb(chip_select | (0x01 << spi->chip_select), hw->regs + REG_SOFTCS);
 			} else {
 				writeb(~(chip_select), hw->regs + REG_SOFTCS);
 			}

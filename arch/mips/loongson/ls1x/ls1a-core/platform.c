@@ -17,7 +17,6 @@
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
-#include <linux/spi/ads7846.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/spi/spi_gpio.h>
 #include <linux/mmc/host.h>
@@ -821,21 +820,8 @@ static struct mmc_spi_platform_data mmc_spi = {
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
 #ifdef CONFIG_TOUCHSCREEN_ADS7846
+#include <linux/spi/ads7846.h>
 #define ADS7846_GPIO_IRQ 66
-int ads7846_pendown_state(void)
-{
-	return !gpio_get_value(ADS7846_GPIO_IRQ);
-}
-	
-static void ads7846_detect_penirq(void)
-{
-	/* GPIO输入使能 */
-	gpio_request(ADS7846_GPIO_IRQ, "ads7846 gpio irq");
-	gpio_direction_input(ADS7846_GPIO_IRQ);
-	/* SPI0 CS1片选 */
-	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) | SPI0_USE_CAN0_TX, LS1X_MUX_CTRL0);
-}
-	
 static struct ads7846_platform_data ads_info = {
 	.model				= 7846,
 	.vref_delay_usecs	= 1,
@@ -847,7 +833,9 @@ static struct ads7846_platform_data ads_info = {
 	.debounce_rep		= 3,
 	.debounce_max		= 10,
 	.debounce_tol		= 50,
-	.get_pendown_state	= ads7846_pendown_state,
+//	.get_pendown_state	= ads7846_pendown_state,
+	.get_pendown_state	= NULL,
+	.gpio_pendown		= ADS7846_GPIO_IRQ,
 	.filter_init		= NULL,
 	.filter 			= NULL,
 	.filter_cleanup 	= NULL,
@@ -1620,10 +1608,6 @@ int __init ls1b_platform_init(void)
 	/* 轮询方式或中断方式探测card的插拔 */
 	gpio_request(DETECT_GPIO, "MMC_SPI GPIO detect");
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-	ads7846_detect_penirq();
 #endif
 
 #ifdef CONFIG_LS1X_SPI0
