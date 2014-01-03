@@ -44,7 +44,6 @@
 
 #include <loongson1.h>
 #include <irq.h>
-#include <spi.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
 
@@ -854,7 +853,8 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 };
 #endif
 
-#ifdef CONFIG_LS1X_SPI0
+#ifdef CONFIG_SPI_LS1X
+#include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{	/* DataFlash chip */
@@ -877,29 +877,38 @@ static struct spi_board_info ls1x_spi0_devices[] = {
 	},
 #endif
 };
-	
+
 static struct resource ls1x_spi0_resource[] = {
 	[0]={
 		.start	= LS1X_SPI0_BASE,
-		.end	= (LS1X_SPI0_BASE + 0x6),
+		.end	= LS1X_SPI0_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 	},
+#if defined(CONFIG_SPI_IRQ_MODE)
 	[1]={
 		.start	= LS1X_SPI0_IRQ,
 		.end	= LS1X_SPI0_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+#endif
 };
 
-static struct ls1x_spi_info ls1x_spi0_platdata = {
-	.board_size = ARRAY_SIZE(ls1x_spi0_devices),
-	.board_info = ls1x_spi0_devices,
-	.bus_num	= 0,
-	.num_cs		= SPI0_CS3 + 1,
+#ifdef CONFIG_SPI_CS_USED_GPIO
+static int spi0_gpios_cs[] =
+	{ 43, 67, 66 };
+#endif
+
+static struct ls1x_spi_platform_data ls1x_spi0_platdata = {
+#ifdef CONFIG_SPI_CS_USED_GPIO
+	.gpio_cs_count = ARRAY_SIZE(spi0_gpios_cs),
+	.gpio_cs = spi0_gpios_cs,
+#elif CONFIG_SPI_CS
+	.cs_count = SPI0_CS2 + 1,
+#endif
 };
 
 static struct platform_device ls1x_spi0_device = {
-	.name		= "ls1x-spi",
+	.name		= "spi_ls1x",
 	.id 		= 0,
 	.num_resources	= ARRAY_SIZE(ls1x_spi0_resource),
 	.resource	= ls1x_spi0_resource,
@@ -907,9 +916,10 @@ static struct platform_device ls1x_spi0_device = {
 		.platform_data	= &ls1x_spi0_platdata,//&ls1x_spi_devices,
 	},
 };
-#endif //#ifdef CONFIG_LS1X_SPI0
+#endif //#ifdef CONFIG_SPI_LS1X
 
-#ifdef CONFIG_LS1X_SPI1 /* SPI1 控制器 */
+#ifdef CONFIG_SPI_LS1X /* SPI1 控制器 */
+#include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{	/* mmc/sd card */
@@ -934,25 +944,34 @@ static struct spi_board_info ls1x_spi1_devices[] = {
 static struct resource ls1x_spi1_resource[] = {
 	[0]={
 		.start	= LS1X_SPI1_BASE,
-		.end	= (LS1X_SPI1_BASE + 0x6),
+		.end	= LS1X_SPI1_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 	},
+#if defined(CONFIG_SPI_IRQ_MODE)
 	[1]={
 		.start	= LS1X_SPI1_IRQ,
 		.end	= LS1X_SPI1_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+#endif
 };
 
-static struct ls1x_spi_info ls1x_spi1_platdata = {
-	.board_size = ARRAY_SIZE(ls1x_spi1_devices),
-	.board_info = ls1x_spi1_devices,
-	.bus_num	= 1,
-	.num_cs		= 3,
+#ifdef CONFIG_SPI_CS_USED_GPIO
+static int spi1_gpios_cs[] =
+	{ 47, 69, 68 };
+#endif
+
+static struct ls1x_spi_platform_data ls1x_spi1_platdata = {
+#ifdef CONFIG_SPI_CS_USED_GPIO
+	.gpio_cs_count = ARRAY_SIZE(spi1_gpios_cs),
+	.gpio_cs = spi1_gpios_cs,
+#elif CONFIG_SPI_CS
+	.cs_count = SPI1_CS2 + 1,
+#endif
 };
 
 static struct platform_device ls1x_spi1_device = {
-	.name		= "ls1x-spi",
+	.name		= "spi_ls1x",
 	.id 		= 1,
 	.num_resources	= ARRAY_SIZE(ls1x_spi1_resource),
 	.resource	= ls1x_spi1_resource,
@@ -960,7 +979,7 @@ static struct platform_device ls1x_spi1_device = {
 		.platform_data	= &ls1x_spi1_platdata,//&ls1x_spi_devices,
 	},
 };
-#endif	//#ifdef CONFIG_LS1X_SPI1
+#endif	//#ifdef CONFIG_SPI_LS1X
 
 #ifdef CONFIG_SPI_GPIO
 struct spi_gpio_platform_data spigpio_platform_data = {
@@ -1519,10 +1538,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_audio_device,
 #endif
 
-#ifdef CONFIG_LS1X_SPI0
+#ifdef CONFIG_SPI_LS1X
 	&ls1x_spi0_device,
 #endif
-#ifdef CONFIG_LS1X_SPI1
+#ifdef CONFIG_SPI_LS1X
 	&ls1x_spi1_device,
 #endif
 
@@ -1610,7 +1629,7 @@ int __init ls1b_platform_init(void)
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
 #endif
 
-#ifdef CONFIG_LS1X_SPI0
+#ifdef CONFIG_SPI_LS1X
 	/* disable gpio40-43 */
 	__raw_writel(__raw_readl(LS1X_GPIO_CFG1) & ~(SPI0_MASK << SPI0_OFFSET), 
 			LS1X_GPIO_CFG1);
@@ -1621,7 +1640,7 @@ int __init ls1b_platform_init(void)
 	spi_register_board_info(ls1x_spi0_devices, ARRAY_SIZE(ls1x_spi0_devices));
 #endif
 
-#ifdef CONFIG_LS1X_SPI1
+#ifdef CONFIG_SPI_LS1X
 	/* LS1A的SPI1控制器与NAND复用，编程需要注意 */
 	__raw_writel(__raw_readl(LS1X_GPIO_CFG1) & ~(SPI1_MASK << SPI1_OFFSET), 
 			LS1X_GPIO_CFG1);	/* disable gpio44-47 */

@@ -35,7 +35,6 @@
 
 #include <loongson1.h>
 #include <irq.h>
-#include <spi.h>
 #include <asm/gpio.h>
 #include <asm-generic/sizes.h>
 
@@ -836,30 +835,8 @@ static struct mmc_spi_platform_data mmc_spi __maybe_unused = {
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-#include <linux/spi/ads7846.h>
-#define ADS7846_GPIO_IRQ 60 /* 开发板触摸屏使用的外部中断 */
-static struct ads7846_platform_data ads_info __maybe_unused = {
-	.model				= 7846,
-	.vref_delay_usecs	= 1,
-	.keep_vref_on		= 0,
-	.settle_delay_usecs	= 20,
-//	.x_plate_ohms		= 800,
-	.pressure_min		= 0,
-	.pressure_max		= 2048,
-	.debounce_rep		= 3,
-	.debounce_max		= 10,
-	.debounce_tol		= 50,
-//	.get_pendown_state	= ads7846_pendown_state,
-	.get_pendown_state	= NULL,
-	.gpio_pendown		= ADS7846_GPIO_IRQ,
-	.filter_init		= NULL,
-	.filter 			= NULL,
-	.filter_cleanup 	= NULL,
-};
-#endif /* TOUCHSCREEN_ADS7846 */
-
-#ifdef CONFIG_LS1X_SPI0
+#ifdef CONFIG_SPI_LS1X
+#include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{
@@ -878,51 +855,46 @@ static struct spi_board_info ls1x_spi0_devices[] = {
 		.max_speed_hz	= 1000000,
 	},
 #endif
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
 	{
-		.modalias = "ads7846",
-		.platform_data = &ads_info,
+		.modalias		= "spidev",
 		.bus_num 		= 0,
-		.chip_select 	= SPI0_CS1,
-		.max_speed_hz 	= 2500000,
-		.mode 			= SPI_MODE_1,
-		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+		.chip_select	= SPI0_CS1,	/* SPI1_CS1 */
+		.max_speed_hz	= 5000000,
+		.mode = SPI_MODE_2,
 	},
-#endif
-#if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
-	{
-		.modalias		= "mmc_spi",
-		.bus_num 		= 0,
-		.chip_select	= SPI0_CS2,
-		.max_speed_hz	= 25000000,
-		.platform_data	= &mmc_spi,
-		.mode = SPI_MODE_3,
-	},
-#endif
 };
-	
+
 static struct resource ls1x_spi0_resource[] = {
 	[0]={
 		.start	= LS1X_SPI0_BASE,
-		.end	= (LS1X_SPI0_BASE + 0x6),
+		.end	= LS1X_SPI0_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 	},
+#if defined(CONFIG_SPI_IRQ_MODE)
 	[1]={
 		.start	= LS1X_SPI0_IRQ,
 		.end	= LS1X_SPI0_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+#endif
 };
 
-static struct ls1x_spi_info ls1x_spi0_platdata = {
-	.board_size = ARRAY_SIZE(ls1x_spi0_devices),
-	.board_info = ls1x_spi0_devices,
-	.bus_num	= 0,
-	.num_cs		= SPI0_CS3 + 1,
+#ifdef CONFIG_SPI_CS_USED_GPIO
+static int spi0_gpios_cs[] =
+	{ 27, 28, 29, 30 };
+#endif
+
+static struct ls1x_spi_platform_data ls1x_spi0_platdata = {
+#ifdef CONFIG_SPI_CS_USED_GPIO
+	.gpio_cs_count = ARRAY_SIZE(spi0_gpios_cs),
+	.gpio_cs = spi0_gpios_cs,
+#elif CONFIG_SPI_CS
+	.cs_count = SPI0_CS3 + 1,
+#endif
 };
 
 static struct platform_device ls1x_spi0_device = {
-	.name		= "ls1x-spi",
+	.name		= "spi_ls1x",
 	.id 		= 0,
 	.num_resources	= ARRAY_SIZE(ls1x_spi0_resource),
 	.resource	= ls1x_spi0_resource,
@@ -967,18 +939,6 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.max_speed_hz	= 1000000,
 	},
 #endif
-#ifdef CONFIG_TOUCHSCREEN_ADS7846
-	{
-		.modalias = "ads7846",
-		.platform_data = &ads_info,
-		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
-		.controller_data = (void *)28,	/*gpio28*/
-		.chip_select 	= 1,
-		.max_speed_hz 	= 2500000,
-		.mode 			= SPI_MODE_1,
-		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
-	},
-#endif
 	{
 		.modalias		= "spidev",
 		.bus_num 		= 2,
@@ -988,9 +948,10 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.mode = SPI_MODE_2,
 	},
 };
-#endif //#ifdef CONFIG_LS1X_SPI0
+#endif //#ifdef CONFIG_SPI_LS1X
 
-#if defined(CONFIG_LS1X_SPI1) /* SPI1 控制器 */
+#if defined(CONFIG_SPI_LS1X) /* SPI1 控制器 */
+#include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 	{
@@ -1007,25 +968,34 @@ static struct spi_board_info ls1x_spi1_devices[] = {
 static struct resource ls1x_spi1_resource[] = {
 	[0]={
 		.start	= LS1X_SPI1_BASE,
-		.end	= (LS1X_SPI1_BASE + 0x6),
+		.end	= LS1X_SPI1_BASE + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 	},
+#if defined(CONFIG_SPI_IRQ_MODE)
 	[1]={
 		.start	= LS1X_SPI1_IRQ,
 		.end	= LS1X_SPI1_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+#endif
 };
 
-static struct ls1x_spi_info ls1x_spi1_platdata = {
-	.board_size = ARRAY_SIZE(ls1x_spi1_devices),
-	.board_info = ls1x_spi1_devices,
-	.bus_num	= 1,
-	.num_cs		= 1,
+#ifdef CONFIG_SPI_CS_USED_GPIO
+static int spi1_gpios_cs[] =
+	{ 38, 0, 1 };
+#endif
+
+static struct ls1x_spi_platform_data ls1x_spi1_platdata = {
+#ifdef CONFIG_SPI_CS_USED_GPIO
+	.gpio_cs_count = ARRAY_SIZE(spi1_gpios_cs),
+	.gpio_cs = spi1_gpios_cs,
+#elif CONFIG_SPI_CS
+	.cs_count = SPI1_CS2 + 1,
+#endif
 };
 
 static struct platform_device ls1x_spi1_device = {
-	.name		= "ls1x-spi",
+	.name		= "spi_ls1x",
 	.id 		= 1,
 	.num_resources	= ARRAY_SIZE(ls1x_spi1_resource),
 	.resource	= ls1x_spi1_resource,
@@ -1064,7 +1034,7 @@ static struct spi_board_info spi1_gpio_devices[] = {
 	},
 #endif
 };
-#endif	//#ifdef CONFIG_LS1X_SPI1
+#endif	//#ifdef CONFIG_SPI_LS1X
 
 /* matrix keypad */
 #if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
@@ -1211,13 +1181,13 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_audio_device,
 #endif
 
-#if defined(CONFIG_LS1X_SPI0)
+#if defined(CONFIG_SPI_LS1X)
 	&ls1x_spi0_device,
 #elif defined(CONFIG_SPI_GPIO)
 	&spi0_gpio_device,
 #endif
 
-#if defined(CONFIG_LS1X_SPI1)
+#if defined(CONFIG_SPI_LS1X)
 	&ls1x_spi1_device,
 #elif defined(CONFIG_SPI_GPIO)
 //#elif 0
@@ -1270,7 +1240,7 @@ int __init ls1b_platform_init(void)
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
 #endif
 
-#if defined(CONFIG_LS1X_SPI0)
+#if defined(CONFIG_SPI_LS1X)
 	/* disable gpio24-27 */
 	*(volatile unsigned int *)0xbfd010c0 &= ~(0xf << 24);
 	spi_register_board_info(ls1x_spi0_devices, ARRAY_SIZE(ls1x_spi0_devices));
@@ -1278,7 +1248,7 @@ int __init ls1b_platform_init(void)
 	spi_register_board_info(spi0_gpio_devices, ARRAY_SIZE(spi0_gpio_devices));
 #endif
 
-#if defined(CONFIG_LS1X_SPI1)
+#if defined(CONFIG_SPI_LS1X)
 	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
 	/* 编程需要注意 */
 	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);
