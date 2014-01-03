@@ -35,8 +35,6 @@
 #include <linux/st7920.h>
 #include <linux/clk.h>
 #include <linux/jbt6k74.h>
-#include <linux/leds.h>
-#include <linux/leds_pwm.h>
 
 #include <video/ls1xfb.h>
 #include <media/gc0308_platform.h>
@@ -1365,73 +1363,6 @@ static struct platform_device ls1b_gpio_key_device = {
 };
 #endif //#ifdef CONFIG_KEYBOARD_GPIO_POLLED
 
-#ifdef CONFIG_LS1B_BUZZER
-static struct gpio_keys_button ls1b_gpio_buzzer[] = {
-	[0] = {
-		.gpio	= 40,	//57
-		.type	= EV_LED,
-	},	
-/*
-	[1] = {
-		.gpio	= 34,
-	},	
-	[2] = {
-		.gpio	= 35,
-	},	*/
-};
-
-static struct gpio_keys_platform_data ls1b_gpio_buzzer_data = {
-	.buttons	= ls1b_gpio_buzzer,
-	.nbuttons	= 1,
-};
-
-static struct platform_device ls1b_gpio_buzzer_device = {
-	.name	= "buzzer_gpio",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_gpio_buzzer_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BUZZER
-
-//xhm
-#ifdef CONFIG_LS1B_BBDIO
-static struct gpio_keys_button ls1b_bobodogio_button[] = {
-#if 0
-	[0]  = { .gpio = 4, .type = EV_LED},	
-	[1]  = { .gpio = 5, .type = EV_LED},
-	[2]  = { .gpio = 6, .type = EV_LED},
-	[3]  = { .gpio = 7, .type = EV_LED},
-	[4]  = { .gpio = 8, .type = EV_LED},
-	[5]  = { .gpio = 9, .type = EV_LED},
-	[6]  = { .gpio = 10, .type = EV_LED},
-	[7]  = { .gpio = 11, .type = EV_LED},
-	[8]  = { .gpio = 12, .type = EV_LED},
-	[9]  = { .gpio = 13, .type = EV_LED},
-	[10] = { .gpio = 14, .type = EV_LED},
-	[11] = { .gpio = 15, .type = EV_LED},
-	[12] = { .gpio = 16, .type = EV_LED},
-	[13] = { .gpio = 17, .type = EV_LED},
-	[14] = { .gpio = 18, .type = EV_LED},
-#endif
-	[0] = { .gpio = 48, .type = EV_KEY},
-	[1] = { .gpio = 49, .type = EV_LED},
-};
-
-static struct gpio_keys_platform_data ls1b_bobodogio_dog_data = {
-	.buttons	= ls1b_bobodogio_button,
-	.nbuttons	= 15,
-};
-
-static struct platform_device ls1b_bobodogio_dog = {
-	.name	= "bobodog_io_control",
-	.id	= -1,
-	.dev	= {
-		.platform_data = &ls1b_bobodogio_dog_data,
-	},
-};
-#endif //#ifdef CONFIG_LS1B_BBDIO
-
 #ifdef CONFIG_LS1B_PWM_DRIVER
 static struct resource ls1b_pwm0_resource[] = {
 	[0]={
@@ -1722,6 +1653,7 @@ static struct platform_device gen74x165_gpio_keys_device = {
 #endif //#ifdef CONFIG_KEYBOARD_74X165_GPIO_POLLED
 
 #ifdef CONFIG_LEDS_PWM
+#include <linux/leds_pwm.h>
 static struct led_pwm ls1x_pwm_leds[] = {
 	{
 		.name		= "ls1x_pwm_led1",
@@ -1946,6 +1878,14 @@ struct gpio_led gpio_leds[] = {
 		.default_trigger	= "heartbeat",
 		.default_state	= LEDS_GPIO_DEFSTATE_ON,
 	},
+	{
+		.name			= "buzzer",	/* 这里使用控制led的方式控制蜂鸣器 */
+		.gpio			= 40,
+		.active_low		= 0,
+//		.default_trigger	= "heartbeat",	/* 触发方式 */
+		.default_trigger	= "timer",	/* 触发方式 */
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	},
 };
 
 static struct gpio_led_platform_data gpio_led_info = {
@@ -2044,17 +1984,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
 #endif
-	
-#ifdef CONFIG_LS1B_BUZZER
-	&ls1b_gpio_buzzer_device,
-#endif
 
 #ifdef CONFIG_LS1B_PWM_DRIVER
 	&ls1b_pwm_device,
-#endif
-
-#ifdef CONFIG_LS1B_BBDIO
-	&ls1b_bobodogio_dog,
 #endif
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER
