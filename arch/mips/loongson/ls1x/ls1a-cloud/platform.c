@@ -681,24 +681,6 @@ static struct platform_device ls1x_audio_device = {
 
 #ifdef CONFIG_MTD_M25P80
 static struct mtd_partition partitions[] = {
-/*
-	//W25Q128 16MB SPI Flash
-	[0] = {
-		.name		= "pmon",
-		.offset		= 0,
-		.size		= 512 * 1024,	//512KB
-	}, 
-	[1] = {
-		.name		= "kernel",	
-		.offset		= 512 * 1024,
-		.size		= (512+7*1024)*1024,	//7.5MB
-	},
-	[2] = {
-		.name		= "fs",
-		.offset		= 8*1024*1024,
-		.size		= 8*1024*1024, //MTDPART_SIZ_FULL
-	},
-*/
 	[0] = {
 		.name		= "pmon",
 		.offset		= 0,
@@ -768,10 +750,10 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{	/* DataFlash chip */
-		.modalias	= "w25q64",		//"m25p80",
+		.modalias	= "m25p80",		//"m25p80",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS0,
-		.max_speed_hz	= 80000000,
+		.max_speed_hz	= 60000000,
 		.platform_data	= &flash,
 	},
 #endif
@@ -836,11 +818,11 @@ static struct platform_device spigpio_device = {
 static struct spi_board_info spi_gpio_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{	/* DataFlash chip */
-		.modalias	= "w25q64",		//"m25p80",
+		.modalias	= "m25p80",		//"m25p80",
 		.bus_num 		= 2,	/* 对应spigpio_device的.id=2 */
 		.controller_data = (void *)43,	/*gpio43*/
 		.chip_select	= 0,
-		.max_speed_hz	= 80000000,
+		.max_speed_hz	= 60000000,
 		.platform_data	= &flash,
 	},
 #endif

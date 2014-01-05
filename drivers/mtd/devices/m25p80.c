@@ -95,12 +95,13 @@ struct m25p {
 	u8			*command;
 };
 
+struct m25p *flash_tmp;
+
 static inline struct m25p *mtd_to_m25p(struct mtd_info *mtd)
 {
 	return container_of(mtd, struct m25p, mtd);
 }
 
-struct m25p *flash_tmp;
 /****************************************************************************/
 
 /*
@@ -338,7 +339,6 @@ static int m25p80_erase(struct mtd_info *mtd, struct erase_info *instr)
 	return 0;
 }
 
-
 /*
  * Read an address range from the flash chip.  The address range
  * may be any size provided it is within the physical boundaries.
@@ -349,6 +349,7 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 	struct m25p *flash = mtd_to_m25p(mtd);
 	struct spi_transfer t[2];
 	struct spi_message m;
+
 	DEBUG(MTD_DEBUG_LEVEL2, "%s: %s %s 0x%08x, len %zd\n",
 			dev_name(&flash->spi->dev), __func__, "from",
 			(u32)from, len);
@@ -359,6 +360,7 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 
 	if (from + len > flash->mtd.size)
 		return -EINVAL;
+
 	spi_message_init(&m);
 	memset(t, 0, (sizeof t));
 
@@ -373,6 +375,7 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 	t[1].rx_buf = buf;
 	t[1].len = len;
 	spi_message_add_tail(&t[1], &m);
+
 	/* Byte count starts at zero. */
 	*retlen = 0;
 
@@ -395,13 +398,13 @@ static int m25p80_read(struct mtd_info *mtd, loff_t from, size_t len,
 	m25p_addr2cmd(flash, from, flash->command);
 
 	spi_sync(flash->spi, &m);
+
 	*retlen = m.actual_length - m25p_cmdsz(flash) - FAST_READ_DUMMY_BYTE;
 
 	mutex_unlock(&flash->lock);
 
 	return 0;
 }
-
 
 /*
  * Write an address range to the flash chip.  Data must be written in
@@ -499,7 +502,6 @@ static int m25p80_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	return 0;
 }
-
 
 static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 		size_t *retlen, const u_char *buf)
@@ -707,8 +709,7 @@ static const struct spi_device_id m25p_ids[] = {
 	{ "s25fl129p0", INFO(0x012018, 0x4d00, 256 * 1024,  64, 0) },
 	{ "s25fl129p1", INFO(0x012018, 0x4d01,  64 * 1024, 256, 0) },
 	{ "s25fl016k",  INFO(0xef4015,      0,  64 * 1024,  32, SECT_4K) },
-	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128, 0) },
-//	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128, SECT_4K) },
+	{ "s25fl064k",  INFO(0xef4017,      0,  64 * 1024, 128, SECT_4K) },
 
 	/* SST -- large erase sizes are "overlays", "sectors" are 4K */
 	{ "sst25vf040b", INFO(0xbf258d, 0, 64 * 1024,  8, SECT_4K) },
@@ -1029,7 +1030,7 @@ static int __devexit m25p_remove(struct spi_device *spi)
 
 static struct spi_driver m25p80_driver = {
 	.driver = {
-		.name	= "w25q64",	//"m25p80",
+		.name	= "m25p80",
 		.bus	= &spi_bus_type,
 		.owner	= THIS_MODULE,
 	},
@@ -1062,3 +1063,4 @@ module_exit(m25p80_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Mike Lavender");
 MODULE_DESCRIPTION("MTD SPI driver for ST M25Pxx flash chips");
+

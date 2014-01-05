@@ -529,18 +529,18 @@ static struct platform_device ls1x_audio_device = {
 #ifdef CONFIG_MTD_M25P80
 static struct mtd_partition partitions[] = {
 	[0] = {
-		.name		= "pmon_spi",
+		.name		= "pmon",
 		.offset		= 0,
 		.size		= 512 * 1024,	//512KB
 	//	.mask_flags	= MTD_WRITEABLE,
 	},
 };
 
-static struct flash_platform_data flash = {
-	.name		= "ls1b_norflash",
+static struct flash_platform_data flash __maybe_unused = {
+	.name		= "spi-flash",
 	.parts		= partitions,
 	.nr_parts	= ARRAY_SIZE(partitions),
-	.type		= "w25q64",
+	.type		= "w25x40",
 };
 #endif /* CONFIG_MTD_M25P80 */
 
@@ -585,7 +585,7 @@ static struct mmc_spi_platform_data mmc_spi = {
 static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
 	{
-		.modalias	= "w25q64",
+		.modalias	= "m25p80",
 		.bus_num 		= 0,
 		.chip_select	= SPI0_CS0,
 		.max_speed_hz	= 60000000,
