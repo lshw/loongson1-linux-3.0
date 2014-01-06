@@ -126,13 +126,13 @@ static int ls1x_xfer(struct i2c_adapter *adap, struct i2c_msg *pmsg, int num)
 	struct ls1x_i2c *i2c = (struct ls1x_i2c *)adap->algo_data;
 	int i, ret;
 
-	dev_dbg(&adap->dev, "ls1x_xfer: processing %d messages:\n", num);
+//	dev_dbg(&adap->dev, "ls1x_xfer: processing %d messages:\n", num);
 
 	for (i = 0; i < num; i++) {
-		dev_dbg(&adap->dev, " #%d: %sing %d byte%s %s 0x%02x\n", i,
+/*		dev_dbg(&adap->dev, " #%d: %sing %d byte%s %s 0x%02x\n", i,
 			pmsg->flags & I2C_M_RD ? "read" : "writ",
 			pmsg->len, pmsg->len > 1 ? "s" : "",
-			pmsg->flags & I2C_M_RD ? "from" : "to",	pmsg->addr);
+			pmsg->flags & I2C_M_RD ? "from" : "to",	pmsg->addr);*/
 
 		if (!ls1x_poll_status(i2c, OCI2C_STAT_BUSY)) {
 			return -ETIMEDOUT;
@@ -161,7 +161,7 @@ static int ls1x_xfer(struct i2c_adapter *adap, struct i2c_msg *pmsg, int num)
 
 		if (ret)
 			return ret;
-		dev_dbg(&adap->dev, "transfer complete\n");
+//		dev_dbg(&adap->dev, "transfer complete\n");
 		pmsg++;
 	}
 	return i;
@@ -174,7 +174,7 @@ static void ls1x_i2c_hwinit(struct ls1x_i2c *i2c)
 	u8 ctrl = i2c_readb(i2c, OCI2C_CONTROL);
 
 	/* make sure the device is disabled */
-	i2c_writeb(i2c, OCI2C_CONTROL, ctrl & ~(OCI2C_CTRL_EN|OCI2C_CTRL_IEN));
+	i2c_writeb(i2c, OCI2C_CONTROL, ctrl & ~(OCI2C_CTRL_EN | OCI2C_CTRL_IEN));
 
 	clk = clk_get(NULL, "apb");
 	prescale = clk_get_rate(clk);
@@ -184,7 +184,7 @@ static void ls1x_i2c_hwinit(struct ls1x_i2c *i2c)
 
 	/* Init the device */
 	i2c_writeb(i2c, OCI2C_CMD, OCI2C_CMD_IACK);
-	i2c_writeb(i2c, OCI2C_CONTROL, ctrl | OCI2C_CTRL_IEN | OCI2C_CTRL_EN);
+	i2c_writeb(i2c, OCI2C_CONTROL, ctrl | OCI2C_CTRL_EN);
 }
 
 static u32 ls1x_functionality(struct i2c_adapter *adap)

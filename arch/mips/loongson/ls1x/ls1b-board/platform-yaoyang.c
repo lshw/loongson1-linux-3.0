@@ -195,7 +195,7 @@ static struct platform_device ls1x_ohci_device = {
 /* EHCI */
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
 static u64 ls1x_ehci_dma_mask = DMA_BIT_MASK(32);
-static struct resource ls1x_ehci_resources[] = { 
+static struct resource ls1x_ehci_resources[] = {
 	[0] = {
 		.start          = LS1X_EHCI_BASE,
 		.end            = LS1X_EHCI_BASE + SZ_32K - 1,
@@ -328,32 +328,25 @@ static struct pcf857x_platform_data ls1x_pcf857x_pdata = {
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 #include <linux/leds.h>
 struct gpio_led pcf8574_gpio_leds[] = {
-/*	{
-		.name			= "DO0",
-		.gpio			= PCF8574_DO0,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},*/
 	{
 		.name			= "LOCKER_BL",
 		.gpio			= LOCKER_BL,
 		.active_low		= 0,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_ON,
-	},{
+	}, {
 		.name			= "SHUTDOWN",
 		.gpio			= SHUTDOWN,
 		.active_low		= 1,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
+	}, {
 		.name			= "WIFI_RFEN",
 		.gpio			= WIFI_RFEN,
 		.active_low		= 0,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},{
+	}, {
 		.name			= "USB_RESET",
 		.gpio			= USBRESET,
 		.active_low		= 0,
@@ -365,13 +358,7 @@ struct gpio_led pcf8574_gpio_leds[] = {
 		.active_low		= 0,
 		.default_trigger	= "none",
 		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},/*{
-		.name			= "DO6",
-		.gpio			= PCF8574_DO6,
-		.active_low		= 0,
-		.default_trigger	= "none",
-		.default_state	= LEDS_GPIO_DEFSTATE_OFF,
-	},*/{
+	}, {
 		.name			= "POWER_OFF",
 		.gpio			= POWER_OFF,
 		.active_low		= 1,
@@ -401,47 +388,10 @@ static struct platform_device pcf8574_leds = {
 #define PCA9555_IRQ_BASE 170 + LS1X_GPIO_FIRST_IRQ
 #define PCA9555_GPIO_IRQ 2
 
-#define PCA9555_DO0 (PCA9555_GPIO_BASE+0)
-#define PCA9555_DO1 (PCA9555_GPIO_BASE+1)
-#define PCA9555_DO2 (PCA9555_GPIO_BASE+2)
-#define PCA9555_DO3 (PCA9555_GPIO_BASE+3)
-#define PCA9555_DO4 (PCA9555_GPIO_BASE+4)
-#define PCA9555_DO5 (PCA9555_GPIO_BASE+5)
-#define PCA9555_DO6 (PCA9555_GPIO_BASE+6)
-#define PCA9555_DO7 (PCA9555_GPIO_BASE+7)
-
-#define PCA9555_EMERG_OFF (PCA9555_GPIO_BASE+10)
-#define PCA9555_PWRKEY (PCA9555_GPIO_BASE+11)
-
-#define PCA9555_LED0 (PCA9555_GPIO_BASE+8)
-#define PCA9555_LED1 (PCA9555_GPIO_BASE+12)
-#define PCA9555_LED2 (PCA9555_GPIO_BASE+13)
-#define PCA9555_LED3 (PCA9555_GPIO_BASE+14)
-#define PCA9555_LED4 (PCA9555_GPIO_BASE+15)
-
 static int ls1x_pca9555_setup(struct i2c_client *client,
 			       unsigned gpio_base, unsigned ngpio,
 			       void *context)
 {
-#if 0
-	static int ls1x_gpio_value[] = {
-		1, 1, 1, 1, 1, 1, 1, 1, 0, -1, -1, 0, 0, 0, 0, 0
-	};
-	int n;
-
-	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
-	gpio_direction_input(PCA9555_GPIO_IRQ);		/* 输入使能 */
-
-	for (n = 0; n < ARRAY_SIZE(ls1x_gpio_value); ++n) {
-		gpio_request(gpio_base + n, "ACS-5000 GPIO Expander");
-		if (ls1x_gpio_value[n] < 0)
-			gpio_direction_input(gpio_base + n);
-		else
-			gpio_direction_output(gpio_base + n,
-					      ls1x_gpio_value[n]);
-		gpio_export(gpio_base + n, 0); /* Export, direction locked down */
-	}
-#endif
 	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
 	gpio_direction_input(PCA9555_GPIO_IRQ);
 
@@ -450,9 +400,10 @@ static int ls1x_pca9555_setup(struct i2c_client *client,
 	gpio_request(gpio_base + 13, "mfrc531 irq");
 	gpio_direction_input(gpio_base + 13);
 	gpio_request(gpio_base + 14, "mfrc531 ncs");
-	gpio_direction_output(gpio_base + 14, 1);
-	gpio_request(gpio_base + 15, "mfrc531 rstpd");
-	gpio_direction_output(gpio_base + 15, 0);
+//	gpio_direction_output(gpio_base + 14, 1);
+	gpio_direction_input(gpio_base + 14);
+//	gpio_request(gpio_base + 15, "mfrc531 rstpd");
+//	gpio_direction_output(gpio_base + 15, 0);
 	return 0;
 }
 
@@ -462,6 +413,32 @@ static struct pca953x_platform_data ls1x_i2c_pca9555_platdata = {
 //	.invert		= 0, /* Do not invert */
 	.setup		= ls1x_pca9555_setup,
 };
+
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#include <linux/leds.h>
+struct gpio_led pca9555_gpio_leds[] = {
+	{
+		.name			= "mfrc531_rstpd",
+		.gpio			= 185,	/* PCA9555_GPIO_BASE 170 + 15 */
+		.active_low		= 1,
+		.default_trigger	= NULL,
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	},
+};
+
+static struct gpio_led_platform_data pca9555_gpio_led_info = {
+	.leds		= pca9555_gpio_leds,
+	.num_leds	= ARRAY_SIZE(pca9555_gpio_leds),
+};
+
+static struct platform_device pca9555_leds = {
+	.name	= "leds-gpio",
+	.id	= 1,
+	.dev	= {
+		.platform_data	= &pca9555_gpio_led_info,
+	}
+};
+#endif //#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 #endif //#ifdef CONFIG_GPIO_PCA953X
 
 #ifdef CONFIG_I2C_LS1X
@@ -1214,6 +1191,12 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #if defined(CONFIG_GPIO_PCF857X) || defined(CONFIG_GPIO_PCF857X_MODULE)
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 	&pcf8574_leds,
+#endif
+#endif
+
+#ifdef CONFIG_GPIO_PCA953X
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+	&pca9555_leds,
 #endif
 #endif
 
