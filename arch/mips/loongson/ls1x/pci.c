@@ -26,38 +26,38 @@
  *  675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-//#include <linux/config.h>
-//#include <linux/autoconf.h>
+
 #include <generated/autoconf.h>
 #include <linux/types.h>
 #include <linux/pci.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 
+#include <loongson1.h>
+
 extern struct pci_ops ls1a_pci_pci_ops;
-//extern void prom_printf(char * fmt, ...);
 
 static struct resource ls1a_pci_mem_resource = {
-        .name   = "LS232 PCI MEM",
-        .start  = 0x14000000UL,
-        .end    = 0x17ffffffUL,
-        .flags  = IORESOURCE_MEM,
+	.name   = "pci memory space",
+	.start  = 0x14000000UL,
+	.end    = 0x17ffffffUL,
+	.flags  = IORESOURCE_MEM,
 };
 
 static struct resource ls1a_pci_io_resource = {
-        .name   = "LS232 PCI IO MEM",
-        .start  = 0x00004000UL,
-        .end    = 0x000fffffUL,
-        .flags  = IORESOURCE_IO,
+	.name   = "pci io space",
+	.start  = 0x00004000UL,
+	.end    = 0x000fffffUL,
+	.flags  = IORESOURCE_IO,
 };
 
 
 static struct pci_controller  ls1a_pci_controller = {
-        .pci_ops        = &ls1a_pci_pci_ops,
-        .io_resource    = &ls1a_pci_io_resource,
-        .mem_resource   = &ls1a_pci_mem_resource,
-        .mem_offset     = 0x00000000UL,
-        .io_offset      = 0x00000000UL,
+	.pci_ops        = &ls1a_pci_pci_ops,
+	.io_resource    = &ls1a_pci_io_resource,
+	.mem_resource   = &ls1a_pci_mem_resource,
+	.mem_offset     = 0x00000000UL,
+	.io_offset      = 0x00000000UL,
 };
 
 #ifdef CONFIG_LOAD_PCICFG
@@ -74,6 +74,15 @@ static int __init pcibios_init(void)
 {
     extern int pci_probe_only;
 
+	/* init base address of io space */
+	set_io_port_base((unsigned long)
+		ioremap(LS1A_PCIIO_BASE, LS1A_PCIIO_SIZE));
+	
+	ioport_resource.start = 0;
+	ioport_resource.end = 0xffffffffUL;
+	iomem_resource.start = 0;
+	iomem_resource.end = 0xffffffffUL;
+
 #ifdef CONFIG_PCI_AUTO
 	pci_probe_only = 0; //not auto assign the resource 
 #else
@@ -83,26 +92,27 @@ static int __init pcibios_init(void)
 #ifdef CONFIG_TRACE_BOOT
 #endif
 	pr_info("arch_initcall:pcibios_init\n");
-//	pr_info("register_pci_controller : %x\n",&ls1a_pci_controller);
+	pr_info("register_pci_controller : %p\n",&ls1a_pci_controller);
 
-	if(!disablepci)
-	register_pci_controller(&ls1a_pci_controller);
+	if (!disablepci)
+		register_pci_controller(&ls1a_pci_controller);
 
 #ifdef CONFIG_LOAD_PCICFG
 	pciload(&ls1a_pci_pci_ops);
 #endif
 	return 0;
 }
-
 arch_initcall(pcibios_init);
 
 static int __init disablepci_setup(char *options)
 {
     if (!options || !*options)
         return 0;
-    if(options[0]=='0')disablepci=0;
-    else disablepci=simple_strtoul(options,0,0);
+    if (options[0] == '0')
+    	disablepci = 0;
+    else
+    	disablepci = simple_strtoul(options, 0, 0);
     return 1;
 }
-
 __setup("disablepci=", disablepci_setup);
+

@@ -131,9 +131,6 @@
 #endif
 #define LS1C_I2S_BASE 0x1fe60000
 
-/* PCI */
-#define LS1B_BOARD_PCI_REGS_BASE		 0x1f002000
-
 /* CAMERA */
 #define LS1C_CAMERA_BASE                0x1c280000
 
@@ -170,10 +167,17 @@ struct ls1c_camera_pdata {
 #define LS1X_PIX2_PLL_CTRL	0x1fd00424
 #endif
 
-#define LS1A_PCICFG_BASE 	0x1c100000
+/* PCI */
+#define LS1A_PCI_REGS_BASE	0x1f002000
+
+#define LS1A_PCIIO_BASE	0x1c000000
+#define LS1A_PCIIO_SIZE	0x00100000	/* 1M */
+#define LS1A_PCIIO_TOP	(LS1A_PCIIO_BASE+LS1A_PCIIO_SIZE-1)
+
+#define LS1A_PCICFG_BASE	0x1c100000
 #define	LS1A_PCI_HEADER_CFG	0x1c180000
-#define LS1A_PCIMAP (*(volatile int *)0xbfd01114)
-#define LS1A_PCIMAP_CFG  (*(volatile int *)0xbfd01120)
+#define LS1A_PCIMAP	(*(volatile int *)0xbfd01114)
+#define LS1A_PCIMAP_CFG	(*(volatile int *)0xbfd01120)
 
 #endif	/* __ASM_MACH_LOONGSON1_H */
 

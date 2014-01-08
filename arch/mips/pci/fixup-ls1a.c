@@ -1,6 +1,4 @@
 /*
- * fixup-ls232-board.c
- *
  * Copyright (C) 2004 ICT CAS
  * Author: Li xiaoyu, ICT CAS
  *   lixy@ict.ac.cn
@@ -26,19 +24,20 @@
  *  675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-//#include <linux/config.h>
-//#include <linux/autoconf.h>
-#include <generated/autoconf.h>	//lxy
+
 #include <linux/init.h>
 #include <linux/pci.h>
+
 #include <loongson1.h>
-#include <asm/mach-loongson/ls1x/irq.h>
+#include <irq.h>
 #include <asm/gpio.h>
 
+#define LOONGSON_REG(x)	\
+	(*(volatile u32 *)((char *)CKSEG1ADDR(x)))
 
 int __init pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
 {
-	printk("pcibios_map_irq devfn : %d , slot : %d , pin : %d\n",PCI_SLOT(dev->devfn),slot,pin);
+	printk("pcibios_map_irq devfn : %d , slot : %d , pin : %d\n", PCI_SLOT(dev->devfn), slot, pin);
 //	 dev->irq=(pin-1)+LS1A_BOARD_PCI_INTA_IRQ;
 //	return dev->irq;
 //	return ((pin-1)+LS1A_BOARD_PCI_INTA_IRQ);
@@ -76,5 +75,5 @@ static void __init loongsonls1a_fixup_pcimap(struct pci_dev *pdev)
 	LOONGSON_REG(LS1A_PCI_HEADER_CFG + 0x20) = 0x40000000;
 	LOONGSON_REG(LS1A_PCI_HEADER_CFG + 0x24) = 0x0;
 }
-
 DECLARE_PCI_FIXUP_HEADER(PCI_ANY_ID, PCI_ANY_ID, loongsonls1a_fixup_pcimap);
+
