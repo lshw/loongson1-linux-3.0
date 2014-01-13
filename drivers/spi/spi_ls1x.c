@@ -200,12 +200,19 @@ static inline void ls1x_spi_wait_rxe(struct ls1x_spi *hw)
 
 static inline void ls1x_spi_wait_txe(struct ls1x_spi *hw)
 {
-	while (1) {
+	int timeout = 20000;
+
+	while (timeout) {
 		if (readb(hw->base + REG_SPSR) & 0x80) {
 			break;
 		}
-		cpu_relax();
+		timeout--;
+//		cpu_relax();
 	}
+
+//	if (timeout == 0) {
+//		printk(KERN_ERR "spi transfer wait time out !\n");
+//	}
 }
 
 static int ls1x_spi_txrx_bufs(struct spi_device *spi, struct spi_transfer *t)
