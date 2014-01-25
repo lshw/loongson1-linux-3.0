@@ -12,25 +12,15 @@
  *
  */
 
-#include <linux/platform_device.h>
-#include <linux/interrupt.h>
-#include <linux/ioport.h>
-#include <linux/time.h>
-#include <linux/errno.h>
-#include <linux/miscdevice.h>
-#include <linux/kernel.h>
-#include <linux/types.h>
 #include <linux/module.h>
-#include <linux/string.h>
-#include <linux/mm.h>
-#include <linux/slab.h>
-#include <linux/fs.h>
-#include <linux/io.h>
-#include <linux/signal.h>
-#include <linux/sched.h>
-
-#include <linux/clk.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/platform_device.h>
+#include <linux/fb.h>
 #include <linux/err.h>
+#include <linux/miscdevice.h>
+#include <linux/clk.h>
+#include <linux/slab.h>
 #include <linux/gpio.h>
 
 #include <loongson1.h>
@@ -42,6 +32,8 @@
 #define REG_PWM_HRC		0x04
 #define REG_PWM_LRC		0x08
 #define REG_PWM_CTRL	0x0c
+
+#define AUDIO_EN_GPIO	200
 
 #define LS1X_PWM_AUDIO_DEV 250
 
@@ -55,27 +47,38 @@ struct ls1x_pwm_audio_device {
 	unsigned char *pBuf;
 	unsigned long buffsize;
 	unsigned short samplerate;
-	unsigned int wChannels;
+	unsigned int uiBitsPerSample;
+	unsigned int step;
 }audio_device;
 
-static irqreturn_t ls1x_pwm_audio_irq_handler(int i, void *data)
+static inline void read_and_start(void)
 {
 	unsigned int tmp;
 
+	if (audio_device.uiBitsPerSample == 16) {
+		/* wav文件使用16bit采样深度时，量化值使用补码 需把补码转换为原码 */
+		tmp = *(short *)&audio_device.pBuf[audio_device.dat_offset] + 0x8000;
+		tmp = tmp * audio_device.samplerate / 0xffff;
+	} else {
+		tmp = audio_device.pBuf[audio_device.dat_offset];
+		tmp = tmp * audio_device.samplerate / 0xff;
+	}
+
+	writel(tmp, ls1x_pwm_base + REG_PWM_HRC);
+	writel(0x421, ls1x_pwm_base + REG_PWM_CTRL);
+
+	audio_device.dat_offset += audio_device.step;
+}
+
+static irqreturn_t ls1x_pwm_audio_irq_handler(int i, void *data)
+{
 	if (audio_device.dat_offset >= audio_device.buffsize) {
 		wake_up_interruptible(&ls1x_wate_queue);
 		processed += 1;
 		return IRQ_HANDLED;
 	}
 
-	tmp = (*(unsigned short *)&audio_device.pBuf[audio_device.dat_offset]) * audio_device.samplerate / 0xffff;
-	writel(tmp, ls1x_pwm_base + REG_PWM_HRC);
-	writel(0x421, ls1x_pwm_base + REG_PWM_CTRL);
-
-	if (audio_device.wChannels == 1)
-		audio_device.dat_offset += 2;	
-	else
-		audio_device.dat_offset += 4;
+	read_and_start();
 
 	return IRQ_HANDLED;
 }
@@ -98,7 +101,44 @@ static ssize_t ls1x_pwm_audio_write(struct file *file, const char __user *buf, s
 
 	audio_device.buffsize = pWav_Fmt->v_head.dwSize + 4;
 	audio_device.samplerate = pWav_Fmt->v_fmt.dwSamplesPerSec;
-	audio_device.wChannels = pWav_Fmt->v_fmt.wChannels;
+	audio_device.uiBitsPerSample = pWav_Fmt->v_fmt.uiBitsPerSample;
+
+	/* 判断是否是PCM格式 */
+	if (pWav_Fmt->v_fmt.wFormatTag != 1) {
+		printk("Audio wFormatTag = %d not support!\n", pWav_Fmt->v_fmt.wFormatTag);
+		return -EFAULT;
+	}
+
+	/* 采样深度 */
+	switch (pWav_Fmt->v_fmt.uiBitsPerSample) {
+	case 16:
+		if (pWav_Fmt->v_fmt.wChannels == 1) {
+			audio_device.step = 2;
+		}
+		else if (pWav_Fmt->v_fmt.wChannels == 2) {
+			audio_device.step = 4;
+		}
+		else {
+			printk("Audio Channels = %d not support!\n", pWav_Fmt->v_fmt.wChannels);
+			return -EFAULT;
+		}
+		break;
+	case 8:
+		if (pWav_Fmt->v_fmt.wChannels == 1) {
+			audio_device.step = 1;
+		}
+		else if (pWav_Fmt->v_fmt.wChannels == 2) {
+			audio_device.step = 2;
+		}
+		else {
+			printk("Audio Channels = %d not support!\n", pWav_Fmt->v_fmt.wChannels);
+			return -EFAULT;
+		}
+		break;
+	default :
+		printk("Audio uiBitsPerSample = %d not support!\n", pWav_Fmt->v_fmt.uiBitsPerSample);
+		return -EFAULT;
+	}
 
 	audio_device.pBuf =  kmalloc(audio_device.buffsize,  GFP_KERNEL);
 	if (audio_device.pBuf == NULL)
@@ -109,24 +149,27 @@ static ssize_t ls1x_pwm_audio_write(struct file *file, const char __user *buf, s
 	period = (unsigned long)clk_get_rate(ls1x_pwm_clk) / audio_device.samplerate;
 	audio_device.samplerate = period;
 	writel(period, ls1x_pwm_base + REG_PWM_LRC);
-	writel(0x000, ls1x_pwm_base + REG_PWM_CNTR);
-	writel(0x421, ls1x_pwm_base + REG_PWM_CTRL);
+
+	read_and_start();
+	gpio_set_value(AUDIO_EN_GPIO, 1);
 
 	if (!processed && (file->f_flags & O_NONBLOCK))
 		return -EAGAIN;
 
 	if (wait_event_interruptible(ls1x_wate_queue, processed)) {
-		writel(0x000, ls1x_pwm_base + REG_PWM_CTRL);
+		gpio_set_value(AUDIO_EN_GPIO, 0);
+		writel(0x488, ls1x_pwm_base + REG_PWM_CTRL);
 		return -EAGAIN;
 	}
-	writel(0x000, ls1x_pwm_base + REG_PWM_CTRL);
+	gpio_set_value(AUDIO_EN_GPIO, 0);
+	writel(0x488, ls1x_pwm_base + REG_PWM_CTRL);
 
 	return count;
 }
 
 static int ls1x_pwm_audio_close(struct inode *inode, struct file *filp)
 {
-	writel(0x00, ls1x_pwm_base + REG_PWM_CTRL);
+	writel(0x488, ls1x_pwm_base + REG_PWM_CTRL);
 	kfree(audio_device.pBuf);
 	return 0;
 }
@@ -148,7 +191,7 @@ static int __devinit ls1x_pwm_audio_probe(struct platform_device *pdev)
 {
 	int ret;
 
-	ls1x_pwm_base = ioremap(LS1X_PWM1_BASE, 0xf);
+	ls1x_pwm_base = ioremap(LS1X_PWM0_BASE, 0xf);
 	if (!ls1x_pwm_base) {
 		printk(KERN_ERR "Failed to ioremap audio registers");
 		return -1;
@@ -165,11 +208,16 @@ static int __devinit ls1x_pwm_audio_probe(struct platform_device *pdev)
 	writel(0x00, ls1x_pwm_base + REG_PWM_CNTR);
 	writel(0x00, ls1x_pwm_base + REG_PWM_CTRL);
 
-	ret = request_irq(LS1X_PWM1_IRQ, ls1x_pwm_audio_irq_handler, IRQF_TRIGGER_RISING | IRQF_DISABLED, "ls1x_pwm_audio", NULL);
+	ret = request_irq(LS1X_PWM0_IRQ, ls1x_pwm_audio_irq_handler, IRQF_TRIGGER_RISING | IRQF_DISABLED, "ls1x_pwm_audio", NULL);
 	if (ret) {
 		printk("ls1x_pwm_audio:irq handler resigered error:%d\n", ret);
 		return ret;
 	}
+
+	ret = gpio_request(AUDIO_EN_GPIO, "pwm_audio");
+	if (ret < 0)
+		return ret;
+	gpio_direction_output(AUDIO_EN_GPIO, 0);
 
 	return 0;
 }
@@ -196,7 +244,8 @@ static int __init ls1x_pwm_audio_init(void)
 
 static void __exit ls1x_pwm_audio_exit(void)
 {
-	free_irq(LS1X_PWM1_IRQ, NULL);
+	gpio_free(AUDIO_EN_GPIO);
+	free_irq(LS1X_PWM0_IRQ, NULL);
 	misc_deregister(&ls1x_pwm_audio_miscdev);
 	iounmap(ls1x_pwm_base);
 //	platform_driver_unregister(&ls1x_pwm_audio_driver);	
