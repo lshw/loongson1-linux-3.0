@@ -999,7 +999,7 @@ static int ls1x_audio_release(struct inode *inode, struct file *file)
 		ls1x_audio_sync(file);
 		audio_clear_buf(state->input_stream);
 		state->rd_ref = 0;
-		free_irq(LS1B_BOARD_DMA2_IRQ, state->input_stream);
+		free_irq(LS1X_DMA2_IRQ, state->input_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
 		del_timer(&state->input_stream->timer);
 #endif
@@ -1009,7 +1009,7 @@ static int ls1x_audio_release(struct inode *inode, struct file *file)
 		ls1x_audio_sync(file);
 		audio_clear_buf(state->output_stream);
 		state->wr_ref = 0;
-		free_irq(LS1B_BOARD_DMA1_IRQ, state->output_stream);
+		free_irq(LS1X_DMA1_IRQ, state->output_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
 		del_timer(&state->output_stream->timer);
 #endif
@@ -1062,7 +1062,7 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 		INIT_LIST_HEAD(&os->done_list);
 		INIT_LIST_HEAD(&os->all_list);
 		spin_lock_init(&os->lock);
-		request_irq(LS1B_BOARD_DMA1_IRQ, ac97_dma_write_intr, IRQF_SHARED,
+		request_irq(LS1X_DMA1_IRQ, ac97_dma_write_intr, IRQF_SHARED,
 				"ac97dma-write", os);
 #ifdef CONFIG_SND_SB2F_TIMER
 		init_timer(&os->timer);
@@ -1088,7 +1088,7 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 		INIT_LIST_HEAD(&is->done_list);
 		INIT_LIST_HEAD(&is->all_list);
 		spin_lock_init(&is->lock);
-		request_irq(LS1B_BOARD_DMA2_IRQ, ac97_dma_read_intr, IRQF_SHARED,
+		request_irq(LS1X_DMA2_IRQ, ac97_dma_read_intr, IRQF_SHARED,
 				"ac97dma-read", is);
 #ifdef CONFIG_SND_SB2F_TIMER
 		init_timer(&is->timer);

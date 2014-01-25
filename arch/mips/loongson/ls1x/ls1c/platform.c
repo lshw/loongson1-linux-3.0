@@ -301,11 +301,13 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		.platform_data = &gc0308_plat,
 	},
 #endif
+//#ifdef CONFIG_SND_SOC_UDA1342
 #ifdef CONFIG_CODEC_UDA1342
 	{
 		I2C_BOARD_INFO("uda1342", 0x1a),
 	},
 #endif
+//#ifdef CONFIG_SND_SOC_ES8388
 #ifdef CONFIG_CODEC_ES8388
 	{
 		I2C_BOARD_INFO("es8388", 0x10),
@@ -910,10 +912,26 @@ static struct platform_device ls1c_camera_host = {
 };
 #endif	//End of CONFIG_SOC_CAMERA_LS1C
 
+#if 0
+static struct platform_device ls1x_i2s_device = {
+	.name = "ls1x-i2s",
+	.id = -1,
+};
+
+static struct platform_device ls1a_pcm_device = {
+	.name = "loongson1-pcm-audio",
+	.id = -1,
+};
+#endif
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
+
+#if 0
+	&ls1x_i2s_device,
+	&ls1a_pcm_device,
+#endif
 
 #ifdef	CONFIG_USB_DWC_OTG_LPM
 	&ls1c_otg_device, 

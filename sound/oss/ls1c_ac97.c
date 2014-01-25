@@ -634,6 +634,7 @@ static long ls1x_audio_ioctl(struct file *file, uint cmd, ulong arg)
 					 */
 					//u16 ext_stat = ls1x_codec_read(state->codec, AC97_EXTENDED_STATUS);
 					//ls1x_codec_write(state->codec, AC97_EXTENDED_STATUS,
+
 					//	ext_stat | (AC97_EXTSTAT_PRI | AC97_EXTSTAT_PRJ | AC97_EXTSTAT_PRK));
 				} else if (val >= 4) {
 					/* enable surround, center/lfe
@@ -1205,7 +1206,7 @@ static int ls1x_audio_release(struct inode *inode, struct file *file)
                 ls1x_audio_sync(file);
                 audio_clear_buf(state->input_stream);
                 state->rd_ref = 0;
-                free_irq(LS1B_BOARD_DMA2_IRQ, state->input_stream);
+                free_irq(LS1X_DMA2_IRQ, state->input_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
                 del_timer(&state->input_stream->timer);
 #endif 
@@ -1215,7 +1216,7 @@ static int ls1x_audio_release(struct inode *inode, struct file *file)
                 ls1x_audio_sync(file);
                 audio_clear_buf(state->output_stream);
                 state->wr_ref = 0;
-                free_irq(LS1B_BOARD_DMA1_IRQ, state->output_stream);
+                free_irq(LS1X_DMA1_IRQ, state->output_stream);
 #ifdef CONFIG_SND_SB2F_TIMER
                 del_timer(&state->output_stream->timer);
 #endif 
@@ -1269,7 +1270,7 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 		INIT_LIST_HEAD(&os->done_list);
 		INIT_LIST_HEAD(&os->all_list);
 		spin_lock_init(&os->lock);
-		request_irq(LS1B_BOARD_DMA1_IRQ, ac97_dma_write_intr, IRQF_SHARED,
+		request_irq(LS1X_DMA1_IRQ, ac97_dma_write_intr, IRQF_SHARED,
 				"ac97dma-write", os);
 #ifdef CONFIG_SND_SB2F_TIMER
 		init_timer(&os->timer);
@@ -1294,7 +1295,7 @@ static int ls1x_audio_open(struct inode *inode, struct file *file)
 		INIT_LIST_HEAD(&is->done_list);
 		INIT_LIST_HEAD(&is->all_list);
 		spin_lock_init(&is->lock);
-		request_irq(LS1B_BOARD_DMA2_IRQ, ac97_dma_read_intr, IRQF_SHARED,
+		request_irq(LS1X_DMA2_IRQ, ac97_dma_read_intr, IRQF_SHARED,
 				"ac97dma-read", is);
 #ifdef CONFIG_SND_SB2F_TIMER
 		init_timer(&is->timer);
@@ -1417,6 +1418,7 @@ static int __devexit ls1x_audio_remove(struct platform_device *pdev)
 {
 	struct ls1x_audio_state *state = &ls1x_audio_state;
 	struct resource *res;
+
 
 	unregister_sound_dsp(state->dev_audio);
 	unregister_sound_mixer(state->codec->dev_mixer);
