@@ -88,7 +88,7 @@ static struct snd_pcm_ops ls1x_pcm_ops = {
 	.prepare	= __ls1x_pcm_prepare,
 	.trigger	= ls1x_pcm_trigger,
 	.pointer	= ls1x_pcm_pointer,
-//	.mmap		= ls1x_pcm_mmap,
+	.mmap		= ls1x_pcm_mmap,
 };
 
 static u64 ls1x_pcm_dmamask = DMA_BIT_MASK(32);

@@ -27,15 +27,13 @@ static int ls1x_i2s_startup(struct snd_pcm_substream *substream)
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret;
 
-	/* WM8731 has its own 12MHz crystal */
-//	snd_soc_dai_set_sysclk(codec_dai, WM8731_SYSCLK_XTAL,
-//				12000000, SND_SOC_CLOCK_IN);
+	snd_soc_dai_set_sysclk(cpu_dai, 0, 34000000, SND_SOC_CLOCK_OUT);
 
 	/* codec is bitclock and lrclk master */
-	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
+/*	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
 	if (ret < 0)
-		goto out;
+		goto out;*/
 
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
@@ -59,7 +57,7 @@ static struct snd_soc_dai_link ls1x_dai[] = {
 		.codec_dai_name = "uda134x-hifi",
 		.platform_name = "loongson1-pcm-audio",
 		.codec_name = "uda1342-codec.0-001a",
-//		.ops = &ls1a_ac97_hifi_dai_ops,
+		.ops = &ls1x_i2s_uda1342_ops,
 //		.init = uda134x_init,
 	},
 /*	{

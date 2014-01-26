@@ -913,9 +913,19 @@ static struct platform_device ls1c_camera_host = {
 #endif	//End of CONFIG_SOC_CAMERA_LS1C
 
 #if 0
+static struct resource ls1x_i2s_resource[] = {
+	[0] = {
+		.start	= LS1C_I2S_BASE,
+		.end	= LS1C_I2S_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
 static struct platform_device ls1x_i2s_device = {
-	.name = "ls1x-i2s",
-	.id = -1,
+	.name           = "ls1x-i2s",
+	.id             = -1,
+	.num_resources	= ARRAY_SIZE(ls1x_i2s_resource),
+	.resource		= ls1x_i2s_resource,
 };
 
 static struct platform_device ls1a_pcm_device = {

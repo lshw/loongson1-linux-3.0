@@ -1,50 +1,41 @@
 /*
- * linux/sound/ls1a-ac97.c -- AC97 support for the Loongson 1A chip.
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under  the terms of the GNU General  Public License as published by the
+ *  Free Software Foundation;  either version 2 of the License, or (at your
+ *  option) any later version.
  *
- * Author:	Nicolas Pitre
- * Created:	Dec 02, 2004
- * Copyright:	MontaVista Software Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
 
 #include <linux/init.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
-#include <linux/delay.h>
+#include <linux/slab.h>
+
 #include <linux/clk.h>
+#include <linux/delay.h>
+
+#include <linux/dma-mapping.h>
 
 #include <sound/core.h>
-#include <sound/ac97_codec.h>
-#include <sound/soc.h>
-
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
+#include <sound/soc.h>
+#include <sound/initval.h>
+
 #include <sound/ls1x-lib.h>
 
-#include <linux/interrupt.h>
-//#include "ls1x-pcm.h"
+#include <loongson1.h>
 #include "ls1x-i2s.h"
 
-struct ls1x_i2s_port {
-	int master;
-	u32 iis_control;
+struct ls1x_i2s {
+	struct resource *mem;
+	void __iomem *base;
+	dma_addr_t phys_base;
+
+	struct clk *clk_i2s;
 };
-static struct ls1x_i2s_port ls1x_i2s;
-static struct clk *clk_i2s;
-static int clk_ena = 0;
-
-static void ls1a_ac97_cold_reset(struct snd_ac97 *ac97)
-{
-	udelay(5000);
-
-//	ls1a_i2c_write( 0, 0);
-	udelay(5000);		//FIXME,This is very very necessary,Zhuo Qixiang!
-	printk(KERN_ALERT "+++++++++ Here Enter into %s.+++++++++\n", __func__);
-}
-
 
 static struct ls1x_pcm_dma_params ls1x_i2s_pcm_stereo_out = {
 	.name = "I2S PCM Stereo out",
@@ -56,158 +47,229 @@ static struct ls1x_pcm_dma_params ls1x_i2s_pcm_stereo_in = {
 	.dev_addr = 0x1fe6000c,
 };
 
-static int ls1x_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
-		unsigned int fmt)
+static int ls1x_i2s_startup(struct snd_pcm_substream *substream,
+	struct snd_soc_dai *dai)
 {
-	int ret;
+	if (dai->active)
+		return 0;
 
-	ret = -EINVAL;
+	writel(readl(LS1X_MUX_CTRL0) & (~I2S_SHUT), LS1X_MUX_CTRL0);
 
-	printk("++++fmt %x\n", fmt);
+	return 0;
+}
+
+static void ls1x_i2s_shutdown(struct snd_pcm_substream *substream,
+	struct snd_soc_dai *dai)
+{
+	if (dai->active)
+		return;
+
+	writel(readl(LS1X_MUX_CTRL0) | I2S_SHUT, LS1X_MUX_CTRL0);
+}
+
+static int ls1x_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
+			      struct snd_soc_dai *dai)
+{
+	struct ls1x_i2s *i2s = snd_soc_dai_get_drvdata(dai);
+	uint32_t ctrl;
+	uint32_t mask;
+
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+		mask = CONTROL_TX_EN | CONTROL_TX_DMA_EN;
+//		mask = CONTROL_TX_EN | CONTROL_TX_DMA_EN | CONTROL_TX_INT_EN;
+	else
+		mask = CONTROL_RX_EN | CONTROL_RX_DMA_EN;
+//		mask = CONTROL_RX_EN | CONTROL_RX_DMA_EN | CONTROL_RX_INT_EN;
+
+	ctrl = readl(i2s->base + LS1X_IIS_CONTROL);
+
+	switch (cmd) {
+	case SNDRV_PCM_TRIGGER_START:
+	case SNDRV_PCM_TRIGGER_RESUME:
+	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+		ctrl |= mask;
+		break;
+	case SNDRV_PCM_TRIGGER_STOP:
+	case SNDRV_PCM_TRIGGER_SUSPEND:
+	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+		ctrl &= ~mask;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	writel(ctrl, i2s->base + LS1X_IIS_CONTROL);
+
+	return 0;
+}
+
+static int ls1x_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
+{
+	struct ls1x_i2s *i2s = snd_soc_dai_get_drvdata(dai);
+	uint32_t ctrl;
+
+	ctrl = readl(i2s->base + LS1X_IIS_CONTROL);
 
 	/* interface format */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:
-//		ct |= PSC_I2SCFG_XM;	/* enable I2S mode */
+	case SND_SOC_DAIFMT_I2S:	/* enable I2S mode */
 		break;
 	case SND_SOC_DAIFMT_MSB:
-		ls1x_i2s.iis_control |= CONTROL_MSB_LSB;
+//		ctrl |= CONTROL_MSB_LSB;
 		break;
 	case SND_SOC_DAIFMT_LSB:
-		ls1x_i2s.iis_control &= ~CONTROL_MSB_LSB;	/* LSB (right-) justified */
+//		ctrl &= ~CONTROL_MSB_LSB;	/* LSB (right-) justified */
 		break;
 	default:
-		goto out;
+		return -EINVAL;
 	}
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:	/* CODEC master */
-		ls1x_i2s.iis_control &= ~CONTROL_MASTER;	/* LS1X I2S slave mode */
+		ctrl &= ~CONTROL_MASTER;	/* LS1X I2S slave mode */
 		break;
 	case SND_SOC_DAIFMT_CBS_CFS:	/* CODEC slave */
-		ls1x_i2s.iis_control |= CONTROL_MASTER;	/* LS1X I2S Master mode */
+		ctrl |= CONTROL_MASTER;	/* LS1X I2S Master mode */
 		break;
 	default:
-		goto out;
+		return -EINVAL;
 	}
 
-	ret = 0;
-out:
-	return ret;
+	writel(ctrl, i2s->base + LS1X_IIS_CONTROL);
+
+	return 0;
 }
 
 static int ls1x_i2s_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params,
 				struct snd_soc_dai *dai)
 {
+	struct ls1x_i2s *i2s = snd_soc_dai_get_drvdata(dai);
 	struct ls1x_pcm_dma_params *dma_data;
-	unsigned char sck_ratio;
+	unsigned int sample_size;
+	unsigned int i2s_clk;
 	unsigned char bck_ratio;
 
-	//采样位数;设置声道对于I2S 如何设置???
+	uint32_t ctrl;
+	uint32_t conf;
+
+	ctrl = readl(i2s->base + LS1X_IIS_CONTROL);
+	conf = readl(i2s->base + LS1X_IIS_CONFIG);
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S8:
+	case SNDRV_PCM_FORMAT_U8:
+		sample_size = 8;
+		ctrl |= CONTROL_MSB_LSB;
+		break;
+	case SNDRV_PCM_FORMAT_S16_LE:
+	case SNDRV_PCM_FORMAT_U16_LE:
+		sample_size = 16;
+		ctrl |= CONTROL_MSB_LSB;
+		break;
+	case SNDRV_PCM_FORMAT_S16_BE:
+	case SNDRV_PCM_FORMAT_U16_BE:
+		sample_size = 16;
+		ctrl &= ~CONTROL_MSB_LSB;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+	case SNDRV_PCM_FORMAT_U24_LE:
+		sample_size = 24;
+		ctrl |= CONTROL_MSB_LSB;
+		break;
+	case SNDRV_PCM_FORMAT_S24_BE:
+	case SNDRV_PCM_FORMAT_U24_BE:
+		sample_size = 24;
+		ctrl &= ~CONTROL_MSB_LSB;
+		break;
+	case SNDRV_PCM_FORMAT_S32_LE:
+	case SNDRV_PCM_FORMAT_U32_LE:
+		sample_size = 32;
+		ctrl |= CONTROL_MSB_LSB;
+		break;
+	case SNDRV_PCM_FORMAT_S32_BE:
+	case SNDRV_PCM_FORMAT_U32_BE:
+		sample_size = 32;
+		ctrl &= ~CONTROL_MSB_LSB;
+		break;
+	default:
+		printk("\nerror SNDRV_PCM_FORMAT=%d\n", params_format(params));
+		return -EINVAL;
+	}
+
+	/* BCK的频率=2×采样频率×采样位数 */
+	/* 帧时钟LRCK，用于切换左右声道的数据,LRCK的频率等于采样频率 */
+	i2s_clk = clk_get_rate(i2s->clk_i2s) / 2;
+	bck_ratio = (i2s_clk / (params_rate(params) * sample_size * 2)) - 1;
+
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		dma_data = &ls1x_i2s_pcm_stereo_out;
-		writel(readl(LS1X_IIS_BASE(8)) | 0x1080, LS1X_IIS_BASE(8));
-		sck_ratio = (clk_get_rate(clk_i2s)/(params_rate(params)*2*2*16)) - 1;
-		bck_ratio = (clk_get_rate(clk_i2s)/(params_rate(params)*2*512)) - 1;
-//		sck_ratio = 0xf;
-//		bck_ratio = 0x1;
 	}
 	else {
 		dma_data = &ls1x_i2s_pcm_stereo_in;
-		writel(readl(LS1X_IIS_BASE(8)) | 0x2800, LS1X_IIS_BASE(8));
-//		sck_ratio = (clk_get_rate(clk_i2s)/(params_rate(params)*2*2*16)) - 1;
-		bck_ratio = (clk_get_rate(clk_i2s)/(params_rate(params)*2*512)) - 1;
-		sck_ratio = 0xf;
-//		bck_ratio = 0x1;
 	}
-	writel((16<<24) | (16<<16) | (sck_ratio<<8) | (bck_ratio<<0), LS1X_IIS_BASE(4));
+
+	conf &= 0x000000ff;
+	conf |= (sample_size<<24) | (sample_size<<16) | (bck_ratio<<8);
+	writel(conf, i2s->base + LS1X_IIS_CONFIG);
+	writel(ctrl, i2s->base + LS1X_IIS_CONTROL);
 
 	snd_soc_dai_set_dma_data(dai, substream, dma_data);
 
-	switch (params_rate(params)) {
-	case 8000:
-		break;
-	case 11025:
-		break;
-	case 16000:
-		break;
-	case 22050:
-		break;
-	case 44100:
-		break;
-	case 48000:
-		break;
-	case 96000: /* not in manual and possibly slightly inaccurate */
-		break;
-	}
-
-//	#define SAMP_RATE 44100
-//	sck_ratio = (clk_get_rate(clk_i2s)/(params_rate(params)*2*2*16)) - 1;
-//	bck_ratio = (clk_get_rate(clk_i2s)/(params_rate(params)*2*512)) - 1;
-//	sck_ratio = 0xf;
-//	bck_ratio = 0x1;
-
-//	writel((16<<24) | (16<<16) | (sck_ratio<<8) | (bck_ratio<<0), LS1X_IIS_BASE(4));
-
-	printk("++++++++++clk_i2s=%ld\n", clk_get_rate(clk_i2s));
-	printk("+++++++++++++ %d %x %x\n\n", params_rate(params), sck_ratio, bck_ratio);
-
 	return 0;
 }
 
-static int ls1x_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
-			      struct snd_soc_dai *dai)
+static int ls1x_i2s_set_sysclk(struct snd_soc_dai *dai, int clk_id,
+	unsigned int freq, int dir)
 {
-//	struct au1xpsc_audio_data *pscdata = snd_soc_dai_get_drvdata(dai);
-	int ret = 0;
+	struct ls1x_i2s *i2s = snd_soc_dai_get_drvdata(dai);
+	unsigned int i2s_clk;
+	unsigned char sck_ratio;
 
-	switch (cmd) {
-	case SNDRV_PCM_TRIGGER_START:
-	case SNDRV_PCM_TRIGGER_RESUME:
-//		ret = au1xpsc_i2s_start(pscdata, stype);
-		break;
-	case SNDRV_PCM_TRIGGER_STOP:
-	case SNDRV_PCM_TRIGGER_SUSPEND:
-//		ret = au1xpsc_i2s_stop(pscdata, stype);
-		break;
-	default:
-		ret = -EINVAL;
-	}
-	printk("++++trigger %x ret=%d\n\n", cmd, ret);
-	return ret;
+	uint32_t conf;
+
+	conf = readl(i2s->base + LS1X_IIS_CONFIG);
+	conf &= 0xffffff00;
+
+	/* 有时为了使系统间能够更好地同步，
+	   还需要另外传输一个信号MCLK，称为主时钟，也叫系统时钟（Sys Clock），
+	   是采样频率的256倍或384倍。 */
+	i2s_clk = clk_get_rate(i2s->clk_i2s) / 2;
+	sck_ratio = (i2s_clk / freq) - 1;
+	conf |= sck_ratio;
+	writel(conf, i2s->base + LS1X_IIS_CONFIG);
+
+	return 0;
 }
-
 
 #ifdef CONFIG_PM
-static int ls1x_i2s_suspend(struct snd_soc_dai *dai)
+static int ls1x_i2s_dai_suspend(struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
-static int ls1x_i2s_resume(struct snd_soc_dai *dai)
+static int ls1x_i2s_dai_resume(struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
 #else
-#define ls1x_i2s_suspend	NULL
-#define ls1x_i2s_resume	NULL
+#define ls1x_i2s_dai_suspend	NULL
+#define ls1x_i2s_dai_resume	NULL
 #endif
 
-static int ls1x_i2s_probe(struct snd_soc_dai *dai)
+static int ls1x_i2s_dai_probe(struct snd_soc_dai *dai)
 {
-	clk_i2s = clk_get(dai->dev, "apb");
-	if (IS_ERR(clk_i2s))
-		return PTR_ERR(clk_i2s);
+	struct ls1x_i2s *i2s = snd_soc_dai_get_drvdata(dai);
 
-	writel(0xc220, LS1X_IIS_BASE(8));
-	writel(0x0110, LS1X_IIS_BASE(0));
+	writel(CONTROL_MASTER | CONTROL_MSB_LSB, i2s->base + LS1X_IIS_CONTROL);
+	writel(0x0000, i2s->base + LS1X_IIS_CONFIG);
+	writel(0x0110, i2s->base + LS1X_IIS_VERSION);
 
 	return 0;
 }
 
-static int ls1x_i2s_remove(struct snd_soc_dai *dai)
+static int ls1x_i2s_dai_remove(struct snd_soc_dai *dai)
 {
 	return 0;
 }
@@ -217,30 +279,34 @@ static int ls1x_i2s_remove(struct snd_soc_dai *dai)
 		SNDRV_PCM_RATE_48000)
 
 #define LS1X_I2S_FMTS (SNDRV_PCM_FMTBIT_S8 |\
+	SNDRV_PCM_FMTBIT_U8 |\
 	SNDRV_PCM_FMTBIT_S16_LE |\
 	SNDRV_PCM_FMTBIT_S16_BE |\
-	SNDRV_PCM_FMTBIT_S20_3LE |\
-	SNDRV_PCM_FMTBIT_S20_3BE |\
-	SNDRV_PCM_FMTBIT_S24_3LE |\
-	SNDRV_PCM_FMTBIT_S24_3BE |\
-	SNDRV_PCM_FMTBIT_S32_LE |\
 	SNDRV_PCM_FMTBIT_U16_LE	|\
-	SNDRV_PCM_FMTBIT_S32_BE)
+	SNDRV_PCM_FMTBIT_U16_BE	|\
+	SNDRV_PCM_FMTBIT_S24_LE |\
+	SNDRV_PCM_FMTBIT_S24_BE |\
+	SNDRV_PCM_FMTBIT_U24_LE |\
+	SNDRV_PCM_FMTBIT_U24_BE |\
+	SNDRV_PCM_FMTBIT_S32_LE |\
+	SNDRV_PCM_FMTBIT_S32_BE |\
+	SNDRV_PCM_FMTBIT_U32_LE |\
+	SNDRV_PCM_FMTBIT_U32_BE)
 
 static struct snd_soc_dai_ops ls1x_i2s_dai_ops = {
-//	.startup	= ls1x_i2s_startup,
-//	.shutdown	= ls1x_i2s_shutdown,
+	.startup	= ls1x_i2s_startup,
+	.shutdown	= ls1x_i2s_shutdown,
 	.trigger	= ls1x_i2s_trigger,
 	.hw_params	= ls1x_i2s_hw_params,
-	.set_fmt	= ls1x_i2s_set_dai_fmt,
-//	.set_sysclk	= ls1x_i2s_set_dai_sysclk,
+	.set_fmt	= ls1x_i2s_set_fmt,
+	.set_sysclk	= ls1x_i2s_set_sysclk,
 };
 
 struct snd_soc_dai_driver ls1x_i2s_dai = {
-	.probe = ls1x_i2s_probe,
-	.remove = ls1x_i2s_remove,
-	.suspend = ls1x_i2s_suspend,
-	.resume = ls1x_i2s_resume,
+	.probe = ls1x_i2s_dai_probe,
+	.remove = ls1x_i2s_dai_remove,
+	.suspend = ls1x_i2s_dai_suspend,
+	.resume = ls1x_i2s_dai_resume,
 	.playback = {
 		.channels_min = 1,
 		.channels_max = 2,
@@ -256,21 +322,85 @@ struct snd_soc_dai_driver ls1x_i2s_dai = {
 	.ops = &ls1x_i2s_dai_ops,
 };
 
-static int ls1x_i2s_drv_probe(struct platform_device *pdev)
+static int ls1x_i2s_dev_probe(struct platform_device *pdev)
 {
-	return snd_soc_register_dai(&pdev->dev, &ls1x_i2s_dai);
+	struct ls1x_i2s *i2s;
+	int ret;
+
+	i2s = kzalloc(sizeof(*i2s), GFP_KERNEL);
+
+	if (!i2s)
+		return -ENOMEM;
+
+	i2s->mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!i2s->mem) {
+		ret = -ENOENT;
+		goto err_free;
+	}
+
+	i2s->mem = request_mem_region(i2s->mem->start, resource_size(i2s->mem),
+				pdev->name);
+	if (!i2s->mem) {
+		ret = -EBUSY;
+		goto err_free;
+	}
+
+	i2s->base = ioremap_nocache(i2s->mem->start, resource_size(i2s->mem));
+	if (!i2s->base) {
+		ret = -EBUSY;
+		goto err_release_mem_region;
+	}
+
+//	i2s->phys_base = i2s->mem->start;
+
+	i2s->clk_i2s = clk_get(&pdev->dev, "apb");
+	if (IS_ERR(i2s->clk_i2s)) {
+		ret = PTR_ERR(i2s->clk_i2s);
+		goto err_iounmap;
+	}
+
+	platform_set_drvdata(pdev, i2s);
+	ret = snd_soc_register_dai(&pdev->dev, &ls1x_i2s_dai);
+
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to register DAI\n");
+		goto err_clk_put_i2s;
+	}
+
+	return 0;
+
+err_clk_put_i2s:
+	clk_put(i2s->clk_i2s);
+err_iounmap:
+	iounmap(i2s->base);
+err_release_mem_region:
+	release_mem_region(i2s->mem->start, resource_size(i2s->mem));
+err_free:
+	kfree(i2s);
+
+	return ret;
 }
 
-static int __devexit ls1x_i2s_drv_remove(struct platform_device *pdev)
+static int __devexit ls1x_i2s_dev_remove(struct platform_device *pdev)
 {
+	struct ls1x_i2s *i2s = platform_get_drvdata(pdev);
+
 	snd_soc_unregister_dai(&pdev->dev);
+
+	clk_put(i2s->clk_i2s);
+
+	iounmap(i2s->base);
+	release_mem_region(i2s->mem->start, resource_size(i2s->mem));
+
+	platform_set_drvdata(pdev, NULL);
+	kfree(i2s);
+
 	return 0;
 }
 
 static struct platform_driver ls1x_i2s_driver = {
-	.probe = ls1x_i2s_drv_probe,
-	.remove = __devexit_p(ls1x_i2s_drv_remove),
-
+	.probe = ls1x_i2s_dev_probe,
+	.remove = __devexit_p(ls1x_i2s_dev_remove),
 	.driver = {
 		.name = "ls1x-i2s",
 		.owner = THIS_MODULE,

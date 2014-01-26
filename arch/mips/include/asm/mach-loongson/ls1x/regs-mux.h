@@ -105,6 +105,7 @@
 
 #elif	defined(CONFIG_LS1C_MACH)
 #define LS1X_MUX_CTRL1		LS1X_MUX_REG(0x4)
+
 /* MUX_CTRL0 Register Bits */
 #define UART_SPLIT	(0x3 << 30)
 #define OUTPUT_CLK	(0xf << 26)

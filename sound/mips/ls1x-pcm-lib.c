@@ -22,24 +22,24 @@
 extern void dma_free_writecombine(struct device *dev, size_t size, void *cpu_addr, dma_addr_t handle);
 
 static const struct snd_pcm_hardware ls1x_pcm_hardware = {
-	.info			= SNDRV_PCM_INFO_MMAP |
-				  SNDRV_PCM_INFO_INTERLEAVED |
-				 //SNDRV_PCM_INFO_BLOCK_TRANSFER |
-				  SNDRV_PCM_INFO_MMAP_VALID |
-				  /* No full-resume yet implemented */
-				  SNDRV_PCM_INFO_RESUME |
-				  SNDRV_PCM_INFO_PAUSE,
-
-	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
-	.rates			= SNDRV_PCM_RATE_8000_48000,
-	.channels_min		= 1,
-	.channels_max		= 2,
+	.info = SNDRV_PCM_INFO_MMAP |
+			SNDRV_PCM_INFO_MMAP_VALID |
+			SNDRV_PCM_INFO_INTERLEAVED |
+			SNDRV_PCM_INFO_RESUME |
+			SNDRV_PCM_INFO_PAUSE,
+	.formats = SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_U8 | 
+			SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S16_BE |
+			SNDRV_PCM_FMTBIT_U16_LE	| SNDRV_PCM_FMTBIT_U16_BE |
+			SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S24_BE |
+			SNDRV_PCM_FMTBIT_U24_LE | SNDRV_PCM_FMTBIT_U24_BE |
+			SNDRV_PCM_FMTBIT_S32_LE | SNDRV_PCM_FMTBIT_S32_BE |
+			SNDRV_PCM_FMTBIT_U32_LE | SNDRV_PCM_FMTBIT_U32_BE,
 	.period_bytes_min	= 128,
-	.period_bytes_max	= 128*1024,
+	.period_bytes_max	= 8192 - 128,
 	.periods_min		= 1,
 	.periods_max		= PAGE_SIZE/sizeof(ls1x_dma_desc),
-	.buffer_bytes_max	= 1024 * 1024,
-//	.fifo_size		= 0,
+	.buffer_bytes_max	= 128 * 1024,
+	.fifo_size			= 128,
 };
 
 int __ls1x_pcm_hw_params(struct snd_pcm_substream *substream,
@@ -51,7 +51,7 @@ int __ls1x_pcm_hw_params(struct snd_pcm_substream *substream,
 	size_t period = params_period_bytes(params);
 	ls1x_dma_desc *dma_desc;
 	dma_addr_t dma_buff_phys, next_desc_phys;
-	
+
 	snd_pcm_set_runtime_buffer(substream, &substream->dma_buffer);
 	runtime->dma_bytes = totsize;
 
@@ -97,6 +97,7 @@ int ls1x_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
+		printk("++++SNDRV_PCM_TRIGGER_START %d\n\n", cmd);
 		val = prtd->dma_desc_array_phys;
 		val |= (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? 0x9 : 0xa;
 		writel(val, CONFREG_BASE);
@@ -112,6 +113,7 @@ int ls1x_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+		printk("++++SNDRV_PCM_TRIGGER_STOP %d\n\n", cmd);
 		//写回控制器寄存器的值,暂停播放
 		val = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? 0x5 : 0x6;
 		writel(prtd->dma_desc_ready_phys | val, CONFREG_BASE);
@@ -123,12 +125,14 @@ int ls1x_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		break;
 
 	case SNDRV_PCM_TRIGGER_RESUME:
+		printk("++++SNDRV_PCM_TRIGGER_RESUME %d\n\n", cmd);
 		val = readl(CONFREG_BASE);
 		val |=  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? 0x9 : 0xa;
 		writel(val, CONFREG_BASE);
 		while (readl(CONFREG_BASE) & 0x8);
 		break;
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+		printk("++++SNDRV_PCM_TRIGGER_PAUSE_RELEASE %d\n\n", cmd);
 		val = prtd->dma_desc_ready_phys;
 		val |=  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? 0x9 : 0xa;
 		writel(val, CONFREG_BASE);
@@ -160,6 +164,7 @@ ls1x_pcm_pointer(struct snd_pcm_substream *substream)
 	x = bytes_to_frames(runtime, prtd->dma_position_desc->saddr - runtime->dma_addr);
 	if (x == runtime->buffer_size)
 		x = 0;
+//	printk("++++ls1x_pcm_pointer %d\n\n", x);
 	return x;
 }
 EXPORT_SYMBOL(ls1x_pcm_pointer);
@@ -266,20 +271,21 @@ int __ls1x_pcm_close(struct snd_pcm_substream *substream)
 }
 EXPORT_SYMBOL(__ls1x_pcm_close);
 
-/*
 int ls1x_pcm_mmap(struct snd_pcm_substream *substream,
 	struct vm_area_struct *vma)
 {
-	struct snd_pcm_runtime *runtime = substream->runtime;
+/*	struct snd_pcm_runtime *runtime = substream->runtime;
 	return dma_mmap_coherent(substream->pcm->card->dev, vma,
 				     runtime->dma_area,
 				     runtime->dma_addr,
-				     runtime->dma_bytes);
+				     runtime->dma_bytes);*/
+	return remap_pfn_range(vma, vma->vm_start,
+			substream->dma_buffer.addr >> PAGE_SHIFT,
+			vma->vm_end - vma->vm_start, vma->vm_page_prot);
 				     
-	return 0;
+//	return 0;
 }
 EXPORT_SYMBOL(ls1x_pcm_mmap);
-*/
 
 int ls1x_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 {
@@ -318,6 +324,6 @@ void ls1x_pcm_free_dma_buffers(struct snd_pcm *pcm)
 }
 EXPORT_SYMBOL(ls1x_pcm_free_dma_buffers);
 
-MODULE_AUTHOR("Nicolas Pitre");
-MODULE_DESCRIPTION("Intel PXA2xx sound library");
+MODULE_AUTHOR("www.loongson.cn");
+MODULE_DESCRIPTION("Loongson1 sound library");
 MODULE_LICENSE("GPL");
