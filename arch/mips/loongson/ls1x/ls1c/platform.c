@@ -279,6 +279,15 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
+#ifdef CONFIG_SND_SOC_UDA1342
+#include <sound/uda1342.h>
+static struct uda1342_platform_data uda1342_info = {
+//	.gpio_power	= H1940_LATCH_UDA_POWER,
+//	.gpio_reset	= S3C2410_GPA(12),
+//	.dac_clk	= UDA1380_DAC_CLK_SYSCLK,
+};
+#endif
+
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 #ifdef CONFIG_TOUCHSCREEN_TSC2007
@@ -305,6 +314,7 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 #ifdef CONFIG_CODEC_UDA1342
 	{
 		I2C_BOARD_INFO("uda1342", 0x1a),
+		.platform_data = &uda1342_info,
 	},
 #endif
 //#ifdef CONFIG_SND_SOC_ES8388

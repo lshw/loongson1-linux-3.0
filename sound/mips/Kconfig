@@ -32,21 +32,10 @@ config SND_AU1X00
 
 config SND_LS1X_LIB
 	tristate
-	select SND_AC97_CODEC if SND_LS1A_LIB_AC97
+	select SND_AC97_CODEC if SND_LS1X_LIB_AC97
 
-config SND_LS1A_LIB_AC97
+config SND_LS1X_LIB_AC97
 	bool
-
-config SND_LS1A_AC97
-	tristate "AC97 driver for the SB2F chip"
-	depends on MACH_LOONGSON_SB2F
-	select SND_LS1A_PCM
-	select SND_AC97_CODEC
-	select SND_LS1A_LIB
-	select SND_LS1A_LIB_AC97
-	help
-	 Say Y or M if you want to support any AC97 codec attached to
-	 the LS1A AC97 interface.
 
 endif	# SND_MIPS
 

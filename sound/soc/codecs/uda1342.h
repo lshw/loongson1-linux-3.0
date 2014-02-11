@@ -1,0 +1,18 @@
+#ifndef _UDA1342_CODEC_H
+#define _UDA1342_CODEC_H
+
+/* UDA134X registers */
+#define UDA1342_REG00	0x00
+#define UDA1342_REG01	0x01
+#define UDA1342_REG10	0x10
+#define UDA1342_REG11	0x11
+#define UDA1342_REG12	0x12
+#define UDA1342_REG20	0x20
+#define UDA1342_REG21	0x21
+
+#define UDA1342_REGS_NUM 0xff
+
+#define STATUS0_DAIFMT_MASK (~(7<<2))
+#define STATUS0_SYSCLK_MASK (~(3<<5))
+
+#endif

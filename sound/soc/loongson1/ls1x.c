@@ -29,6 +29,8 @@ static int ls1x_i2s_startup(struct snd_pcm_substream *substream)
 
 	snd_soc_dai_set_sysclk(cpu_dai, 0, 34000000, SND_SOC_CLOCK_OUT);
 
+	snd_soc_dai_set_sysclk(codec_dai, 0, 22579600, SND_SOC_CLOCK_IN);
+
 	/* codec is bitclock and lrclk master */
 /*	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
@@ -54,11 +56,11 @@ static struct snd_soc_dai_link ls1x_dai[] = {
 		.name = "ls1x",
 		.stream_name = "ls1x<->i2s",
 		.cpu_dai_name = "ls1x-i2s",
-		.codec_dai_name = "uda134x-hifi",
+		.codec_dai_name = "uda1342-hifi",
 		.platform_name = "loongson1-pcm-audio",
 		.codec_name = "uda1342-codec.0-001a",
 		.ops = &ls1x_i2s_uda1342_ops,
-//		.init = uda134x_init,
+//		.init = uda1342_init,
 	},
 /*	{
 		.name = "AC97 Aux",

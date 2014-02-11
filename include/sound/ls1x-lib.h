@@ -31,17 +31,17 @@ extern void ls1x_pcm_free_dma_buffers(struct snd_pcm *pcm);
 
 /* AC97 */
 
-extern unsigned short ls1a_ac97_read(struct snd_ac97 *ac97, unsigned short reg);
-extern int ls1a_ac97_write(struct snd_ac97 *ac97, unsigned char reg, unsigned short val);
+extern unsigned short ls1x_ac97_read(struct snd_ac97 *ac97, unsigned short reg);
+extern void ls1x_ac97_write(struct snd_ac97 *ac97, unsigned short reg, unsigned short val);
 
-extern bool ls1a_ac97_try_warm_reset(struct snd_ac97 *ac97);
-extern bool ls1a_ac97_try_cold_reset(struct snd_ac97 *ac97);
-extern void ls1a_ac97_finish_reset(struct snd_ac97 *ac97);
+extern bool ls1x_ac97_try_warm_reset(struct snd_ac97 *ac97);
+extern bool ls1x_ac97_try_cold_reset(struct snd_ac97 *ac97);
+extern void ls1x_ac97_finish_reset(struct snd_ac97 *ac97);
 
-extern int ls1a_ac97_hw_suspend(void);
-extern int ls1a_ac97_hw_resume(void);
+extern int ls1x_ac97_hw_suspend(void);
+extern int ls1x_ac97_hw_resume(void);
 
-extern int ls1a_ac97_hw_probe(struct platform_device *dev);
-extern void ls1a_ac97_hw_remove(struct platform_device *dev);
+extern int ls1x_ac97_hw_probe(struct platform_device *dev);
+extern void ls1x_ac97_hw_remove(struct platform_device *dev);
 
 #endif
