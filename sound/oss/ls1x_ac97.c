@@ -1195,7 +1195,14 @@ static int ls1x_audio_probe(struct platform_device *pdev)
 	writel(0x69696969, state->base + OCC2);
 	writel(0x69696969, state->base + ICC);
 	/* enable irqreturn */
-	writel(0xffffffff, state->base + INTM);
+//	writel(0xffffffff, state->base + INTM);
+	/* disable irqreturn */
+	readl(state->base + INT_CLR);
+	readl(state->base + INT_OCCLR);
+	readl(state->base + INT_ICCLR);
+	readl(state->base + INT_CWCLR);
+	readl(state->base + INT_CRCLR);
+	writel(0x00, state->base + INTM);
 
 	/* codec reset */
 //	if (codec_reset) {

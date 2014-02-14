@@ -94,7 +94,7 @@ static inline void uda1342_write_reg_cache(struct snd_soc_codec *codec,
 static int uda1342_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
-	struct uda1342_platform_data *pd = codec->dev->platform_data;
+//	struct uda1342_platform_data *pd = codec->dev->platform_data;
 	u8 data[3];
 
 	/* data is
@@ -586,7 +586,7 @@ static __devinit int uda1342_i2c_probe(struct i2c_client *i2c,
 	uda1342->control_data = i2c;
 
 	ret = snd_soc_register_codec(&i2c->dev,
-			&soc_codec_dev_uda1342, &uda1342_dai, ARRAY_SIZE(uda1342_dai));
+			&soc_codec_dev_uda1342, uda1342_dai, ARRAY_SIZE(uda1342_dai));
 	if (ret < 0)
 		kfree(uda1342);
 	return ret;

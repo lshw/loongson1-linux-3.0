@@ -310,15 +310,19 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		.platform_data = &gc0308_plat,
 	},
 #endif
-//#ifdef CONFIG_SND_SOC_UDA1342
-#ifdef CONFIG_CODEC_UDA1342
+#ifdef CONFIG_SND_SOC_UDA1342
 	{
 		I2C_BOARD_INFO("uda1342", 0x1a),
 		.platform_data = &uda1342_info,
 	},
 #endif
-//#ifdef CONFIG_SND_SOC_ES8388
-#ifdef CONFIG_CODEC_ES8388
+#ifdef CONFIG_CODEC_UDA1342
+	{
+		I2C_BOARD_INFO("uda1342", 0x1a),
+	},
+#endif
+#ifdef CONFIG_SND_SOC_ES8388
+//#ifdef CONFIG_CODEC_ES8388
 	{
 		I2C_BOARD_INFO("es8388", 0x10),
 	},
@@ -535,6 +539,30 @@ static struct platform_device ls1x_audio_device = {
 	.id             = -1,
 	.num_resources	= ARRAY_SIZE(ls1x_iis_resource),
 	.resource		= ls1x_iis_resource,
+};
+#endif
+
+#ifdef CONFIG_SND_LS1X_SOC_I2S
+static struct resource ls1x_i2s_resource[] = {
+	[0] = {
+		.start	= LS1C_I2S_BASE,
+		.end	= LS1C_I2S_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device ls1x_i2s_device = {
+	.name           = "ls1x-i2s",
+	.id             = -1,
+	.num_resources	= ARRAY_SIZE(ls1x_i2s_resource),
+	.resource		= ls1x_i2s_resource,
+};
+#endif
+
+#ifdef CONFIG_SND_LS1X_SOC
+static struct platform_device ls1x_pcm_device = {
+	.name = "loongson1-pcm-audio",
+	.id = -1,
 };
 #endif
 
@@ -922,36 +950,9 @@ static struct platform_device ls1c_camera_host = {
 };
 #endif	//End of CONFIG_SOC_CAMERA_LS1C
 
-#if 0
-static struct resource ls1x_i2s_resource[] = {
-	[0] = {
-		.start	= LS1C_I2S_BASE,
-		.end	= LS1C_I2S_BASE + SZ_16K - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ls1x_i2s_device = {
-	.name           = "ls1x-i2s",
-	.id             = -1,
-	.num_resources	= ARRAY_SIZE(ls1x_i2s_resource),
-	.resource		= ls1x_i2s_resource,
-};
-
-static struct platform_device ls1a_pcm_device = {
-	.name = "loongson1-pcm-audio",
-	.id = -1,
-};
-#endif
-
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
-
-#if 0
-	&ls1x_i2s_device,
-	&ls1a_pcm_device,
-#endif
 
 #ifdef	CONFIG_USB_DWC_OTG_LPM
 	&ls1c_otg_device, 
@@ -982,6 +983,13 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #if defined(CONFIG_SOUND_LS1X_AC97) || defined(CONFIG_SOUND_LS1X_IIS)
 	&ls1x_audio_device,
+#endif
+
+#ifdef CONFIG_SND_LS1X_SOC
+	&ls1x_pcm_device,
+#endif
+#ifdef CONFIG_SND_LS1X_SOC_I2S
+	&ls1x_i2s_device,
 #endif
 
 #ifdef CONFIG_SPI_LS1X

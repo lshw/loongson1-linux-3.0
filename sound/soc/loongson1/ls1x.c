@@ -51,31 +51,37 @@ static struct snd_soc_ops ls1x_i2s_uda1342_ops = {
 	.startup	= ls1x_i2s_startup,
 };
 
-static struct snd_soc_dai_link ls1x_dai[] = {
-	{
-		.name = "ls1x",
-		.stream_name = "ls1x<->i2s",
-		.cpu_dai_name = "ls1x-i2s",
-		.codec_dai_name = "uda1342-hifi",
-		.platform_name = "loongson1-pcm-audio",
-		.codec_name = "uda1342-codec.0-001a",
-		.ops = &ls1x_i2s_uda1342_ops,
-//		.init = uda1342_init,
-	},
-/*	{
-		.name = "AC97 Aux",
-		.stream_name = "AC97 Aux",
-		.cpu_dai_name = "pxa2xx-ac97-aux",
-		.codec_dai_name ="wm9712-aux",
-		.platform_name = "pxa-pcm-audio",
-		.codec_name = "wm9712-codec",
-	},*/
+static struct snd_soc_dai_link ls1x_i2s_dai = {
+	.name = "ls1x",
+	.stream_name = "ls1x<->i2s",
+	.cpu_dai_name = "ls1x-i2s",
+	.codec_dai_name = "uda1342-hifi",
+	.platform_name = "loongson1-pcm-audio",
+	.codec_name = "uda1342-codec.0-001a",
+	.ops = &ls1x_i2s_uda1342_ops,
 };
 
-static struct snd_soc_card ls1x = {
-	.name = "LS1X",
-	.dai_link = ls1x_dai,
-	.num_links = ARRAY_SIZE(ls1x_dai),
+static struct snd_soc_card ls1x_i2s_machine = {
+	.name = "LS1X_I2S",
+	.dai_link = &ls1x_i2s_dai,
+	.num_links = 1,
+};
+
+/*-------------------------  AC97 PART  ---------------------------*/
+
+static struct snd_soc_dai_link ls1x_ac97_dai = {
+	.name		= "AC97",
+	.stream_name	= "AC97 HiFi",
+	.codec_dai_name	= "ac97-hifi",
+	.cpu_dai_name	= "ls1x-ac97",
+	.platform_name	= "loongson1-pcm-audio",
+	.codec_name	= "ac97-codec",
+};
+
+static struct snd_soc_card ls1x_ac97_machine = {
+	.name		= "LS1X_AC97",
+	.dai_link	= &ls1x_ac97_dai,
+	.num_links	= 1,
 };
 
 /*-------------------------  COMMON PART  ---------------------------*/
@@ -86,15 +92,15 @@ static int __init ls1x_init(void)
 {
 	int ret;
 
-/*	if (!(machine_is_ls1x() || machine_is_exeda()
-	      || machine_is_cm_x300()))
-		return -ENODEV;*/
-
 	ls1x_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!ls1x_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(ls1x_snd_device, &ls1x);
+#if defined(CONFIG_SND_LS1X_SOC_I2S)
+	platform_set_drvdata(ls1x_snd_device, &ls1x_i2s_machine);
+#elif defined(CONFIG_SND_LS1X_SOC_AC97)
+	platform_set_drvdata(ls1x_snd_device, &ls1x_ac97_machine);
+#endif
 	ret = platform_device_add(ls1x_snd_device);
 
 	if (ret)

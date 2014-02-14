@@ -16,7 +16,4 @@ snd-ls1x-pcm-objs               := ls1x-pcm.o
 
 obj-$(CONFIG_SND_LS1X_LIB)      += snd-ls1x-lib.o
 snd-ls1x-lib-y                  := ls1x-pcm-lib.o
-#snd-ls1x-lib-$(CONFIG_SND_LS1A_LIB_AC97)        += ls1x-ac97-lib.o
-
-#obj-$(CONFIG_SND_LS1A_AC97)     += snd-ls1x-ac97.o
-#snd-ls1a-ac97-objs              := ls1x-ac97.o
+snd-ls1x-lib-$(CONFIG_SND_LS1X_LIB_AC97)	+= ls1x-ac97-lib.o
