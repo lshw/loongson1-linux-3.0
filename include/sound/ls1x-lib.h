@@ -8,11 +8,9 @@
 
 struct ls1x_pcm_dma_params {
 	char *name;			/* stream identifier */
-	u32 dcmd;			/* DMA descriptor dcmd field */
-	volatile u32 *drcmr;		/* the DMA request channel to use */
+//	u32 dcmd;			/* DMA descriptor dcmd field */
+//	volatile u32 *drcmr;		/* the DMA request channel to use */
 	u32 dev_addr;			/* device physical address for DMA */
-
-//	u32 dtadr;			/*Zhuo QiXiang 设备地址需要从上层定义传入*/
 };
 
 extern int __ls1x_pcm_hw_params(struct snd_pcm_substream *substream,
@@ -43,5 +41,8 @@ extern int ls1x_ac97_hw_resume(void);
 
 extern int ls1x_ac97_hw_probe(struct platform_device *dev);
 extern void ls1x_ac97_hw_remove(struct platform_device *dev);
+
+extern void ls1x_ac97_channel_config_out(uint32_t conf);
+extern void ls1x_ac97_channel_config_in(uint32_t conf);
 
 #endif
