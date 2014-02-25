@@ -946,6 +946,23 @@ config SENSORS_AM2301
 	  This driver can also be built as a module.  If so, the module
 	  will be called am2301.
 
+config SENSORS_LS1X
+	tristate "loongson1 built-in ADC"
+	depends on LS1C_MACH
+	help
+	  If you say yes here you get support for the on-board ADCs of
+	  the Loongson 1c and other series of SoC
+
+	  This driver can also be built as a module. If so, the module
+	  will be called ls1x-hwmon.
+
+config SENSORS_LS1X_RAW
+	bool "Include raw channel attributes in sysfs"
+	depends on SENSORS_LS1X
+	help
+	  Say Y here if you want to include raw copies of all the ADC
+	  channels in sysfs.
+
 config SENSORS_S3C
 	tristate "Samsung built-in ADC"
 	depends on S3C_ADC

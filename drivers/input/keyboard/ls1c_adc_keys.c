@@ -338,6 +338,6 @@ module_init(adc_keys_polled_init);
 module_exit(adc_keys_polled_exit);
 
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Gabor Juhos <juhosg@openwrt.org>");
+MODULE_AUTHOR("Haifeng Tang <tanghaifeng-gz@loongson.cn>");
 MODULE_DESCRIPTION("Polled GPIO Buttons driver");
 MODULE_ALIAS("platform:" DRV_NAME);

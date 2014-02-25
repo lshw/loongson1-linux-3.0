@@ -950,6 +950,58 @@ static struct platform_device ls1c_camera_host = {
 };
 #endif	//End of CONFIG_SOC_CAMERA_LS1C
 
+#ifdef CONFIG_SENSORS_LS1X
+#include <hwmon.h>
+static struct ls1x_hwmon_pdata bast_hwmon_info = {
+	/* battery voltage (0-8.4V) */
+	.in[0] = &(struct ls1x_hwmon_chcfg) {
+		.name		= "battery-voltage",
+		.mult		= 3300 * 4,	/* 3.3V参考电压 乘以4转换为实际的测量电压(0-8.4V) */
+		.div		= 1024,
+		.single		= 1,
+	},
+};
+
+static struct resource ls1x_hwmon_resources[] = {
+	{
+		.start   = LS1X_ADC_BASE,
+		.end     = LS1X_ADC_BASE + SZ_16K - 1,
+		.flags   = IORESOURCE_MEM,
+	}, 
+/*	{
+		.start   = LS1X_ADC_IRQ,
+		.end     = LS1X_ADC_IRQ,
+		.flags   = IORESOURCE_IRQ,
+	},*/
+};
+
+struct platform_device ls1x_device_hwmon = {
+	.name		= "ls1x-hwmon",
+	.id		= -1,
+	.resource		= ls1x_hwmon_resources,
+	.num_resources	= ARRAY_SIZE(ls1x_hwmon_resources),
+//	.dev	= {
+//		.platform_data = &bast_hwmon_info,
+//	},
+};
+
+void __init ls1x_hwmon_set_platdata(struct ls1x_hwmon_pdata *pd)
+{
+	struct ls1x_hwmon_pdata *npd;
+
+	if (!pd) {
+		printk(KERN_ERR "%s: no platform data\n", __func__);
+		return;
+	}
+
+	npd = kmemdup(pd, sizeof(struct ls1x_hwmon_pdata), GFP_KERNEL);
+	if (!npd)
+		printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+
+	ls1x_device_hwmon.dev.platform_data = npd;
+}
+#endif
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
@@ -1035,6 +1087,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_BACKLIGHT_PWM
 	&ls1x_pwm_backlight,
 #endif
+#ifdef CONFIG_SENSORS_LS1X
+	&ls1x_device_hwmon,
+#endif
 };
 
 int __init ls1b_platform_init(void)
@@ -1065,6 +1120,10 @@ int __init ls1b_platform_init(void)
 
 #ifdef CONFIG_SPI_LS1X
 //	spi_register_board_info(ls1x_spi1_devices, ARRAY_SIZE(ls1x_spi1_devices));
+#endif
+
+#ifdef CONFIG_SENSORS_LS1X
+	ls1x_hwmon_set_platdata(&bast_hwmon_info);
 #endif
 
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
