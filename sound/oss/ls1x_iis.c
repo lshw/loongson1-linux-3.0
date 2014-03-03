@@ -997,6 +997,39 @@ static struct platform_driver ls1x_audio_driver = {
 #define UDA1342 0
 #define ES8388 1
 
+static ssize_t show_volume(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	u8 volume_l, volume_r;
+
+	volume_l = i2c_smbus_read_byte_data(client, 0x1a);
+	volume_r = i2c_smbus_read_byte_data(client, 0x1b);
+
+	return sprintf(buf, "%d\n", (u8)(~volume_r));	/* 把值取反，es8388值愈大音量越小 */
+}
+
+static ssize_t set_volume(struct device *dev, struct device_attribute *attr,
+		       const char *buf, size_t count)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	u8 volume_l, volume_r;
+
+	volume_l = (u8)simple_strtol(buf, NULL, 10);
+	if (volume_l > 255) {
+		volume_l = 255;
+	}
+	volume_l = (u8)(~volume_l);/* 把值取反，es8388值愈大音量越小 */
+	volume_r = volume_l;
+
+	i2c_smbus_write_byte_data(client, 0x1a, volume_r);
+	i2c_smbus_write_byte_data(client, 0x1b, volume_r);
+
+	return count;
+}
+
+static DEVICE_ATTR(volume, S_IRUGO | S_IWUSR, show_volume, set_volume);
+
 static int write_reg(struct i2c_client *client, int reg, int value)
 {
 	/* UDA1342 wants MSB first, but SMBus sends LSB first */
@@ -1007,6 +1040,8 @@ static int write_reg(struct i2c_client *client, int reg, int value)
 static __devinit int i2c_codecs_probe(struct i2c_client *client,
 				      const struct i2c_device_id *id)
 {
+	int err;
+
 	if (id->driver_data == UDA1342) {
 		pr_info("audio codec:uda1342\n");
 		write_reg(client, 0x00, 0x8000); /* reset registers */
@@ -1045,14 +1080,18 @@ static __devinit int i2c_codecs_probe(struct i2c_client *client,
 		i2c_smbus_write_byte_data(client, 0x28, 0x38);
 		i2c_smbus_write_byte_data(client, 0x29, 0x38);
 		i2c_smbus_write_byte_data(client, 0x2a, 0xd0);
-		i2c_smbus_write_byte_data(client, 0x2e, 0x1e);
-		i2c_smbus_write_byte_data(client, 0x2f, 0x1e);
-		i2c_smbus_write_byte_data(client, 0x30, 0x1e);
-		i2c_smbus_write_byte_data(client, 0x31, 0x1e);
+		i2c_smbus_write_byte_data(client, 0x2e, 0x21);
+		i2c_smbus_write_byte_data(client, 0x2f, 0x21);
+		i2c_smbus_write_byte_data(client, 0x30, 0x21);
+		i2c_smbus_write_byte_data(client, 0x31, 0x21);
 		i2c_smbus_write_byte_data(client, 0x02, 0x00);
 	} else {
 		pr_info("no audio codec\n");
 	}
+
+	err = sysfs_create_file(&client->dev.kobj, &dev_attr_volume.attr);
+	if (err)
+		return err;
 
 	return 0;
 }
