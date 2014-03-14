@@ -264,7 +264,7 @@ static void inline start_dma_nand(unsigned int flags, struct ls1x_nand_info *inf
 	writel(0, info->dma_desc + DMA_ORDERED);
 	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
 	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
-	writel(info->buf_count / 4, info->dma_desc + DMA_LENGTH);
+	writel((info->buf_count + 3) / 4, info->dma_desc + DMA_LENGTH);
 	writel(0, info->dma_desc + DMA_STEP_LENGTH);
 	writel(1, info->dma_desc + DMA_STEP_TIMES);
 
