@@ -1,5 +1,14 @@
-#ifndef _LS1X_PCM_PRIVATE_H__
-#define _LS1X_PCM_PRIVATE_H__
+/*
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+#ifndef _LS1X_PCM_H
+#define _LS1X_PCM_H
+
+#include <linux/dma-mapping.h>
 
 /* dma regs */
 #define CONFREG_BASE	((void __iomem *)0xbfd01160)
@@ -31,6 +40,5 @@ typedef struct ls1x_dma_desc {
 	u32 dcmd;
 	u32 stats;
 } ls1x_dma_desc;
-
 
 #endif

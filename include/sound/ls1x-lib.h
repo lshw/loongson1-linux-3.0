@@ -5,7 +5,6 @@
 #include <sound/ac97_codec.h>
 
 /* PCM */
-
 struct ls1x_pcm_dma_params {
 	char *name;			/* stream identifier */
 //	u32 dcmd;			/* DMA descriptor dcmd field */
@@ -13,22 +12,7 @@ struct ls1x_pcm_dma_params {
 	u32 dev_addr;			/* device physical address for DMA */
 };
 
-extern int __ls1x_pcm_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params);
-extern int __ls1x_pcm_hw_free(struct snd_pcm_substream *substream);
-extern int ls1x_pcm_trigger(struct snd_pcm_substream *substream, int cmd);
-extern snd_pcm_uframes_t ls1x_pcm_pointer(struct snd_pcm_substream *substream);
-extern int __ls1x_pcm_prepare(struct snd_pcm_substream *substream);
-extern inline void ls1x_pcm_dma_irq(int dma_ch, void *dev_id);
-extern int __ls1x_pcm_open(struct snd_pcm_substream *substream);
-extern int __ls1x_pcm_close(struct snd_pcm_substream *substream);
-extern int ls1x_pcm_mmap(struct snd_pcm_substream *substream,
-	struct vm_area_struct *vma);
-extern int ls1x_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream);
-extern void ls1x_pcm_free_dma_buffers(struct snd_pcm *pcm);
-
 /* AC97 */
-
 extern unsigned short ls1x_ac97_read(struct snd_ac97 *ac97, unsigned short reg);
 extern void ls1x_ac97_write(struct snd_ac97 *ac97, unsigned short reg, unsigned short val);
 
