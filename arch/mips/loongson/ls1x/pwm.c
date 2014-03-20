@@ -118,6 +118,7 @@ struct pwm_device *pwm_request(int id, const char *label)
 
 	return pwm;
 }
+EXPORT_SYMBOL(pwm_request);
 
 void pwm_free(struct pwm_device *pwm)
 {
@@ -125,6 +126,7 @@ void pwm_free(struct pwm_device *pwm)
 	gpio_free(pwm->gpio);
 	pwm->used = false;
 }
+EXPORT_SYMBOL(pwm_free);
 
 int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
 {
@@ -151,6 +153,7 @@ int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
 
 	return 0;
 }
+EXPORT_SYMBOL(pwm_config);
 
 int pwm_enable(struct pwm_device *pwm)
 {
@@ -160,6 +163,7 @@ int pwm_enable(struct pwm_device *pwm)
 	writel(0x01, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
 	return 0;
 }
+EXPORT_SYMBOL(pwm_enable);
 
 void pwm_disable(struct pwm_device *pwm)
 {
@@ -167,6 +171,7 @@ void pwm_disable(struct pwm_device *pwm)
 
 	writel(0x09, ls1x_pwm_base + (id << 4) + REG_PWM_CTRL);
 }
+EXPORT_SYMBOL(pwm_disable);
 
 static int __init ls1x_pwm_init(void)
 {
@@ -186,3 +191,4 @@ static int __init ls1x_pwm_init(void)
 	return ret;
 }
 subsys_initcall(ls1x_pwm_init);
+
