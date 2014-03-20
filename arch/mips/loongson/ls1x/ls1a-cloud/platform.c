@@ -465,7 +465,7 @@ struct ls1xfb_mach_info ls1x_lcd0_info = {
 	.modes			= video_modes,
 	.num_modes		= ARRAY_SIZE(video_modes),
 	.pix_fmt		= PIX_FMT_RGB565,
-	.de_mode		= 1,
+	.de_mode		= 1,	/* 注意：lcd是否使用DE模式 */
 	.invert_pixclock	= 0,
 	.invert_pixde	= 0,
 };
@@ -495,7 +495,7 @@ struct ls1xfb_mach_info ls1x_lcd1_info = {
 	.modes			= video_modes,
 	.num_modes		= ARRAY_SIZE(video_modes),
 	.pix_fmt		= PIX_FMT_RGB565,
-	.de_mode		= 1,
+	.de_mode		= 0,	/* 注意：vga不使用DE模式 */
 	.invert_pixclock	= 0,
 	.invert_pixde	= 0,
 };
