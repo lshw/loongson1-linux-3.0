@@ -217,7 +217,6 @@ config USB_NET_RNDIS_WLAN
 
 	  If you choose to build a module, it'll be called rndis_wlan.
 
-#source "drivers/net/wireless/rtl818x/Kconfig"  #lv
 source "drivers/net/wireless/rtl8188/Kconfig"   #lv
 config ADM8211
 	tristate "ADMtek ADM8211 support"
@@ -268,13 +267,6 @@ config MWL8K
 	  To compile this driver as a module, choose M here: the module
 	  will be called mwl8k.  If unsure, say N.
 
-#config lxy_rt3070_test
-#	tristate "lxy rt3070 Wireless module support"
-#	depends on MAC80211
-#	select CRC_CCITT
-#	select WIRELESS_EXT
-#	select WEXT_PRIV
-
 source "drivers/net/wireless/ath/Kconfig"
 source "drivers/net/wireless/b43/Kconfig"
 source "drivers/net/wireless/b43legacy/Kconfig"
@@ -288,12 +280,11 @@ source "drivers/net/wireless/orinoco/Kconfig"
 source "drivers/net/wireless/p54/Kconfig"
 source "drivers/net/wireless/rt2x00/Kconfig"
 source "drivers/net/wireless/rt3070_ls1b/Kconfig"		#lxy
-#source "drivers/net/wireless/rtlwifi/Kconfig"       #lv
-#source  "drivers/net/wireless/rt3070/Kconfig"    #lv
 source "drivers/net/wireless/wl1251/Kconfig"
 source "drivers/net/wireless/wl12xx/Kconfig"
 source "drivers/net/wireless/zd1211rw/Kconfig"
 source "drivers/net/wireless/mwifiex/Kconfig"
 source "drivers/net/wireless/wm8782/Kconfig"	#lxy
+source "drivers/net/wireless/rtl8188etv/Kconfig"
 
 endif # WLAN

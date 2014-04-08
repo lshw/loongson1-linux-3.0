@@ -136,6 +136,7 @@ config RT2800USB
 	select RT2X00_LIB_CRYPTO
 	select CRC_CCITT
 	select WIRELESS_EXT
+	select WEXT_SPY
 	select WEXT_PRIV
 	---help---
 	  This adds support for rt27xx/rt28xx/rt30xx wireless chipset family.

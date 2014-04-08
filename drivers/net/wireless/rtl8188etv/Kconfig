@@ -1,0 +1,10 @@
+config RTL8188EU
+	tristate "Realtek 8188E/8188ETV USB WiFi"
+	depends on USB
+	select CRC_CCITT
+	select WIRELESS_EXT
+	select WEXT_SPY
+	select WEXT_PRIV
+	---help---
+	  Help message of RTL8188EU
+

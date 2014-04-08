@@ -3452,4 +3452,3 @@ config VMXNET3
 	  module will be called vmxnet3.
 
 endif # NETDEVICES
-
