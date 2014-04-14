@@ -1,7 +1,0 @@
-config LOONGSON_GC0303
-	tristate "loongson_gc0303"
-	depends on USB_VIDEO_CLASS=y
-	---help---
-	  Support for the USB Video Class (UVC)-gc0303
-
-

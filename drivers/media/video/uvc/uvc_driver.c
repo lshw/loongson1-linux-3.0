@@ -113,16 +113,6 @@ static struct uvc_format_desc uvc_fmts[] = {
 		.guid		= UVC_GUID_FORMAT_RGBP,
 		.fcc		= V4L2_PIX_FMT_RGB565,
 	},
-	{
-		.name		= "MPEG2 TS",
-		.guid		= UVC_GUID_FORMAT_MPEG,
-		.fcc		= V4L2_PIX_FMT_MPEG,	
-	},
-	{
-		.name		= "H.264",
-		.guid		= UVC_GUID_FORMAT_H264,
-		.fcc		= V4L2_PIX_FMT_H264,
-	},
 };
 
 /* ------------------------------------------------------------------------
@@ -418,33 +408,6 @@ static int uvc_parse_format(struct uvc_device *dev,
 		break;
 
 	case UVC_VS_FORMAT_MPEG2TS:
-		n = dev->uvc_version >= 0x0110 ? 23 : 7;
-		if (buflen < n) {
-			uvc_trace(UVC_TRACE_DESCR, "device %d videostreaming "
-				   "interface %d FORMAT error\n",
-				   dev->udev->devnum,
-				   alts->desc.bInterfaceNumber);
-			return -EINVAL;
-		}
-		
-		strlcpy(format->name, "MPEG2 TS", sizeof format->name);
-		format->fcc = V4L2_PIX_FMT_H264;
-		format->flags = UVC_FMT_FLAG_COMPRESSED | UVC_FMT_FLAG_STREAM;
-		format->bpp = 0;
-		ftype = 0;
-		/* Create a dummy frame descriptor. */
-		frame = &format->frame[0];
-		memset(&format->frame[0], 0, sizeof format->frame[0]);
-		frame->wWidth  = 1280;
-		frame->wHeight = 720;
-		frame->bFrameIntervalType = 0;
-		frame->dwDefaultFrameInterval = 1;
-		frame->dwFrameInterval = *intervals;
-		*(*intervals)++ = 1;
-		*(*intervals)++ = 10000000;
-		*(*intervals)++ = 1;
-		format->nframes = 1;
-		break;
 	case UVC_VS_FORMAT_STREAM_BASED:
 		/* Not supported yet. */
 	default:
@@ -720,10 +683,6 @@ static int uvc_parse_streaming(struct uvc_device *dev,
 			break;
 
 		case UVC_VS_FORMAT_MPEG2TS:
-			nformats++;
-			nframes++;
-			nintervals += 3;
-			break;
 		case UVC_VS_FORMAT_STREAM_BASED:
 			uvc_trace(UVC_TRACE_DESCR, "device %d videostreaming "
 				"interface %d FORMAT %u is not supported.\n",
@@ -777,7 +736,6 @@ static int uvc_parse_streaming(struct uvc_device *dev,
 		case UVC_VS_FORMAT_MJPEG:
 		case UVC_VS_FORMAT_DV:
 		case UVC_VS_FORMAT_FRAME_BASED:
-		case UVC_VS_FORMAT_MPEG2TS:
 			format->frame = frame;
 			ret = uvc_parse_format(dev, streaming, format,
 				&interval, buffer, buflen);

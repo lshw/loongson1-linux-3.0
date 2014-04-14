@@ -27,9 +27,6 @@
 #include <media/v4l2-ioctl.h>
 
 #include "uvcvideo.h"
-#include "gc0303/hv7131.h"
-
-
 
 /* ------------------------------------------------------------------------
  * UVC ioctls
@@ -1009,8 +1006,6 @@ static long uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 			return -EBUSY;
 
 		mutex_lock(&stream->mutex);
-
-//		sensor_init(0, 0, 320, 240, 0);		//lxy
 		ret = uvc_video_enable(stream, 1);
 		mutex_unlock(&stream->mutex);
 		if (ret < 0)
