@@ -19,7 +19,6 @@ obj-$(CONFIG_SGI_MBCS)		+= mbcs.o
 obj-$(CONFIG_BRIQ_PANEL)	+= briq_panel.o
 obj-$(CONFIG_BFIN_OTP)		+= bfin-otp.o
 
-obj-$(CONFIG_LS1B_PWM_DRIVER)	+= ls1b-pwm.o
 obj-$(CONFIG_LS1B_IR)        	+= ls1b_ir.o
 obj-$(CONFIG_LS1B_STEPMOTOR)    += stepping_motor.o
 obj-$(CONFIG_PRINTER)		+= lp.o

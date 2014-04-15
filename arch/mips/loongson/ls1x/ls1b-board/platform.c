@@ -1397,38 +1397,6 @@ static struct platform_device ls1b_gpio_key_device = {
 };
 #endif //#ifdef CONFIG_KEYBOARD_GPIO_POLLED
 
-#ifdef CONFIG_LS1B_PWM_DRIVER
-static struct resource ls1b_pwm0_resource[] = {
-	[0]={
-		.start	= LS1X_PWM0_BASE,
-		.end	= LS1X_PWM0_BASE + 0x0f,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1]={
-		.start	= LS1X_PWM1_BASE,
-		.end	= LS1X_PWM1_BASE + 0x0f,
-		.flags	= IORESOURCE_MEM,
-	},
-	[2]={
-		.start	= LS1X_PWM2_BASE,
-		.end	= LS1X_PWM2_BASE + 0x0f,
-		.flags	= IORESOURCE_MEM,
-	},
-	[3]={
-		.start	= LS1X_PWM3_BASE,
-		.end	= LS1X_PWM3_BASE + 0x0f,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ls1b_pwm_device = {
-	.name	= "ls1b-pwm",
-	.id	= -1,
-	.num_resources	= ARRAY_SIZE(ls1b_pwm0_resource),
-	.resource	= ls1b_pwm0_resource,
-};
-#endif //#ifdef CONFIG_LS1B_PWM_DRIVER
-
 /**
  * Rotary encoder input device
  */
@@ -2025,10 +1993,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_KEYBOARD_GPIO_POLLED
 	&ls1b_gpio_key_device,
-#endif
-
-#ifdef CONFIG_LS1B_PWM_DRIVER
-	&ls1b_pwm_device,
 #endif
 
 #ifdef CONFIG_INPUT_GPIO_ROTARY_ENCODER

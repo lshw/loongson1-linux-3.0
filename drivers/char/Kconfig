@@ -188,12 +188,6 @@ config VIRTIO_CONSOLE
 	  the port which can be used by udev scripts to create a
 	  symlink to the device.
 
-config LS1B_PWM_DRIVER
-	bool "ls1b pwm driver"
-	default	n
-	help
-	 pwm.
-
 config LS1B_IR
 	bool "ls1b ir driver"
 	default	n
