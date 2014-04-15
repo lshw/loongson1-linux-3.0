@@ -962,8 +962,8 @@ void gadget_add_eps(struct gadget_wrapper *d)
 	static const char *names[] = {
 
 		"ep0",
-		"ep1in",
-		"ep2in",
+		"ep1",
+		"ep2",
 //		"ep3in",
 //		"ep4in",
 //		"ep5in",
@@ -974,11 +974,11 @@ void gadget_add_eps(struct gadget_wrapper *d)
 //		"ep10in",
 //		"ep11in",
 //		"ep12in",
-//		"ep13in",		//lxy
+//		"ep13in",
 //		"ep14in",
 //		"ep15in",
-		"ep1out",
-		"ep2out",
+		"ep1",
+		"ep2",
 //		"ep3out",
 //		"ep4out",
 //		"ep5out",
