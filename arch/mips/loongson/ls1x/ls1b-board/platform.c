@@ -950,7 +950,7 @@ static struct platform_device ls1x_ac97_device = {
 	.resource		= ls1x_ac97_resource,
 };
 
-static struct platform_device ls1b_stac_dev = {
+static struct platform_device ls1x_stac_dev = {
 	.name		= "ac97-codec",
 	.id		= -1,
 };
@@ -1944,7 +1944,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #ifdef CONFIG_SND_LS1X_SOC_AC97
 	&ls1x_ac97_device,
-	&ls1b_stac_dev,
+	&ls1x_stac_dev,
 #endif
 
 #if defined(CONFIG_SPI_LS1X)

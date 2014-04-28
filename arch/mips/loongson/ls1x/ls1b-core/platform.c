@@ -897,6 +897,40 @@ static struct platform_device ls1x_audio_device = {
 };
 #endif
 
+#ifdef CONFIG_SND_LS1X_SOC_AC97
+static struct resource ls1x_ac97_resource[] = {
+	[0]={
+		.start	= LS1X_AC97_BASE,
+		.end	= LS1X_AC97_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1]={
+		.start	= LS1X_AC97_IRQ,
+		.end	= LS1X_AC97_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device ls1x_ac97_device = {
+	.name           = "ls1x-ac97",
+	.id             = -1,
+	.num_resources	= ARRAY_SIZE(ls1x_ac97_resource),
+	.resource		= ls1x_ac97_resource,
+};
+
+static struct platform_device ls1x_stac_dev = {
+	.name		= "ac97-codec",
+	.id		= -1,
+};
+#endif
+
+#ifdef CONFIG_SND_LS1X_SOC
+static struct platform_device ls1x_pcm_device = {
+	.name = "loongson1-pcm-audio",
+	.id = -1,
+};
+#endif
+
 #ifdef CONFIG_MTD_M25P80
 static struct mtd_partition partitions[] = {
 	[0] = {
@@ -1765,6 +1799,13 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_SOUND_LS1X_AC97
 	&ls1x_audio_device,
+#endif
+#ifdef CONFIG_SND_LS1X_SOC
+	&ls1x_pcm_device,
+#endif
+#ifdef CONFIG_SND_LS1X_SOC_AC97
+	&ls1x_ac97_device,
+	&ls1x_stac_dev,
 #endif
 
 #if defined(CONFIG_SPI_LS1X)
