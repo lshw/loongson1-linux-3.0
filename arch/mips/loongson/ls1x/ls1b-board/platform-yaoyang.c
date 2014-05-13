@@ -812,7 +812,7 @@ static struct mmc_spi_platform_data mmc_spi __maybe_unused = {
 };	
 #endif  /* defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE) */
 
-#ifdef CONFIG_SPI_LS1X
+#ifdef CONFIG_SPI_LS1X_SPI0
 #include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
@@ -925,9 +925,9 @@ static struct spi_board_info spi0_gpio_devices[] = {
 		.mode = SPI_MODE_2,
 	},
 };
-#endif //#ifdef CONFIG_SPI_LS1X
+#endif //#ifdef CONFIG_SPI_LS1X_SPI0
 
-#if defined(CONFIG_SPI_LS1X) /* SPI1 控制器 */
+#if defined(CONFIG_SPI_LS1X_SPI1) /* SPI1 控制器 */
 #include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi1_devices[] = {
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
@@ -1011,7 +1011,7 @@ static struct spi_board_info spi1_gpio_devices[] = {
 	},
 #endif
 };
-#endif	//#ifdef CONFIG_SPI_LS1X
+#endif	//#ifdef CONFIG_SPI_LS1X_SPI1
 
 /* matrix keypad */
 #if defined(CONFIG_KEYBOARD_MATRIX) || defined(CONFIG_KEYBOARD_MATRIX_MODULE)
@@ -1158,13 +1158,13 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_audio_device,
 #endif
 
-#if defined(CONFIG_SPI_LS1X)
+#if defined(CONFIG_SPI_LS1X_SPI0)
 	&ls1x_spi0_device,
 #elif defined(CONFIG_SPI_GPIO)
 	&spi0_gpio_device,
 #endif
 
-#if defined(CONFIG_SPI_LS1X)
+#if defined(CONFIG_SPI_LS1X_SPI1)
 	&ls1x_spi1_device,
 #elif defined(CONFIG_SPI_GPIO)
 //#elif 0
@@ -1223,7 +1223,7 @@ int __init ls1b_platform_init(void)
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
 #endif
 
-#if defined(CONFIG_SPI_LS1X)
+#if defined(CONFIG_SPI_LS1X_SPI0)
 	/* disable gpio24-27 */
 	*(volatile unsigned int *)0xbfd010c0 &= ~(0xf << 24);
 	spi_register_board_info(ls1x_spi0_devices, ARRAY_SIZE(ls1x_spi0_devices));
@@ -1231,7 +1231,7 @@ int __init ls1b_platform_init(void)
 	spi_register_board_info(spi0_gpio_devices, ARRAY_SIZE(spi0_gpio_devices));
 #endif
 
-#if defined(CONFIG_SPI_LS1X)
+#if defined(CONFIG_SPI_LS1X_SPI1)
 	/* 使能SPI1控制器，与CAN0 CAN1 GPIO38-GPIO41复用,同时占用PWM0 PWM1用于片选. */
 	/* 编程需要注意 */
 	*(volatile unsigned int *)0xbfd00424 |= (0x3 << 23);

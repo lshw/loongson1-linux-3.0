@@ -779,7 +779,7 @@ const struct jbt6k74_platform_data jbt6k74_pdata = {
 };
 #endif
 
-#ifdef CONFIG_SPI_LS1X
+#ifdef CONFIG_SPI_LS1X_SPI0
 #include <linux/spi/spi_ls1x.h>
 static struct spi_board_info ls1x_spi0_devices[] = {
 #ifdef CONFIG_MTD_M25P80
@@ -831,7 +831,7 @@ static struct platform_device ls1x_spi0_device = {
 		.platform_data	= &ls1x_spi0_platdata,//&ls1x_spi_devices,
 	},
 };
-#endif //#ifdef CONFIG_SPI_LS1X
+#endif //#ifdef CONFIG_SPI_LS1X_SPI0
 
 #ifdef CONFIG_SPI_GPIO
 struct spi_gpio_platform_data spigpio_platform_data = {
@@ -1301,7 +1301,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_stac_dev,
 #endif
 
-#ifdef CONFIG_SPI_LS1X
+#ifdef CONFIG_SPI_LS1X_SPI0
 	&ls1x_spi0_device,
 #endif
 
@@ -1367,7 +1367,7 @@ int __init ls1b_platform_init(void)
 	gpio_direction_input(DETECT_GPIO);		/* 输入使能 */
 #endif
 
-#ifdef CONFIG_SPI_LS1X
+#ifdef CONFIG_SPI_LS1X_SPI0
 	/* disable gpio40-43 */
 	__raw_writel(__raw_readl(LS1X_GPIO_CFG1) & ~(SPI0_MASK << SPI0_OFFSET), 
 			LS1X_GPIO_CFG1);

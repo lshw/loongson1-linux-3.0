@@ -260,6 +260,18 @@ config SPI_LS1X
 	help
 	  This is the driver for Loongson1 SPI master controller.
 
+if SPI_LS1X
+
+config SPI_LS1X_SPI0
+	bool "Loongson1 spi0 support"
+	default y
+	depends on SPI_LS1X
+
+config SPI_LS1X_SPI1
+	bool "Loongson1 spi1 support"
+	default n
+	depends on SPI_LS1X
+
 choice
 	prompt  "ls1x spi cs mode"
 	depends on SPI_LS1X
@@ -286,6 +298,8 @@ config SPI_POLL_MODE
 config SPI_IRQ_MODE
 	bool "irq mode"
 endchoice
+
+endif
 
 config SPI_OMAP_UWIRE
 	tristate "OMAP1 MicroWire"
