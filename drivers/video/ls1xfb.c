@@ -412,7 +412,7 @@ static void set_dumb_panel_control(struct fb_info *info)
 	/*
 	 * Preserve enable flag.
 	 */
-	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF) & 0x00000100;
+	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF) & 0x80001110;
 
 	if (unlikely(vga_mode)) {
 		/* have to set 0x80001310 */
@@ -421,7 +421,7 @@ static void set_dumb_panel_control(struct fb_info *info)
 		x |= mi->invert_pixde ? LS1X_FB_PANEL_CONF_DE_POL : 0;
 		x |= mi->invert_pixclock ? LS1X_FB_PANEL_CONF_CLK_POL : 0;
 		x |= mi->de_mode ? LS1X_FB_PANEL_CONF_DE : 0;
-		writel_reg(x, fbi->reg_base + LS1X_FB_PANEL_CONF);
+		writel_reg(x | 0x80001010, fbi->reg_base + LS1X_FB_PANEL_CONF);
 	}
 
 	if (!mi->de_mode) {
