@@ -619,9 +619,9 @@ static int urb_enqueue(struct usb_hcd *hcd,
 	case PIPE_BULK:
 		ep_type = USB_ENDPOINT_XFER_BULK;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
-		if (urb->sg) {
-			DWC_WARN("SG LIST received - we don't support it\n");
-		}
+//		if (urb->sg) {
+//			DWC_WARN("SG LIST received - we don't support it\n");
+//		}
 #endif
 		break;
 	case PIPE_INTERRUPT:

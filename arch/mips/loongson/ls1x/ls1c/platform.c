@@ -851,7 +851,7 @@ static void ls1x_can_setup(void)
 
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
-#ifdef	CONFIG_USB_DWC_OTG_LPM
+#ifdef CONFIG_USB_GADGET_SNPS_DWC_OTG
 static u64 ls1c_otg_dma_mask = DMA_BIT_MASK(32);
 static struct resource ls1c_otg_resources[] = {
 	[0] = {
@@ -1005,7 +1005,7 @@ void __init ls1x_hwmon_set_platdata(struct ls1x_hwmon_pdata *pd)
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
 
-#ifdef	CONFIG_USB_DWC_OTG_LPM
+#ifdef CONFIG_USB_GADGET_SNPS_DWC_OTG
 	&ls1c_otg_device, 
 #endif
 

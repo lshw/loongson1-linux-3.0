@@ -109,7 +109,7 @@ extern int32_t dwc_otg_get_param_dma_enable(dwc_otg_core_if_t * core_if);
 extern int dwc_otg_set_param_dma_desc_enable(dwc_otg_core_if_t * core_if,
 					     int32_t val);
 extern int32_t dwc_otg_get_param_dma_desc_enable(dwc_otg_core_if_t * core_if);
-#define dwc_param_dma_desc_enable_default 1
+#define dwc_param_dma_desc_enable_default 0
 
 /** The DMA Burst size (applicable only for External DMA
  * Mode). 1, 4, 8 16, 32, 64, 128, 256 (default 32)
@@ -217,7 +217,7 @@ extern int32_t dwc_otg_get_param_dev_perio_tx_fifo_size(dwc_otg_core_if_t *
 extern int dwc_otg_set_param_host_rx_fifo_size(dwc_otg_core_if_t * core_if,
 					       int32_t val);
 extern int32_t dwc_otg_get_param_host_rx_fifo_size(dwc_otg_core_if_t * core_if);
-#define dwc_param_host_rx_fifo_size_default 1024
+#define dwc_param_host_rx_fifo_size_default 774
 
 /** Number of 4-byte words in the non-periodic Tx FIFO in host mode
  * when Dynamic FIFO sizing is enabled in the core.
@@ -227,7 +227,7 @@ extern int dwc_otg_set_param_host_nperio_tx_fifo_size(dwc_otg_core_if_t *
 						      core_if, int32_t val);
 extern int32_t dwc_otg_get_param_host_nperio_tx_fifo_size(dwc_otg_core_if_t *
 							  core_if);
-#define dwc_param_host_nperio_tx_fifo_size_default 1024
+#define dwc_param_host_nperio_tx_fifo_size_default 256
 
 /** Number of 4-byte words in the host periodic Tx FIFO when dynamic
  * FIFO sizing is enabled.
@@ -237,7 +237,7 @@ extern int dwc_otg_set_param_host_perio_tx_fifo_size(dwc_otg_core_if_t *
 						     core_if, int32_t val);
 extern int32_t dwc_otg_get_param_host_perio_tx_fifo_size(dwc_otg_core_if_t *
 							 core_if);
-#define dwc_param_host_perio_tx_fifo_size_default 1024
+#define dwc_param_host_perio_tx_fifo_size_default 512
 
 /** The maximum transfer size supported in bytes.
  * 2047 to 65,535  (default 65,535)
@@ -245,7 +245,7 @@ extern int32_t dwc_otg_get_param_host_perio_tx_fifo_size(dwc_otg_core_if_t *
 extern int dwc_otg_set_param_max_transfer_size(dwc_otg_core_if_t * core_if,
 					       int32_t val);
 extern int32_t dwc_otg_get_param_max_transfer_size(dwc_otg_core_if_t * core_if);
-#define dwc_param_max_transfer_size_default 65535
+#define dwc_param_max_transfer_size_default 2047
 
 /** The maximum number of packets in a transfer.
  * 15 to 511  (default 511)
@@ -304,7 +304,7 @@ extern int32_t dwc_otg_get_param_phy_type(dwc_otg_core_if_t * core_if);
 extern int dwc_otg_set_param_phy_utmi_width(dwc_otg_core_if_t * core_if,
 					    int32_t val);
 extern int32_t dwc_otg_get_param_phy_utmi_width(dwc_otg_core_if_t * core_if);
-#define dwc_param_phy_utmi_width_default 16
+#define dwc_param_phy_utmi_width_default 8
 
 /**
  * Specifies whether the ULPI operates at double or single
@@ -686,3 +686,4 @@ extern uint32_t dwc_otg_get_hptxfsiz(dwc_otg_core_if_t * core_if);
 /** @} */
 
 #endif				/* __DWC_CORE_IF_H__ */
+

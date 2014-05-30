@@ -650,6 +650,7 @@ config USB_GADGET_DUALSPEED
 config USB_DWC_OTG_LPM
 	boolean "Enable LPM support"
 	depends on USB && EXPERIMENTAL
+	default y
 	help
 	  Enables LPM support.
 
