@@ -774,6 +774,8 @@ static const struct spi_device_id m25p_ids[] = {
 	{ "cat25c09", CAT25_INFO( 128, 8, 32, 2) },
 	{ "cat25c17", CAT25_INFO( 256, 8, 32, 2) },
 	{ "cat25128", CAT25_INFO(2048, 8, 64, 2) },
+
+	{ "gd25q32b", INFO(0xc84016, 0, 64 * 1024,  64, SECT_4K) },
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, m25p_ids);
