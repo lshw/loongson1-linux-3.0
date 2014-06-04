@@ -4823,7 +4823,6 @@ void dwc_otg_flush_rx_fifo(dwc_otg_core_if_t * core_if)
  */
 void dwc_otg_core_reset(dwc_otg_core_if_t * core_if)
 {
-#if 0
 	dwc_otg_core_global_regs_t *global_regs = core_if->core_global_regs;
 	volatile grstctl_t greset = {.d32 = 0 };
 	int count = 0;
@@ -4858,7 +4857,6 @@ void dwc_otg_core_reset(dwc_otg_core_if_t * core_if)
 
 	/* Wait for 3 PHY Clocks */
 	dwc_mdelay(100);
-#endif
 }
 
 uint8_t dwc_otg_is_device_mode(dwc_otg_core_if_t * _core_if)
