@@ -414,6 +414,7 @@ static void set_dumb_panel_control(struct fb_info *info)
 	 */
 	x = readl(fbi->reg_base + LS1X_FB_PANEL_CONF) & 0x80001110;
 
+	/* PAN_CONFIG寄存器最高位需要置1，否则lcd时钟延时一段时间才会有输出 */
 	if (unlikely(vga_mode)) {
 		/* have to set 0x80001310 */
 		writel_reg(x | 0x80001310, fbi->reg_base + LS1X_FB_PANEL_CONF);
