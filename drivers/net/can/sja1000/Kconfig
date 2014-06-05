@@ -23,7 +23,7 @@ config CAN_SJA1000_PLATFORM
 config LS1X_CAN0
 	bool "Loongson1 CAN Controller 0"
 	depends on CAN_SJA1000_PLATFORM
-	depends on (LS1B_MACH || LS1A_MACH)
+	depends on (LS1A_MACH || LS1B_MACH || LS1C_MACH)
 	default n
 	---help---
 	  This is the driver for the Loongson 1A/1B SOC CAN Controller 0.
@@ -33,7 +33,7 @@ config LS1X_CAN0
 config LS1X_CAN1
 	bool "Loongson1 CAN Controller 1"
 	depends on CAN_SJA1000_PLATFORM
-	depends on (LS1B_MACH || LS1A_MACH)
+	depends on (LS1A_MACH || LS1B_MACH || LS1C_MACH)
 	default n
 	---help---
 	  This is the driver for the Loongson 1A/1B SOC CAN Controller 1.

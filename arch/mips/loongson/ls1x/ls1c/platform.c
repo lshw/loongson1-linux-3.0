@@ -143,9 +143,32 @@ void __init ls1x_serial_setup(void)
 
 	for (p = ls1x_serial8250_port; p->flags != 0; ++p)
 		p->uartclk = clk_get_rate(clk);
+
+#if 0
+	/* 设置复用关系(EJTAG) */
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x0000003f), LS1X_CBUS_FIRST0);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x0000003f), LS1X_CBUS_SECOND0);
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x0000003f), LS1X_CBUS_THIRD0);
+	/* UART1 */
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x00060000), LS1X_CBUS_FIRST0);
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST3) & (~0x00000060), LS1X_CBUS_FIRST3);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00000300), LS1X_CBUS_SECOND1);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2) & (~0x00003000), LS1X_CBUS_SECOND2);
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x0000000c, LS1X_CBUS_FOURTHT0);
+	/* UART2 */
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00000c30), LS1X_CBUS_SECOND1);
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x18000000), LS1X_CBUS_THIRD0);
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD3) & (~0x00000180), LS1X_CBUS_THIRD3);
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000030, LS1X_CBUS_FOURTHT0);
+	/* UART3 */
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x00060000), LS1X_CBUS_SECOND0);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00003006), LS1X_CBUS_SECOND1);
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000003, LS1X_CBUS_FOURTHT0);
+#endif
 }
 
 /* USB OHCI */
+#ifdef CONFIG_USB_OHCI_HCD_PLATFORM
 #include <linux/usb/ohci_pdriver.h>
 static u64 ls1x_ohci_dmamask = DMA_BIT_MASK(32);
 
@@ -174,6 +197,7 @@ struct platform_device ls1x_ohci_device = {
 		.platform_data = &ls1x_ohci_pdata,
 	},
 };
+#endif
 
 /* EHCI */
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
@@ -290,20 +314,6 @@ static struct uda1342_platform_data uda1342_info = {
 
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
-#ifdef CONFIG_TOUCHSCREEN_TSC2007
-	{
-		I2C_BOARD_INFO("tsc2007", 0x48),
-		.irq = LS1X_GPIO_FIRST_IRQ + TSC2007_GPIO_IRQ,
-		.platform_data	= &tsc2007_info,
-	},
-#endif
-#ifdef CONFIG_TOUCHSCREEN_FT5X0X
-	{
-		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
-		.irq = LS1X_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
-		.platform_data	= &ft5x0x_info,
-	},
-#endif
 #ifdef CONFIG_VIDEO_GC0308
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
@@ -817,36 +827,14 @@ static void ls1x_can_setup(void)
 	sja1000_pdata->osc_freq = clk_get_rate(clk);
 	#endif
 
-#ifdef	CONFIG_LS1A_MACH
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 67);
-	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 69);
-	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
-	#endif
-#elif	CONFIG_LS1B_MACH
-	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 39);
-	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 41);
-	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
-	#endif
-#endif
+	/* 设置复用关系 can0 gpio54/55 */
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST1) & (~0x00c00000), LS1X_CBUS_FIRST1);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00c00000), LS1X_CBUS_SECOND1);
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD1) | 0x00c00000, LS1X_CBUS_THIRD1);
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT1) & (~0x00c00000), LS1X_CBUS_FOURTHT1);
+
+	/* 使能can0控制器 */
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) & (~CAN0_SHUT), LS1X_MUX_CTRL0);
 }
 
 #endif //#ifdef CONFIG_CAN_SJA1000_PLATFORM
@@ -1020,8 +1008,7 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
 	&ls1x_ehci_device,
 #endif
-
-#ifdef CONFIG_USB_OHCI_HCD_LS1X
+#ifdef CONFIG_USB_OHCI_HCD_PLATFORM
 	&ls1x_ohci_device,
 #endif
 
