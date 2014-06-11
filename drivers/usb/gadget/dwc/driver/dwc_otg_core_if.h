@@ -179,7 +179,8 @@ extern int32_t dwc_otg_get_param_enable_dynamic_fifo(dwc_otg_core_if_t *
 extern int dwc_otg_set_param_data_fifo_size(dwc_otg_core_if_t * core_if,
 					    int32_t val);
 extern int32_t dwc_otg_get_param_data_fifo_size(dwc_otg_core_if_t * core_if);
-#define dwc_param_data_fifo_size_default 8192
+//#define dwc_param_data_fifo_size_default 8192
+#define dwc_param_data_fifo_size_default 1273
 
 /** Number of 4-byte words in the Rx FIFO in device mode when dynamic
  * FIFO sizing is enabled.
@@ -217,7 +218,7 @@ extern int32_t dwc_otg_get_param_dev_perio_tx_fifo_size(dwc_otg_core_if_t *
 extern int dwc_otg_set_param_host_rx_fifo_size(dwc_otg_core_if_t * core_if,
 					       int32_t val);
 extern int32_t dwc_otg_get_param_host_rx_fifo_size(dwc_otg_core_if_t * core_if);
-#define dwc_param_host_rx_fifo_size_default 774
+#define dwc_param_host_rx_fifo_size_default 529
 
 /** Number of 4-byte words in the non-periodic Tx FIFO in host mode
  * when Dynamic FIFO sizing is enabled in the core.
@@ -238,6 +239,7 @@ extern int dwc_otg_set_param_host_perio_tx_fifo_size(dwc_otg_core_if_t *
 extern int32_t dwc_otg_get_param_host_perio_tx_fifo_size(dwc_otg_core_if_t *
 							 core_if);
 #define dwc_param_host_perio_tx_fifo_size_default 512
+#define dwc_param_host_perio_tx_fifo_size_default 0
 
 /** The maximum transfer size supported in bytes.
  * 2047 to 65,535  (default 65,535)
@@ -253,7 +255,7 @@ extern int32_t dwc_otg_get_param_max_transfer_size(dwc_otg_core_if_t * core_if);
 extern int dwc_otg_set_param_max_packet_count(dwc_otg_core_if_t * core_if,
 					      int32_t val);
 extern int32_t dwc_otg_get_param_max_packet_count(dwc_otg_core_if_t * core_if);
-#define dwc_param_max_packet_count_default 511
+#define dwc_param_max_packet_count_default 63
 
 /** The number of host channel registers to use.
  * 1 to 16 (default 12)
@@ -304,7 +306,7 @@ extern int32_t dwc_otg_get_param_phy_type(dwc_otg_core_if_t * core_if);
 extern int dwc_otg_set_param_phy_utmi_width(dwc_otg_core_if_t * core_if,
 					    int32_t val);
 extern int32_t dwc_otg_get_param_phy_utmi_width(dwc_otg_core_if_t * core_if);
-#define dwc_param_phy_utmi_width_default 8
+#define dwc_param_phy_utmi_width_default 16
 
 /**
  * Specifies whether the ULPI operates at double or single

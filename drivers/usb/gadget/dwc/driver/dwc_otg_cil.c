@@ -5546,9 +5546,7 @@ int dwc_otg_set_param_max_transfer_size(dwc_otg_core_if_t * core_if,
 			    ("%d invalid for max_transfer_size. Check HW configuration.\n",
 			     val);
 		}
-		val =
-		    ((1 << (core_if->hwcfg3.b.packet_size_cntr_width + 11)) -
-		     1);
+		val = ((1 << (core_if->hwcfg3.b.xfer_size_cntr_width + 11)) - 1);
 		retval = -DWC_E_INVALID;
 	}
 
