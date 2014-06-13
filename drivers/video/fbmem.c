@@ -468,7 +468,11 @@ static int fb_show_logo_line(struct fb_info *info, int rotate,
 
 	if (fb_logo.needs_truepalette ||
 	    fb_logo.needs_directpalette) {
+	    #ifdef CONFIG_LOGO_ANIMATION
+		palette = kmalloc(256 * 4, GFP_ATOMIC);
+		#else
 		palette = kmalloc(256 * 4, GFP_KERNEL);
+		#endif
 		if (palette == NULL)
 			return 0;
 
@@ -482,7 +486,11 @@ static int fb_show_logo_line(struct fb_info *info, int rotate,
 	}
 
 	if (fb_logo.depth <= 4) {
+		#ifdef CONFIG_LOGO_ANIMATION
+		logo_new = kmalloc(logo->width * logo->height, GFP_ATOMIC);
+		#else
 		logo_new = kmalloc(logo->width * logo->height, GFP_KERNEL);
+		#endif
 		if (logo_new == NULL) {
 			kfree(palette);
 			if (saved_pseudo_palette)
@@ -499,8 +507,13 @@ static int fb_show_logo_line(struct fb_info *info, int rotate,
 	image.height = logo->height;
 
 	if (rotate) {
+		#ifdef CONFIG_LOGO_ANIMATION
+		logo_rotate = kmalloc(logo->width *
+				      logo->height, GFP_ATOMIC);
+		#else
 		logo_rotate = kmalloc(logo->width *
 				      logo->height, GFP_KERNEL);
+		#endif
 		if (logo_rotate)
 			fb_rotate_logo(info, logo_rotate, &image, rotate);
 	}
