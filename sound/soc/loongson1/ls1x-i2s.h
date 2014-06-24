@@ -7,7 +7,6 @@
 #ifndef _LS1X_I2S_H
 #define _LS1X_I2S_H
 
-//#define LS1X_IIS_BASE	((void __iomem *)0xbfe60000)
 #define LS1X_IIS_BASE(x)	((void __iomem *)(0xbfe60000 + x))
 
 #define LS1X_IIS_VERSION	(0x00)

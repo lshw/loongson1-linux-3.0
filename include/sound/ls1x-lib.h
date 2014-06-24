@@ -18,7 +18,6 @@ extern void ls1x_ac97_write(struct snd_ac97 *ac97, unsigned short reg, unsigned 
 
 extern bool ls1x_ac97_try_warm_reset(struct snd_ac97 *ac97);
 extern bool ls1x_ac97_try_cold_reset(struct snd_ac97 *ac97);
-extern void ls1x_ac97_finish_reset(struct snd_ac97 *ac97);
 
 extern int ls1x_ac97_hw_suspend(void);
 extern int ls1x_ac97_hw_resume(void);

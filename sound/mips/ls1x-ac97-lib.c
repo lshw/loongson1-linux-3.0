@@ -90,12 +90,17 @@ EXPORT_SYMBOL_GPL(ls1x_ac97_write);
 bool ls1x_ac97_try_warm_reset(struct snd_ac97 *ac97)
 {
 	struct ls1x_audio *state = &ls1x_audio_state;
-	u32 x;
+	u32 x, timeout = 5;
 
 	x = readl(state->base + CSR);
 
-	writel(x | 0x01, state->base + CSR);
-	mdelay(50);
+	do {
+		writel(x | 0x01, state->base + CSR);
+		mdelay(60);
+		x = readl(state->base + CSR);
+		timeout--;
+	} while ((x & 0x02) && timeout);
+
 	writel(x & 0xfe, state->base + CSR);
 
 	return true;
@@ -105,29 +110,22 @@ EXPORT_SYMBOL_GPL(ls1x_ac97_try_warm_reset);
 bool ls1x_ac97_try_cold_reset(struct snd_ac97 *ac97)
 {
 	struct ls1x_audio *state = &ls1x_audio_state;
-	u32 x;
+	u32 x, timeout = 5;
 
 	x = readl(state->base + CSR);
 
-	writel(x | 0x01, state->base + CSR);
-	mdelay(50);
+	do {
+		writel(x | 0x01, state->base + CSR);
+		mdelay(60);
+		x = readl(state->base + CSR);
+		timeout--;
+	} while ((x & 0x02) && timeout);
+
 	writel(x & 0xfe, state->base + CSR);
 
 	return true;
 }
 EXPORT_SYMBOL_GPL(ls1x_ac97_try_cold_reset);
-
-
-void ls1x_ac97_finish_reset(struct snd_ac97 *ac97)
-{
-	struct ls1x_audio *state = &ls1x_audio_state;
-	u32 x;
-
-	do {
-		x = readl(state->base + CSR);
-	} while (x & 0x02);
-}
-EXPORT_SYMBOL_GPL(ls1x_ac97_finish_reset);
 
 void ls1x_ac97_channel_config_out(uint32_t conf)
 {
@@ -260,7 +258,6 @@ int ls1x_ac97_hw_probe(struct platform_device *pdev)
 	/* reset ls1x ac97 controller */
 	writel(0x00, state->base + CSR);
 	ls1x_ac97_try_cold_reset(NULL);
-	ls1x_ac97_finish_reset(NULL);
 	/* config channels */
 	writel(0x30303030, state->base + OCC0);
 	writel(0x30303030, state->base + OCC1);

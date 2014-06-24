@@ -24,15 +24,11 @@
 static void ls1x_ac97_warm_reset(struct snd_ac97 *ac97)
 {
 	ls1x_ac97_try_warm_reset(ac97);
-
-	ls1x_ac97_finish_reset(ac97);
 }
 
 static void ls1x_ac97_cold_reset(struct snd_ac97 *ac97)
 {
 	ls1x_ac97_try_cold_reset(ac97);
-
-	ls1x_ac97_finish_reset(ac97);
 }
 
 struct snd_ac97_bus_ops soc_ac97_ops = {
