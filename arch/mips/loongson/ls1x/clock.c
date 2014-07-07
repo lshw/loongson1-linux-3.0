@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Zhang, Keguang <keguang.zhang@gmail.com>
+ * Copyright (c) 2012 Tang Haifeng <tanghaifeng-gz@loongson.cn> or <pengren.mcu@qq.com>
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -13,9 +14,10 @@
 #include <linux/mutex.h>
 #include <linux/clk.h>
 #include <linux/err.h>
+#include <linux/delay.h>
 #include <asm/time.h>
+#include <asm/clock.h>
 
-#include <clock.h>
 #include <loongson1.h>
 #include <ls1x_time.h>
 
@@ -30,21 +32,24 @@ extern unsigned long ls1x_bus_clock;
 
 /* Minimum CLK support */
 enum {
-	DC_ZERO, DC_25PT = 2, DC_37PT, DC_50PT, DC_62PT, DC_75PT,
-	DC_87PT, DC_DISABLE, DC_RESV
+	DIV_ZERO, DIV_2 = 2, DIV_3, DIV_4, DIV_5, DIV_6, DIV_7,
+	DIV_8, DIV_9, DIV_10, DIV_DISABLE, DIV_RESV
 };
 
+/* cpu使用3分频时，切换有时会出现死机的情况 */
 struct cpufreq_frequency_table loongson1_clockmod_table[] = {
-	{DC_RESV, CPUFREQ_ENTRY_INVALID},
-	{DC_ZERO, CPUFREQ_ENTRY_INVALID},
-	{DC_25PT, 0},
-	{DC_37PT, 0},
-	{DC_50PT, 0},
-	{DC_62PT, 0},
-	{DC_75PT, 0},
-	{DC_87PT, 0},
-	{DC_DISABLE, 0},
-	{DC_RESV, CPUFREQ_TABLE_END},
+//	{DIV_RESV, CPUFREQ_ENTRY_INVALID},
+//	{DIV_ZERO, CPUFREQ_ENTRY_INVALID},
+	{DIV_2, 0},
+//	{DIV_3, 0},
+	{DIV_4, 0},
+//	{DIV_5, 0},
+	{DIV_6, 0},
+//	{DIV_7, 0},
+	{DIV_8, 0},
+//	{DIV_9, 0},
+	{DIV_10, 0},
+	{DIV_RESV, CPUFREQ_TABLE_END},
 };
 EXPORT_SYMBOL_GPL(loongson1_clockmod_table);
 
@@ -104,26 +109,21 @@ EXPORT_SYMBOL(clk_put);
 
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
-	return clk_set_rate_ex(clk, rate, 0);
+	if (!clk->ops->set_rate)
+		return -EINVAL;
+	return clk->ops->set_rate(clk, rate, 0);
 }
 EXPORT_SYMBOL_GPL(clk_set_rate);
 
-int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
+static int cpu_clk_set_rate(struct clk *clk, unsigned long rate, int algo_id)
 {
-	int ret = 0;
 	int regval __maybe_unused;
 	int i;
 
-	if (likely(clk->ops && clk->ops->set_rate)) {
-		unsigned long flags;
-
-		spin_lock_irqsave(&clock_lock, flags);
-		ret = clk->ops->set_rate(clk, rate, algo_id);
-		spin_unlock_irqrestore(&clock_lock, flags);
-	}
-
-	if (unlikely(clk->flags & CLK_RATE_PROPAGATES))
+	if (clk->flags & CLK_RATE_PROPAGATES) {
+		udelay(2);
 		propagate_rate(clk);
+	}
 
 	for (i = 0; loongson1_clockmod_table[i].frequency != CPUFREQ_TABLE_END;
 	     i++) {
@@ -141,12 +141,16 @@ int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 #if defined(CONFIG_LS1B_MACH)
 	regval = __raw_readl(LS1X_CLK_PLL_DIV);
 	regval |= 0x00000300;	//cpu_bypass 置1
-	regval &= ~0x0000003;	//cpu_rst 置0
+//	regval &= ~0x0000003;	//cpu_rst 置0
+	regval |= 0x00000003;	//cpu_rst 置1
 	regval &= ~(0x1f<<20);	//cpu_div 清零
 	regval |= (loongson1_clockmod_table[i].index) << 20;
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
+	udelay(2);
+	regval &= ~0x00000003;	//cpu_rst 置0
 	regval &= ~0x00000100;	//cpu_bypass 置0
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
+	udelay(2);
 #elif defined(CONFIG_LS1A_MACH)
 	regval = (ls1x_bus_clock / APB_CLK - 3) << 8;
 	regval |= 0x8888;
@@ -154,9 +158,8 @@ int clk_set_rate_ex(struct clk *clk, unsigned long rate, int algo_id)
 	__raw_writel(regval, LS1X_CLK_PLL_DIV);
 #endif
 
-	return ret;
+	return 0;
 }
-EXPORT_SYMBOL_GPL(clk_set_rate_ex);
 
 long clk_round_rate(struct clk *clk, unsigned long rate)
 {
@@ -204,6 +207,7 @@ static void pll_clk_init(struct clk *clk)
 	clk->rate = (12 + (pll & 0x3f)) * APB_CLK / 2
 			+ ((pll >> 8) & 0x3ff) * APB_CLK / 1024 / 2;
 #endif
+	pr_info("pllclock=%ldHz\n", clk->rate);
 }
 
 static void cpu_clk_init(struct clk *clk)
@@ -289,6 +293,7 @@ static struct clk_ops pll_clk_ops = {
 
 static struct clk_ops cpu_clk_ops = {
 	.init	= cpu_clk_init,
+	.set_rate = cpu_clk_set_rate,
 };
 
 static struct clk_ops ddr_clk_ops = {
@@ -357,7 +362,7 @@ static struct clk *ls1x_clks[] = {
 	&dc_clk,
 };
 
-int __init ls1x_clock_init(void)
+static int __init ls1x_clock_init(void)
 {
 	int i;
 

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
- * Platform device support for GS232 SoCs.
+ * Platform device support for Loongson 1B
  *
  * This file is licensed under the terms of the GNU General Public
  * License version 2.  This program is licensed "as is" without any
@@ -1886,6 +1886,7 @@ struct gpio_led gpio_leds[] = {
 		.active_low		= 0,
 //		.default_trigger	= "heartbeat",	/* 触发方式 */
 		.default_trigger	= "timer",	/* 触发方式 */
+//		.default_trigger	= NULL,
 		.default_state	= LEDS_GPIO_DEFSTATE_ON,
 	},
 };

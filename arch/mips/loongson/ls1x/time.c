@@ -22,9 +22,6 @@
 #include <loongson1.h>
 #include <ls1x_time.h>
 
-#define TIMER_CLOCKEVENT 0
-#define TIMER_CLOCKSOURCE 1
-
 #define TIMER_CNTR	0x00
 #define TIMER_HRC	0x04
 #define TIMER_LRC	0x08
@@ -32,23 +29,19 @@
 
 #if defined(CONFIG_TIMER_USE_PWM0)
 #define LS1X_TIMER_BASE	LS1X_PWM0_BASE
-#define LS1X_TIMER_IRQ	17
-
+#define LS1X_TIMER_IRQ	LS1X_PWM0_IRQ
 #elif defined(CONFIG_TIMER_USE_PWM1)
 #define LS1X_TIMER_BASE	LS1X_PWM1_BASE
-#define LS1X_TIMER_IRQ	18
-
+#define LS1X_TIMER_IRQ	LS1X_PWM1_IRQ
 #elif defined(CONFIG_TIMER_USE_PWM2)
 #define LS1X_TIMER_BASE	LS1X_PWM2_BASE
-#define LS1X_TIMER_IRQ	19
-
+#define LS1X_TIMER_IRQ	LS1X_PWM2_IRQ
 #elif defined(CONFIG_TIMER_USE_PWM3)
 #define LS1X_TIMER_BASE	LS1X_PWM3_BASE
-#define LS1X_TIMER_IRQ	20
-
+#define LS1X_TIMER_IRQ	LS1X_PWM3_IRQ
 #else
 #define LS1X_TIMER_BASE	LS1X_PWM0_BASE
-#define LS1X_TIMER_IRQ	17
+#define LS1X_TIMER_IRQ	LS1X_PWM0_IRQ
 #endif
 
 void __iomem *ls1x_timer_base;

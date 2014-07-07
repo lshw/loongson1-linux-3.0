@@ -193,9 +193,10 @@ config HAVE_PWM
 	  as NAND GMAC and SPI.
 
 config LS1X_EXTERN_TIMER
-	bool "loongson 1A/1B Extern Timer"
+	bool "Loongson1 Extern Timer"
 	default n
 	depends on LS1A_MACH || LS1B_MACH
+	select MIPS_EXTERNAL_TIMER
 	help
 	  If you want to enable the Loongson1 CPUFreq Driver, Please enable
 	  this option at first, otherwise, You will get wrong system time.
@@ -205,43 +206,32 @@ choice
 	depends on LS1X_EXTERN_TIMER
 	default LS1X_TIMER
 
-config	LS1X_HPET
+config LS1X_HPET
 	bool "hpet timer of LS1A for system"
-	select MIPS_EXTERNAL_TIMER
 	depends on LS1A_MACH
-	help
-	  If you want to enable the Loongson1A CPUFreq Driver, Please enable
-	  this option at first, otherwise, You will get wrong system time.
-	  only for ls1a.
 
 config LS1X_TIMER
-	bool "loongson 1A/1B PWM Timer"
-	select MIPS_EXTERNAL_TIMER
+	bool "Loongson1 PWM Timer"
 	depends on LS1A_MACH || LS1B_MACH
-	help
-	  If you want to enable the Loongson1 CPUFreq Driver, Please enable
-	  this option at first, otherwise, You will get wrong system time.
-
-	  If unsure, say Yes.
 endchoice
 
 choice
-	prompt  "system timer select for pwm-timer"
+	prompt  "System timer select for pwm-timer"
 	depends on LS1X_EXTERN_TIMER
 	depends on LS1X_TIMER
 	default TIMER_USE_PWM0
 
 config TIMER_USE_PWM0
-	bool "used pwm0 timer controller"
+	bool "used pwm0 timer"
 
 config TIMER_USE_PWM1
-	bool "used pwm1 timer controller"
+	bool "used pwm1 timer"
 
 config TIMER_USE_PWM2
-	bool "used pwm2 timer controller"
+	bool "used pwm2 timer"
 
 config TIMER_USE_PWM3
-	bool "used pwm3 timer controller"
+	bool "used pwm3 timer"
 endchoice
 
 endif # MACH_LOONGSON

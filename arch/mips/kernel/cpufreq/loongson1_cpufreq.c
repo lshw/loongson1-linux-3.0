@@ -1,10 +1,6 @@
 /*
- * Cpufreq driver for the loongson-2 processors
- *
- * The 2E revision of loongson processor not support this feature.
- *
- * Copyright (C) 2006 - 2008 Lemote Inc. & Insititute of Computing Technology
- * Author: Yanhua, yanh@lemote.com
+ * Copyright (c) 2012 Tang Haifeng <tanghaifeng-gz@loongson.cn> or <pengren.mcu@qq.com>
+ * Based on loongson2_cpufreq.c
  *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
@@ -80,16 +76,17 @@ static int loongson1_cpufreq_target(struct cpufreq_policy *policy,
 		return -EINVAL;
 
 #ifdef CONFIG_LS1B_MACH
-	freq =
+/*	freq =
 	    ((cpu_clock_freq / 1000) /
-	     loongson1_clockmod_table[newstate].index) * 2;
+	     loongson1_clockmod_table[newstate].index) * 2;*/
+	freq = loongson1_clockmod_table[newstate].frequency;
 #else
-	freq = (APB_CLK / 1000) * (loongson1_clockmod_table[newstate].index + 2) ;
+	freq = APB_CLK * (loongson1_clockmod_table[newstate].index + 2);
 #endif
 	if (freq < policy->min || freq > policy->max)
 		return -EINVAL;
 
-	pr_debug("cpufreq: requested frequency %u Hz\n", target_freq * 1000);
+	pr_debug("cpufreq: requested frequency %u Hz\n", target_freq);
 
 	freqs.cpu = cpu;
 	freqs.old = loongson1_cpufreq_get(cpu);
@@ -110,7 +107,7 @@ static int loongson1_cpufreq_target(struct cpufreq_policy *policy,
 	/* notifiers */
 	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 
-	pr_debug("cpufreq: set frequency %u kHz\n", freq);
+	pr_debug("cpufreq: set frequency %u Hz\n", freq);
 
 	return 0;
 }
@@ -118,9 +115,17 @@ static int loongson1_cpufreq_target(struct cpufreq_policy *policy,
 static int loongson1_cpufreq_cpu_init(struct cpufreq_policy *policy)
 {
 	int i;
+	int cpu_div;
+	struct clk *pllclk;
 
 	if (!cpu_online(policy->cpu))
 		return -ENODEV;
+
+	pllclk = clk_get(NULL, "pll");
+	if (IS_ERR(pllclk)) {
+		printk(KERN_ERR "pllfreq: couldn't get PLL clk\n");
+		return PTR_ERR(pllclk);
+	}
 
 	cpuclk = clk_get(NULL, "cpu");
 	if (IS_ERR(cpuclk)) {
@@ -128,19 +133,17 @@ static int loongson1_cpufreq_cpu_init(struct cpufreq_policy *policy)
 		return PTR_ERR(cpuclk);
 	}
 
-	cpuclk->rate = cpu_clock_freq / 1000;
-	if (!cpuclk->rate)
-		return -EINVAL;
+	cpu_div = (__raw_readl(LS1X_CLK_PLL_DIV) >> 20) & 0xf;
 
-#ifdef CONFIG_LS1B_MACH
+#if defined(CONFIG_LS1B_MACH)
 	/* clock table init */
-	for (i = 2;
+	for (i = 0;
 	     (loongson1_clockmod_table[i].frequency != CPUFREQ_TABLE_END);
 	     i++)
-		loongson1_clockmod_table[i].frequency = (cpuclk->rate / i) * 2;
-#else
+		loongson1_clockmod_table[i].frequency = clk_get_rate(pllclk) / (cpu_div + i);
+#elif defined(CONFIG_LS1A_MACH)
 	for (i = 2; (loongson1_clockmod_table[i].frequency != CPUFREQ_TABLE_END); i++)
-		loongson1_clockmod_table[i].frequency = (APB_CLK / 1000) * (2 + i);
+		loongson1_clockmod_table[i].frequency = APB_CLK * (2 + i);
 #endif
 
 	policy->cur = loongson1_cpufreq_get(policy->cpu);
@@ -215,7 +218,7 @@ static int __init cpufreq_init(void)
 
 	if (!ret && !nowait) {
 		saved_cpu_wait = cpu_wait;
-//		cpu_wait = loongson1_cpu_wait;
+		cpu_wait = loongson1_cpu_wait;
 	}
 
 	return ret;
@@ -236,8 +239,8 @@ module_init(cpufreq_init);
 module_exit(cpufreq_exit);
 
 module_param(nowait, uint, 0644);
-MODULE_PARM_DESC(nowait, "Disable Loongson 1A/1B specific wait");
+MODULE_PARM_DESC(nowait, "Disable Loongson1 specific wait");
 
-MODULE_AUTHOR("Yanhua <yanh@lemote.com>");
+MODULE_AUTHOR("www.loongson-gz.cn");
 MODULE_DESCRIPTION("cpufreq driver for loongson1F");
 MODULE_LICENSE("GPL");
