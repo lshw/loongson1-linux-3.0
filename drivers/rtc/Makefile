@@ -55,6 +55,7 @@ obj-$(CONFIG_RTC_DRV_JZ4740)	+= rtc-jz4740.o
 obj-$(CONFIG_RTC_DRV_LPC32XX)	+= rtc-lpc32xx.o
 obj-$(CONFIG_RTC_DRV_RTC_LOONGSON1)	+= rtc-ls1x.o
 obj-$(CONFIG_RTC_DRV_TOY_LOONGSON1)	+= rtc-ls1x-toy.o
+obj-$(CONFIG_RTC_DRV_TOY_LOONGSON1CV2)	+= rtc-ls1cv2-toy.o
 obj-$(CONFIG_RTC_DRV_M41T80)	+= rtc-m41t80.o
 obj-$(CONFIG_RTC_DRV_M41T93)	+= rtc-m41t93.o
 obj-$(CONFIG_RTC_DRV_M41T94)	+= rtc-m41t94.o

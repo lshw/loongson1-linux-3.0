@@ -1090,4 +1090,14 @@ config RTC_DRV_TOY_LOONGSON1
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-ls1x.
 
+config RTC_DRV_TOY_LOONGSON1CV2
+	tristate "loongson 1cv2 TOY support"
+	depends on LS1CV2_MACH
+	help
+	  This is a driver for the loongson1 on-chip Counter0 (Time-Of-Year
+	  counter) to be used as a RTC.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-ls1x.
+
 endif # RTC_CLASS

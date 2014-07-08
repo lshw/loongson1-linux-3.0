@@ -137,6 +137,10 @@ config	LS1B_CORE_BOARD
 	bool "ls1b_core_board"
 endchoice
 
+config LS1CV2_MACH
+	bool "loongson 1c v2"
+	default n
+	depends on LS1C_MACH
 
 
 config CS5536
