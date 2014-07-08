@@ -310,14 +310,64 @@ static struct gc0308_platform_data gc0308_plat = {
 };
 #endif //#ifdef CONFIG_VIDEO_GC0308
 
-#ifdef CONFIG_SND_SOC_UDA1342
-#include <sound/uda1342.h>
-static struct uda1342_platform_data uda1342_info = {
-//	.gpio_power	= H1940_LATCH_UDA_POWER,
-//	.gpio_reset	= S3C2410_GPA(12),
-//	.dac_clk	= UDA1380_DAC_CLK_SYSCLK,
+#ifdef CONFIG_GPIO_PCA953X
+#include <linux/i2c/pca953x.h>
+#define PCA9555_GPIO_BASE 170
+#define PCA9555_IRQ_BASE 170
+#define PCA9555_GPIO_IRQ 31
+
+#define LOCKER_TS	(PCA9555_GPIO_BASE+12)
+#define LOCKER_BL	(PCA9555_GPIO_BASE+13)
+
+static int pca9555_setup(struct i2c_client *client,
+			       unsigned gpio_base, unsigned ngpio,
+			       void *context)
+{
+	gpio_request(PCA9555_GPIO_IRQ, "pca9555 gpio irq");
+	gpio_direction_input(PCA9555_GPIO_IRQ);
+	return 0;
+}
+
+static struct pca953x_platform_data i2c_pca9555_platdata = {
+	.gpio_base	= PCA9555_GPIO_BASE, /* Start directly after the CPU's GPIO */
+	.irq_base = PCA9555_IRQ_BASE,
+//	.invert		= 0, /* Do not invert */
+	.setup		= pca9555_setup,
 };
-#endif
+
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#include <linux/leds.h>
+struct gpio_led pca9555_gpio_leds[] = {
+	{
+		.name			= "locker_ts",
+		.gpio			= LOCKER_TS,
+		.active_low		= 1,
+		.default_trigger	= NULL,
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	},
+	{
+		.name			= "locker_bl",
+		.gpio			= LOCKER_BL,
+		.active_low		= 0,
+		.default_trigger	= NULL,
+		.default_state	= LEDS_GPIO_DEFSTATE_ON,
+	},
+};
+
+static struct gpio_led_platform_data pca9555_gpio_led_info = {
+	.leds		= pca9555_gpio_leds,
+	.num_leds	= ARRAY_SIZE(pca9555_gpio_leds),
+};
+
+static struct platform_device pca9555_leds = {
+	.name	= "leds-gpio",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &pca9555_gpio_led_info,
+	}
+};
+#endif //#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+#endif //#ifdef CONFIG_GPIO_PCA953X
 
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
@@ -326,25 +376,21 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		I2C_BOARD_INFO("sd2068", 0x32),
 	},
 #endif
+#ifdef CONFIG_GPIO_PCA953X
+	{
+		I2C_BOARD_INFO("pca9555", 0x21),
+		.irq = LS1X_GPIO_FIRST_IRQ + PCA9555_GPIO_IRQ,
+		.platform_data = &i2c_pca9555_platdata,
+	},
+#endif
 #ifdef CONFIG_VIDEO_GC0308
 	{
 		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
 		.platform_data = &gc0308_plat,
 	},
 #endif
-#ifdef CONFIG_SND_SOC_UDA1342
-	{
-		I2C_BOARD_INFO("uda1342", 0x1a),
-		.platform_data = &uda1342_info,
-	},
-#endif
-#ifdef CONFIG_CODEC_UDA1342
-	{
-		I2C_BOARD_INFO("uda1342", 0x1a),
-	},
-#endif
-#ifdef CONFIG_SND_SOC_ES8388
-//#ifdef CONFIG_CODEC_ES8388
+//#ifdef CONFIG_SND_SOC_ES8388
+#ifdef CONFIG_CODEC_ES8388
 	{
 		I2C_BOARD_INFO("es8388", 0x10),
 	},
@@ -431,6 +477,33 @@ struct platform_device ls1x_fb0_device = {
 };
 #endif	//#ifdef CONFIG_LS1X_FB0
 #endif	//#if defined(CONFIG_FB_LOONGSON1)
+
+#ifdef CONFIG_BACKLIGHT_GENERIC
+#define GPIO_BACKLIGHT_CTRL	180 //PCA9555_GPIO_BASE+10
+#include <linux/backlight.h>
+static void ls1x_bl_set_intensity(int intensity)
+{
+	if (intensity)
+		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 1);
+	else
+		gpio_direction_output(GPIO_BACKLIGHT_CTRL, 0);
+}
+
+static struct generic_bl_info ls1x_bl_info = {
+	.name			= "ls1x-bl",
+	.max_intensity		= 0xff,
+	.default_intensity	= 0xff,
+	.set_bl_intensity	= ls1x_bl_set_intensity,
+};
+
+static struct platform_device ls1x_bl_dev = {
+	.name			= "generic-bl",
+	.id			= 1,
+	.dev = {
+		.platform_data	= &ls1x_bl_info,
+	},
+};
+#endif //#ifdef CONFIG_BACKLIGHT_GENERIC
 
 #ifdef CONFIG_BACKLIGHT_PWM
 #include <linux/pwm_backlight.h>
@@ -986,6 +1059,91 @@ void __init ls1x_hwmon_set_platdata(struct ls1x_hwmon_pdata *pd)
 }
 #endif
 
+#if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
+#include <linux/gpio_keys.h>
+static struct gpio_keys_button ls1x_gpio_keys_buttons[] = {
+	 {
+		.code		= KEY_0,
+		.gpio		= 170,	/* PCA9555_GPIO_BASE+0 */
+		.active_low	= 1,
+		.desc		= "0",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_1,
+		.gpio		= 171,	/* PCA9555_GPIO_BASE+1 */
+		.active_low	= 1,
+		.desc		= "1",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_2,
+		.gpio		= 172,	/* PCA9555_GPIO_BASE+2 */
+		.active_low	= 1,
+		.desc		= "2",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_3,
+		.gpio		= 173,	/* PCA9555_GPIO_BASE+3 */
+		.active_low	= 1,
+		.desc		= "3",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_4,
+		.gpio		= 174,	/* PCA9555_GPIO_BASE+4 */
+		.active_low	= 1,
+		.desc		= "4",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_5,
+		.gpio		= 175,	/* PCA9555_GPIO_BASE+5 */
+		.active_low	= 1,
+		.desc		= "5",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_6,
+		.gpio		= 176,	/* PCA9555_GPIO_BASE+6 */
+		.active_low	= 1,
+		.desc		= "6",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+	{
+		.code		= KEY_ENTER,
+		.gpio		= 177,	/* PCA9555_GPIO_BASE+7 */
+		.active_low	= 1,
+		.desc		= "ENTER",
+		.wakeup		= 1,
+		.debounce_interval	= 10, /* debounce ticks interval in msecs */
+	},
+};
+
+static struct gpio_keys_platform_data ls1x_gpio_keys_data = {
+	.nbuttons = ARRAY_SIZE(ls1x_gpio_keys_buttons),
+	.buttons = ls1x_gpio_keys_buttons,
+	.rep	= 1,	/* enable input subsystem auto repeat */
+};
+
+static struct platform_device ls1x_gpio_keys = {
+	.name =	"gpio-keys",
+	.id =	-1,
+	.dev = {
+		.platform_data = &ls1x_gpio_keys_data,
+	}
+};
+#endif
+
+
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_uart_device,
@@ -996,6 +1154,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 
 #ifdef CONFIG_LS1X_FB0
 	&ls1x_fb0_device,
+#endif
+#ifdef CONFIG_BACKLIGHT_GENERIC
+	&ls1x_bl_dev,
 #endif
 
 #ifdef CONFIG_MTD_NAND_LS1X
@@ -1057,6 +1218,11 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c1_device,
 	&ls1x_i2c2_device,
 #endif
+#ifdef CONFIG_GPIO_PCA953X
+#if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+	&pca9555_leds,
+#endif
+#endif
 
 #ifdef	CONFIG_SOC_CAMERA_LS1C
 	&ls1c_camera_host,
@@ -1075,6 +1241,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #ifdef CONFIG_SENSORS_LS1X
 	&ls1x_device_hwmon,
+#endif
+
+#if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
+	&ls1x_gpio_keys,
 #endif
 };
 
@@ -1110,6 +1280,10 @@ int __init ls1b_platform_init(void)
 
 #ifdef CONFIG_SENSORS_LS1X
 	ls1x_hwmon_set_platdata(&bast_hwmon_info);
+#endif
+
+#ifdef CONFIG_BACKLIGHT_GENERIC
+	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
 #endif
 
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));
