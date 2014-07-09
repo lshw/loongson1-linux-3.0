@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012 Tang, Haifeng <tanghaifeng-gz@loongson.cn>
- * Platform device support for GS232 SoCs.
+ * Platform device support for loongson 1c v2.
  *
  * This file is licensed under the terms of the GNU General Public
  * License version 2.  This program is licensed "as is" without any
@@ -227,7 +227,6 @@ static struct platform_device ls1x_ehci_device = {
 };
 #endif //#ifdef CONFIG_USB_EHCI_HCD_LS1X
 
-
 /* watchdog */
 #ifdef CONFIG_LS1X_WDT
 static struct resource ls1x_wdt_resource[] = {
@@ -247,50 +246,6 @@ static struct platform_device ls1x_wdt_device = {
 #endif //#ifdef CONFIG_LS1X_WDT
 
 /* RTC */
-#ifdef CONFIG_RTC_DRV_RTC_LOONGSON1
-static struct resource ls1x_rtc_resource[] = {
-	[0]={
-		.start      = LS1X_RTC_BASE,
-		.end        = LS1X_RTC_BASE + SZ_16K - 1,
-		.flags      = IORESOURCE_MEM,
-	},
-	[1] = {
-		.start      = LS1X_RTC_INT0_IRQ,
-		.end        = LS1X_RTC_INT0_IRQ,
-		.flags      = IORESOURCE_IRQ,
-	},
-	[2] = {
-		.start      = LS1X_RTC_INT1_IRQ,
-		.end        = LS1X_RTC_INT1_IRQ,
-		.flags      = IORESOURCE_IRQ,
-	},
-	[3] = {
-		.start      = LS1X_RTC_INT2_IRQ,
-		.end        = LS1X_RTC_INT2_IRQ,
-		.flags      = IORESOURCE_IRQ,
-	},
-	[4] = {
-		.start      = LS1X_RTC_TICK_IRQ,
-		.end        = LS1X_RTC_TICK_IRQ,
-		.flags      = IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device ls1x_rtc_device = {
-	.name       = "ls1x-rtc",
-	.id         = 0,
-	.num_resources  = ARRAY_SIZE(ls1x_rtc_resource),
-	.resource   = ls1x_rtc_resource,
-};
-#endif //#ifdef CONFIG_RTC_DRV_RTC_LOONGSON1
-
-#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
-static struct platform_device ls1x_toy_device = {
-	.name       = "ls1x-toy",
-	.id         = 1,
-};
-#endif //#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
-
 #ifdef CONFIG_RTC_DRV_TOY_LOONGSON1CV2
 static struct platform_device ls1cv2_toy_device = {
 	.name       = "ls1x-toy",
@@ -1199,12 +1154,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_wdt_device,
 #endif
 
-#ifdef CONFIG_RTC_DRV_RTC_LOONGSON1
-	&ls1x_rtc_device,
-#endif
-#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
-	&ls1x_toy_device,
-#endif
 #ifdef CONFIG_RTC_DRV_TOY_LOONGSON1CV2
 	&ls1cv2_toy_device,
 #endif

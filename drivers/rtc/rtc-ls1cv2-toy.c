@@ -77,7 +77,7 @@
 #define LS1X_HOUR_MASK		(0x1f)
 #define LS1X_DAY_MASK		(0x1f)
 #define LS1X_MONTH_MASK		(0x3f)
-#define LS1X_YEAR_MASK		(0xffffffff)
+#define LS1X_YEAR_MASK		(0xff)
 
 #define ls1x_get_sec(t)		(((t) >> LS1X_SEC_OFFSET) & LS1X_SEC_MASK)
 #define ls1x_get_min(t)		(((t) >> LS1X_MIN_OFFSET) & LS1X_MIN_MASK)
@@ -94,49 +94,41 @@ static int ls1x_rtc_read_time(struct device *dev, struct rtc_time *rtm)
 	v = readl(SYS_TOYREAD0);
 	t = readl(SYS_TOYREAD1);
 
-	memset(rtm, 0, sizeof(struct rtc_time));
-	t  = mktime((t & LS1X_YEAR_MASK), ls1x_get_month(v),
-			ls1x_get_day(v), ls1x_get_hour(v),
-			ls1x_get_min(v), ls1x_get_sec(v));
-	rtc_time_to_tm(t, rtm);
+	rtm->tm_sec	= ls1x_get_sec(v);
+	rtm->tm_min	= ls1x_get_min(v);
+	rtm->tm_hour	= ls1x_get_hour(v);
+//	rtm->tm_wday	= ls1x_get_day(v);
+	rtm->tm_mday	= ls1x_get_day(v);
+	rtm->tm_mon	= ls1x_get_month(v);
+	rtm->tm_year	= t & LS1X_YEAR_MASK;
+
+	if (rtm->tm_year < 70)
+		rtm->tm_year += 100;
+
+	dev_dbg(dev, "%s: tm is secs=%d, mins=%d, hours=%d, "
+		"mday=%d, mon=%d, year=%d, wday=%d\n",
+		__func__,
+		rtm->tm_sec, rtm->tm_min, rtm->tm_hour,
+		rtm->tm_mday, rtm->tm_mon + 1, rtm->tm_year, rtm->tm_wday);
 
 	return rtc_valid_tm(rtm);
 }
 
 static int ls1x_rtc_set_time(struct device *dev, struct  rtc_time *rtm)
 {
-	unsigned long v, t, c;
-	int ret = -ETIMEDOUT;
+	unsigned long v, t;
 
-	v = ((rtm->tm_mon + 1)  << LS1X_MONTH_OFFSET)
+	v = (rtm->tm_mon  << LS1X_MONTH_OFFSET)
 		| (rtm->tm_mday << LS1X_DAY_OFFSET)
 		| (rtm->tm_hour << LS1X_HOUR_OFFSET)
 		| (rtm->tm_min  << LS1X_MIN_OFFSET)
 		| (rtm->tm_sec  << LS1X_SEC_OFFSET);
-
 	writel(v, SYS_TOYWRITE0);
-/*	c = 0x10000;
-	while ((readl(SYS_COUNTER_CNTRL) & SYS_CNTRL_TS) && --c)
-		usleep_range(1000, 3000);
 
-	if (!c) {
-		dev_err(dev, "set time timeout!\n");
-		goto err;
-	}*/
-
-	t = rtm->tm_year + 1900;
+	t = rtm->tm_year % 100;
 	writel(t, SYS_TOYWRITE1);
-/*	c = 0x10000;
-	while ((readl(SYS_COUNTER_CNTRL) & SYS_CNTRL_TS) && --c)
-		usleep_range(1000, 3000);
 
-	if (!c) {
-		dev_err(dev, "set time timeout!\n");
-		goto err;
-	}*/
 	return 0;
-err:
-	return ret;
 }
 
 static struct rtc_class_ops  ls1x_rtc_ops = {
@@ -147,32 +139,9 @@ static struct rtc_class_ops  ls1x_rtc_ops = {
 static int __devinit ls1x_rtc_probe(struct platform_device *pdev)
 {
 	struct rtc_device *rtcdev;
-	unsigned long v;
 	int ret;
 
-/*	v = readl(SYS_COUNTER_CNTRL);
-	writel(v | 0x0900, SYS_COUNTER_CNTRL);
-	if (!(v & RTC_CNTR_OK)) {
-		dev_err(&pdev->dev, "rtc counters not working\n");
-		ret = -ENODEV;
-		goto err;
-	}*/
 	ret = -ETIMEDOUT;
-	/* set to 1 HZ if needed */
-/*	if (readl(SYS_TOYTRIM) != 32767) {
-		v = 0x100000;
-		while ((readl(SYS_COUNTER_CNTRL) & SYS_CNTRL_TTS) && --v)
-			usleep_range(1000, 3000);
-
-		if (!v) {
-			dev_err(&pdev->dev, "time out\n");
-			goto err;
-		}
-		writel(32767, SYS_TOYTRIM);
-	}*/
-	/* this loop coundn't be endless */
-//	while (readl(SYS_COUNTER_CNTRL) & SYS_CNTRL_TTS)
-//		usleep_range(1000, 3000);
 
 	rtcdev = rtc_device_register("ls1x-toy", &pdev->dev,
 					&ls1x_rtc_ops , THIS_MODULE);
