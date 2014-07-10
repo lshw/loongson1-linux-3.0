@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014 Haifeng Tang <tanghaifeng-gz@loongson.cn>
+ *  Copyright (c) 2014 Haifeng Tang <tanghaifeng-gz@loongson.cn> or <pengren.mcu@qq.com>
  *
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License. See the file COPYING in the main directory of this archive for
@@ -244,6 +244,11 @@ static ssize_t ls1x_hwmon_ch_show(struct device *dev,
 	int ret;
 
 	cfg = pdata->in[sen_attr->index];
+	if (cfg) {
+		hwmon->single = cfg->single;
+	} else {
+		hwmon->single = 0;
+	}
 
 	ret = ls1x_hwmon_read_ch(dev, hwmon, sen_attr->index);
 	if (ret < 0)

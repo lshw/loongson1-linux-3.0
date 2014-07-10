@@ -333,7 +333,7 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 #endif
 #ifdef CONFIG_GPIO_PCA953X
 	{
-		I2C_BOARD_INFO("pca9555", 0x21),
+		I2C_BOARD_INFO("pca9555", 0x20),
 		.irq = LS1X_GPIO_FIRST_IRQ + PCA9555_GPIO_IRQ,
 		.platform_data = &i2c_pca9555_platdata,
 	},
@@ -965,10 +965,16 @@ static struct platform_device ls1c_camera_host = {
 #ifdef CONFIG_SENSORS_LS1X
 #include <hwmon.h>
 static struct ls1x_hwmon_pdata bast_hwmon_info = {
-	/* battery voltage (0-8.4V) */
+	/* battery voltage (0-3.3V) */
 	.in[0] = &(struct ls1x_hwmon_chcfg) {
 		.name		= "battery-voltage",
-		.mult		= 3300 * 4,	/* 3.3V参考电压 乘以4转换为实际的测量电压(0-8.4V) */
+		.mult		= 3300,	/* 3.3V参考电压 */
+		.div		= 1024,
+		.single		= 1,
+	},
+	.in[1] = &(struct ls1x_hwmon_chcfg) {
+		.name		= "adc-d1",
+		.mult		= 3300,	/* 3.3V参考电压 */
 		.div		= 1024,
 		.single		= 1,
 	},
