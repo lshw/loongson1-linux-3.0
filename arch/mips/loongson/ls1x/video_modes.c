@@ -163,6 +163,20 @@ static struct fb_videomode video_modes[] = {
 		.lower_margin	= 13,	// 493-480
 		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
 	},
+	{	//HDBO101XLE-21 HV mode
+		.name	= "HDBO101XLE-21",
+		.pixclock	= 19529,
+		.refresh	= 60,
+		.xres		= 1024,
+		.yres		= 600,
+		.hsync_len	= 1,		// 1185-1184
+		.left_margin	= 159,	// 1344-1185
+		.right_margin	= 160,	// 1184-1024
+		.vsync_len	= 1,		// 613-612
+		.upper_margin	= 22,	// 635-613
+		.lower_margin	= 12,	// 612-600
+		.sync		= FB_SYNC_VERT_HIGH_ACT | FB_SYNC_HOR_HIGH_ACT,
+	},
 	{	//VESA 800x600@75Hz
 		.name	= "VESA",
 		.pixclock	= 20202,
