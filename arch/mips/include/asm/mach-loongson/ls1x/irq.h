@@ -46,6 +46,10 @@
 #define LS1X_UART5_IRQ	30
 #endif
 
+#if defined(CONFIG_LS1C_MACH)
+#define LS1X_SDIO_IRQ	31
+#endif
+
 #define LS1X_EHCI_IRQ	32
 #define LS1X_OHCI_IRQ	33
 

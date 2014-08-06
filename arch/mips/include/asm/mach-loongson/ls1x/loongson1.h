@@ -132,7 +132,12 @@
 #define LS1C_I2S_BASE 0x1fe60000
 
 /* CAMERA */
-#define LS1C_CAMERA_BASE                0x1c280000
+#define LS1C_CAMERA_BASE	0x1c280000
+
+/* SDIO */
+#if defined(CONFIG_LS1C_MACH)
+#define LS1X_SDIO_BASE		0x1fe6c000
+#endif
 
 #include <regs-clk.h>
 #include <regs-mux.h>

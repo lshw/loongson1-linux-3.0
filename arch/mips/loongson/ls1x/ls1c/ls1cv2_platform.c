@@ -50,24 +50,19 @@ struct pwm_device ls1x_pwm_list[] = {
 #include <ls1x_nand.h>
 #define	SZ_100M	(100*1024*1024)
 static struct mtd_partition ls1x_nand_partitions[] = {
-	[0] = {
+	{
+		.name	= "bootloader",
+		.offset	= MTDPART_OFS_APPEND,
+		.size	= 1024*1024,
+	},  {
 		.name	= "kernel",
-//		.offset	= 0x100000,	/* 1MByte保留作启动用 */
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 0xe00000,
-//		.mask_flags = MTD_WRITEABLE,
-	},
-/*	[1] = {
-		.name	= "data",
+		.size	= 13*1024*1024,
+	},  {
+		.name	= "rootfs",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= MTDPART_SIZ_FULL,
-	},*/
-	[1] = {
-		.name	= "os",
-		.offset	= MTDPART_OFS_APPEND,
-		.size	= 100*1024*1024,
-	},
-	[2] = {
+		.size	= 50*1024*1024,
+	},  {
 		.name	= "data",
 		.offset	= MTDPART_OFS_APPEND,
 		.size	= MTDPART_SIZ_FULL,
@@ -91,7 +86,7 @@ static struct resource ls1x_nand_resources[] = {
 //		.start          = LS1X_NAND_IRQ,
 //		.end            = LS1X_NAND_IRQ,
 		.start          = LS1X_DMA0_IRQ,
-        .end            = LS1X_DMA0_IRQ,
+		.end            = LS1X_DMA0_IRQ,
 		.flags          = IORESOURCE_IRQ,
 	},
 };
@@ -1104,6 +1099,56 @@ static struct platform_device ls1x_gpio_keys = {
 };
 #endif
 
+#if defined(CONFIG_MMC_LS1X)
+#include <mci.h>
+#define SDIO_WP_GPIO  32
+#define SDIO_DETECT_GPIO  84
+/* 轮询方式探测card的插拔 */
+static int ls1x_sdio_get_ro(struct device *dev)
+{
+	return !gpio_get_value(SDIO_WP_GPIO);
+}
+
+static int ls1x_sdio_get_cd(struct device *dev)
+{
+	return !gpio_get_value(SDIO_DETECT_GPIO);
+}
+
+static struct ls1x_mci_pdata ls1x_sdio_parts = {
+	/* 中断方式方式探测card的插拔 */
+//	.init = ls1x_mmc_init,
+//	.exit = ls1x_mmc_exit,
+//	.detect_delay = 1200,	/* msecs */
+	/* 轮询方式方式探测card的插拔 */
+	.get_ro = ls1x_sdio_get_ro,
+	.get_cd = ls1x_sdio_get_cd,
+	.caps = MMC_CAP_NEEDS_POLL,
+};
+
+static struct resource ls1x_sdio_resources[] = {
+	[0] = {
+		.start          = LS1X_SDIO_BASE,
+		.end            = LS1X_SDIO_BASE + SZ_16K - 1,
+		.flags          = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start          = LS1X_SDIO_IRQ,
+		.end            = LS1X_SDIO_IRQ,
+		.flags          = IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device ls1x_sdio_device = {
+	.name	= "ls1x-sdi",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(ls1x_sdio_resources),
+	.resource		= ls1x_sdio_resources,
+	.dev	= {
+		.platform_data = &ls1x_sdio_parts,
+	},
+};
+#endif //CONFIG_MTD_SDIO_LS1X
+
 
 /***********************************************/
 static struct platform_device *ls1b_platform_devices[] __initdata = {
@@ -1201,6 +1246,10 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
 	&ls1x_gpio_keys,
 #endif
+
+#if defined(CONFIG_MMC_LS1X)
+	&ls1x_sdio_device,
+#endif
 };
 
 int __init ls1b_platform_init(void)
@@ -1239,6 +1288,14 @@ int __init ls1b_platform_init(void)
 
 #ifdef CONFIG_BACKLIGHT_GENERIC
 	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
+#endif
+
+#if defined(CONFIG_MMC_LS1X)
+	/* 轮询方式或中断方式探测card的插拔 */
+	gpio_request(SDIO_WP_GPIO, "ls1x sdio wp");
+	gpio_direction_input(SDIO_WP_GPIO);
+	gpio_request(SDIO_DETECT_GPIO, "ls1x sdio detect");
+	gpio_direction_input(SDIO_DETECT_GPIO);
 #endif
 
 	return platform_add_devices(ls1b_platform_devices, ARRAY_SIZE(ls1b_platform_devices));

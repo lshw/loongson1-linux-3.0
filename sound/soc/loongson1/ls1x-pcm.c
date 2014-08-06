@@ -28,10 +28,10 @@ static struct snd_pcm_substream *substream_p;
 struct ls1x_runtime_data {
 	struct ls1x_pcm_dma_params *params;
 
-	ls1x_dma_desc *dma_desc_array;
+	struct ls1x_dma_desc *dma_desc_array;
 	dma_addr_t dma_desc_array_phys;
 
-	ls1x_dma_desc *dma_desc_pos;
+	struct ls1x_dma_desc *dma_desc_pos;
 	dma_addr_t dma_desc_pos_phys;
 };
 
@@ -51,7 +51,7 @@ static const struct snd_pcm_hardware ls1x_pcm_hardware = {
 	.period_bytes_min	= 4,
 	.period_bytes_max	= 2048,
 	.periods_min		= 1,
-	.periods_max		= PAGE_SIZE/sizeof(ls1x_dma_desc),
+	.periods_max		= PAGE_SIZE/sizeof(struct ls1x_dma_desc),
 	.buffer_bytes_max	= 128 * 1024,
 	.fifo_size			= 128,
 };
@@ -72,7 +72,7 @@ static int ls1x_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct ls1x_pcm_dma_params *dma;
 	size_t totsize = params_buffer_bytes(params);
 	size_t period = params_period_bytes(params);
-	ls1x_dma_desc *dma_desc;
+	struct ls1x_dma_desc *dma_desc;
 	dma_addr_t dma_buff_phys, next_desc_phys;
 
 	dma = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
@@ -96,7 +96,7 @@ static int ls1x_pcm_hw_params(struct snd_pcm_substream *substream,
 	next_desc_phys = prtd->dma_desc_array_phys;
 	dma_buff_phys = runtime->dma_addr;
 	do {
-		next_desc_phys += sizeof(ls1x_dma_desc);
+		next_desc_phys += sizeof(struct ls1x_dma_desc);
 		dma_desc->ordered = ((u32)(next_desc_phys) | 0x1);
 		dma_desc->saddr = dma_buff_phys;
 		dma_desc->daddr = prtd->params->dev_addr;
