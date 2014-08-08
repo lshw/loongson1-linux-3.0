@@ -27,6 +27,8 @@ struct ls1x_mci_pdata {
 	unsigned long	ocr_avail;
 	void		(*set_power)(unsigned char power_mode,
 				     unsigned short vdd);
+
+	unsigned long	max_clk;
 };
 
 /**

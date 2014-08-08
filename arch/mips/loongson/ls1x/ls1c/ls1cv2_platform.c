@@ -1123,6 +1123,8 @@ static struct ls1x_mci_pdata ls1x_sdio_parts = {
 	.get_ro = ls1x_sdio_get_ro,
 	.get_cd = ls1x_sdio_get_cd,
 	.caps = MMC_CAP_NEEDS_POLL,
+
+//	.max_clk = 17000000, /* 部分sd卡可能会出现读写错误，可以尝试降低提供给sd卡的频率 */
 };
 
 static struct resource ls1x_sdio_resources[] = {

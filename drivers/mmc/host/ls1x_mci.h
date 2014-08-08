@@ -114,6 +114,7 @@ struct ls1x_mci_host {
 	dma_addr_t	dma_desc_phys;
 	size_t	dma_desc_size;
 	unsigned int	dma_dir;
+	int dma_data_err;
 
 	spinlock_t	complete_lock;
 

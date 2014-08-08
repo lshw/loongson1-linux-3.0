@@ -112,15 +112,15 @@ static void ls1x_mci_set_clk(struct ls1x_mci_host *host, struct mmc_ios *ios)
 	u32 mci_psc;
 
 	/* Set clock */
-	for (mci_psc = 1; mci_psc < 256; mci_psc++) {
+	for (mci_psc = 1; mci_psc < 0x38; mci_psc++) {
 		clock = host->clk_rate / mci_psc;
 
 		if (clock <= ios->clock)
 			break;
 	}
 
-	if (mci_psc > 255)
-		mci_psc = 255;
+	if (mci_psc > 0x38)
+		mci_psc = 0x38;
 
 	writel(mci_psc, host->base + LS1X_SDIPRE);
 }
@@ -153,8 +153,8 @@ static void ls1x_start_cmd(struct ls1x_mci_host *host, struct mmc_command *cmd)
 
 	rc = ls1x_prepare_engine(host);
 	if (rc != 0) {
-		cmd->error = -EILSEQ;
-		printk(KERN_DEBUG "%s: cmd->error = -EILSEQ\n", __func__);
+		cmd->error = -EIO;
+		printk(KERN_WARNING "%s: cmd->error = -EIO\n", __func__);
 		return;
 	}
 
@@ -167,6 +167,7 @@ static int ls1x_mci_block_transfer(struct ls1x_mci_host *host, struct mmc_reques
 	struct mmc_data *data = mrq->data;
 	dma_addr_t next_desc_phys;
 	int dma_len, i;
+//	int timeout = 5000;
 
 	if (data->flags & MMC_DATA_READ) {
 		host->dma_dir = DMA_FROM_DEVICE;
@@ -195,10 +196,13 @@ static int ls1x_mci_block_transfer(struct ls1x_mci_host *host, struct mmc_reques
 	host->dma_desc[dma_len - 1].ordered &= (~0x1);
 
 	writel((host->dma_desc_phys & ~0x1F) | 0x8 | DMA_NUM, order_addr_in);	/* 启动DMA */
-	while ((readl(order_addr_in) & 0x8)/* && (timeout-- > 0)*/) {
+/*	while ((readl(order_addr_in) & 0x8) && (timeout-- > 0)) {
 //		printf("%s. %x\n",__func__, readl(order_addr_in));
 //		udelay(5);
 	}
+	if (!timeout) {
+		host->dma_data_err = 1;
+	}*/
 
 	ls1x_mci_send_cmd(host, mrq->cmd);
 
@@ -267,6 +271,9 @@ static void ls1x_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 			writel(ret, misc_ctrl - 0x4);
 
 			writel(readl(misc_ctrl) | ((DMA_NUM + 1) << 23) | (1 << 16), misc_ctrl);*/
+			ls1x_mci_reset(host);
+			writel(0xffffffff, host->base + LS1X_SDIIMSK);
+			writel(0xffffffff, host->base + LS1X_SDIINTEN);
 
 			if (host->pdata->set_power)
 				host->pdata->set_power(ios->power_mode, ios->vdd);
@@ -281,6 +288,9 @@ static void ls1x_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 			ret = readl(misc_ctrl - 0x4);
 			ret = ret | (1 << 24);
 			writel(ret, misc_ctrl - 0x4);*/
+			ls1x_mci_reset(host);
+			writel(0xffffffff, host->base + LS1X_SDIIMSK);
+			writel(0xffffffff, host->base + LS1X_SDIINTEN);
 
 			if (host->pdata->set_power)
 				host->pdata->set_power(ios->power_mode, ios->vdd);
@@ -352,7 +362,7 @@ static void ls1x_mci_cmd_done(struct ls1x_mci_host *host, unsigned int ret)
 	if (ret & 0x80) {
 		cmd->error = -ETIMEDOUT;
 	} else if ((ret & 0x40) != 0x40) {
-		cmd->error = -EILSEQ;
+		cmd->error = -EIO;
 	}
 
 	cmd->resp[0] = readl(host->base + LS1X_SDIRSP0);
@@ -369,21 +379,30 @@ static void ls1x_mci_cmd_done(struct ls1x_mci_host *host, unsigned int ret)
 static void ls1x_mci_data_done(struct ls1x_mci_host *host, unsigned int ret)
 {
 	struct mmc_data *data = host->mrq->data;
+//	int timeout = 5000;
 
 	writel(0xffffffff, host->base + LS1X_SDIIMSK);
 
 	/* 需要标记data收发错误 */
 	if (ret & 0x0c) {
 		data->error = -ETIMEDOUT;
-		printk(KERN_DEBUG "data sdiimsk err:%x\n", ret);
+		printk(KERN_WARNING "data sdiimsk err:%x\n", ret);
 	} else if ((ret & 0x01) != 0x01) {
-		data->error = -EILSEQ;
-		printk(KERN_DEBUG "data sdiimsk err:%x\n", ret);
+		data->error = -EIO;
+		printk(KERN_WARNING "data sdiimsk err:%x\n", ret);
 	}
 
-	writel((host->dma_desc_phys & (~0x1F)) | 0x4 | DMA_NUM, order_addr_in);
-	while ((readl(order_addr_in) & 0x4)) {
+/*	writel((host->dma_desc_phys & (~0x1F)) | 0x4 | DMA_NUM, order_addr_in);
+	while ((readl(order_addr_in) & 0x4) && (timeout-- > 0)) {
 	}
+	if (!timeout) {
+		host->dma_data_err = 1;
+	}
+
+	if (host->dma_data_err) {
+		data->error = -EIO;
+		printk(KERN_WARNING "sdio dma data err\n");
+	}*/
 
 	dma_unmap_sg(mmc_dev(host->mmc), data->sg, data->sg_len,
 		     host->dma_dir);
@@ -394,6 +413,7 @@ static void ls1x_mci_data_done(struct ls1x_mci_host *host, unsigned int ret)
 		data->bytes_xfered = 0;
 
 	host->data = NULL;
+//	host->dma_data_err = 0;
 	if (host->mrq->stop) {
 		ls1x_mci_send_cmd(host, host->mrq->stop);
 	} else {
@@ -416,7 +436,7 @@ static irqreturn_t ls1x_mci_irq(int irq, void *dev_id)
 		ls1x_mci_data_done(host, ret);
 	} else {
 		writel(0xffffffff, host->base + LS1X_SDIIMSK);
-		printk(KERN_DEBUG "%s. %x\n",__func__, ret);
+		printk(KERN_WARNING "%s. %x\n",__func__, ret);
 	}
 
 	spin_unlock_irqrestore(&host->complete_lock, iflags);
@@ -615,10 +635,13 @@ static int __devinit ls1x_mci_probe(struct platform_device *pdev)
 
 	mmc->ops 	= &ls1x_mci_ops;
 	mmc->ocr_avail	= MMC_VDD_32_33 | MMC_VDD_33_34;
-	mmc->caps |= MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ;
-//	mmc->caps |= MMC_CAP_4_BIT_DATA;
-	mmc->f_min 	= host->clk_rate / 256;
-	mmc->f_max 	= host->clk_rate / 1;
+//	mmc->caps |= MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ;
+	mmc->caps |= MMC_CAP_4_BIT_DATA;
+	mmc->f_min = host->clk_rate / 0x38;	/* 设置成256有问题？ */
+	if (host->pdata->max_clk)
+		mmc->f_max = host->pdata->max_clk;
+	else 
+		mmc->f_max = host->clk_rate / 1;
 
 	if (host->pdata->ocr_avail)
 		mmc->ocr_avail = host->pdata->ocr_avail;
