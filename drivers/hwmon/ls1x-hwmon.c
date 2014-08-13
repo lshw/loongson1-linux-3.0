@@ -48,6 +48,7 @@ struct ls1x_hwmon {
 	int			 irq;
 
 	int single;
+	unsigned int adc_data_old;
 };
 
 static void ls1x_adc_hwinit(struct ls1x_hwmon *hwmon)
@@ -64,12 +65,16 @@ static void ls1x_adc_hwinit(struct ls1x_hwmon *hwmon)
 	/* powerdown */
 	x = readl(hwmon->regs + ADC_S_CTRL);
 	writel(x | 0x40, hwmon->regs + ADC_S_CTRL);
+
+	writel(0x00, hwmon->regs + ADC_C_CTRL);
+	writel(0x1f, hwmon->regs + ADC_INT);
 }
 
 static unsigned int ls1x_adc_read(struct ls1x_hwmon *hwmon, unsigned int ch)
 {
 	unsigned int x, i;
 	unsigned int adc_data = 0;
+	int timeout = 20000;
 
 	/* powerup */
 	writel(0x00, hwmon->regs + ADC_S_CTRL);
@@ -81,29 +86,41 @@ static unsigned int ls1x_adc_read(struct ls1x_hwmon *hwmon, unsigned int ch)
 		x |= (0x1 << ch);
 		writel(x, hwmon->regs + ADC_S_CTRL);
 		writel(x | 0x10, hwmon->regs + ADC_S_CTRL);
+//		while (readl(hwmon->regs + ADC_S_CTRL) & 0x10) {
+//		}
 		switch (ch) {
 		case 0:
-			while (readl(hwmon->regs + ADC_S_DOUT0) & 0x80000000) {
+			while ((readl(hwmon->regs + ADC_S_DOUT0) & 0x80000000) && (timeout-- > 0)) {
 			}
 			adc_data = readl(hwmon->regs + ADC_S_DOUT0) & 0x3ff;
 			break;
 		case 1:
-			while (readl(hwmon->regs + ADC_S_DOUT0) & 0x80000000) {
+			while ((readl(hwmon->regs + ADC_S_DOUT0) & 0x80000000) && (timeout-- > 0)) {
 			}
 			adc_data = (readl(hwmon->regs + ADC_S_DOUT0) >> 16) & 0x3ff;
 			break;
 		case 2:
-			while (readl(hwmon->regs + ADC_S_DOUT1) & 0x80000000) {
+			while ((readl(hwmon->regs + ADC_S_DOUT1) & 0x80000000) && (timeout-- > 0)) {
 			}
 			adc_data = readl(hwmon->regs + ADC_S_DOUT1) & 0x3ff;
 			break;
 		case 3:
-			while (readl(hwmon->regs + ADC_S_DOUT1) & 0x80000000) {
+			while ((readl(hwmon->regs + ADC_S_DOUT1) & 0x80000000) && (timeout-- > 0)) {
 			}
 			adc_data = (readl(hwmon->regs + ADC_S_DOUT1) >> 16) & 0x3ff;
 			break;
 		}
 		writel(0x00, hwmon->regs + ADC_S_CTRL);	/* stop */
+		/* 1c300A 使用单次转换时会出现死等的问题，必需执行复位，1C300B则不会 */
+	#ifndef CONFIG_LS1CV2_MACH
+		/* reset */
+		writel(0x20, hwmon->regs + ADC_S_CTRL);
+		while (readl(hwmon->regs + ADC_S_CTRL) & 0x20) {
+		}
+	#endif
+		/* powerdown */
+		x = readl(hwmon->regs + ADC_S_CTRL);
+		writel(x | 0x40, hwmon->regs + ADC_S_CTRL);
 	} else {
 		dev_dbg(hwmon->hwmon_dev, "reading channel %d continually\n", ch);
 		x = readl(hwmon->regs + ADC_C_CTRL);
@@ -120,9 +137,14 @@ static unsigned int ls1x_adc_read(struct ls1x_hwmon *hwmon, unsigned int ch)
 		writel(x & (~0x80), hwmon->regs + ADC_C_CTRL);	/* stop */
 	}
 
-	/* powerdown */
-	x = readl(hwmon->regs + ADC_S_CTRL);
-	writel(x | 0x40, hwmon->regs + ADC_S_CTRL);
+	if (!timeout) {
+		adc_data = hwmon->adc_data_old;
+		printk("%s: timeout\n", __func__);
+	} else {
+		hwmon->adc_data_old = adc_data;
+	}
+	/* clean int */
+	writel(0x1f, hwmon->regs + ADC_INT);
 
 	return adc_data;
 }
