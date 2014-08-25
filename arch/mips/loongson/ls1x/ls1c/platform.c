@@ -754,17 +754,16 @@ static struct platform_device ls1x_spi1_device = {
 static struct resource ls1x_sja1000_resources_0[] = {
 	{
 		.start   = LS1X_CAN0_BASE,
-		.end     = LS1X_CAN0_BASE + 0x100 - 1,
+		.end     = LS1X_CAN0_BASE + SZ_16K - 1,
 		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
 	}, {
-		.start   = LS1X_BOARD_CAN0_IRQ,
-		.end     = LS1X_BOARD_CAN0_IRQ,
-		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+		.start   = LS1X_CAN0_IRQ,
+		.end     = LS1X_CAN0_IRQ,
+		.flags   = IORESOURCE_IRQ,
 	},
 };
 
 static struct sja1000_platform_data ls1x_sja1000_platform_data_0 = {
-//	.osc_freq	= 16000000,
 	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
 	.cdr		= CDR_CBP,
 };
@@ -783,17 +782,16 @@ static struct platform_device ls1x_sja1000_0 = {
 static struct resource ls1x_sja1000_resources_1[] = {
 	{
 		.start   = LS1X_CAN1_BASE,
-		.end     = LS1X_CAN1_BASE + 0x100 - 1,
+		.end     = LS1X_CAN1_BASE + SZ_16K - 1,
 		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
 	}, {
-		.start   = LS1X_BOARD_CAN1_IRQ,
-		.end     = LS1X_BOARD_CAN1_IRQ,
-		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+		.start   = LS1X_CAN1_IRQ,
+		.end     = LS1X_CAN1_IRQ,
+		.flags   = IORESOURCE_IRQ,
 	},
 };
 
 static struct sja1000_platform_data ls1x_sja1000_platform_data_1 = {
-//	.osc_freq	= 16000000,
 	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
 	.cdr		= CDR_CBP,
 };

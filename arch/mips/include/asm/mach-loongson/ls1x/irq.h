@@ -14,8 +14,8 @@
 #define LS1X_UART2_IRQ	4
 #define LS1X_UART3_IRQ	5
 #endif
-#define LS1X_BOARD_CAN0_IRQ	6
-#define LS1X_BOARD_CAN1_IRQ	7
+#define LS1X_CAN0_IRQ	6
+#define LS1X_CAN1_IRQ	7
 #define LS1X_SPI0_IRQ	8
 #define LS1X_SPI1_IRQ	9
 #define LS1X_AC97_IRQ	10

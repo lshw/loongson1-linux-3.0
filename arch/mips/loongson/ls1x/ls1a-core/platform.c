@@ -1390,17 +1390,16 @@ static struct platform_device ls1x_leds_pwm = {
 static struct resource ls1x_sja1000_resources_0[] = {
 	{
 		.start   = LS1X_CAN0_BASE,
-		.end     = LS1X_CAN0_BASE + 0x100 - 1,
+		.end     = LS1X_CAN0_BASE + SZ_16K - 1,
 		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
 	}, {
-		.start   = LS1X_BOARD_CAN0_IRQ,
-		.end     = LS1X_BOARD_CAN0_IRQ,
-		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+		.start   = LS1X_CAN0_IRQ,
+		.end     = LS1X_CAN0_IRQ,
+		.flags   = IORESOURCE_IRQ,
 	},
 };
 
 static struct sja1000_platform_data ls1x_sja1000_platform_data_0 = {
-//	.osc_freq	= 16000000,
 	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
 	.cdr		= CDR_CBP,
 };
@@ -1419,17 +1418,16 @@ static struct platform_device ls1x_sja1000_0 = {
 static struct resource ls1x_sja1000_resources_1[] = {
 	{
 		.start   = LS1X_CAN1_BASE,
-		.end     = LS1X_CAN1_BASE + 0x100 - 1,
+		.end     = LS1X_CAN1_BASE + SZ_16K - 1,
 		.flags   = IORESOURCE_MEM | IORESOURCE_MEM_8BIT,
 	}, {
-		.start   = LS1X_BOARD_CAN1_IRQ,
-		.end     = LS1X_BOARD_CAN1_IRQ,
-		.flags   = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
+		.start   = LS1X_CAN1_IRQ,
+		.end     = LS1X_CAN1_IRQ,
+		.flags   = IORESOURCE_IRQ,
 	},
 };
 
 static struct sja1000_platform_data ls1x_sja1000_platform_data_1 = {
-//	.osc_freq	= 16000000,
 	.ocr		= OCR_TX1_PULLDOWN | OCR_TX0_PUSHPULL,
 	.cdr		= CDR_CBP,
 };
@@ -1449,6 +1447,7 @@ static void ls1x_can_setup(void)
 {
 	struct sja1000_platform_data *sja1000_pdata;
 	struct clk *clk;
+	u32 x;
 
 	clk = clk_get(NULL, "apb");
 	if (IS_ERR(clk))
@@ -1463,34 +1462,28 @@ static void ls1x_can_setup(void)
 	sja1000_pdata->osc_freq = clk_get_rate(clk);
 	#endif
 
-#ifdef	CONFIG_LS1A_MACH
+#ifdef CONFIG_LS1A_MACH
 	#ifdef CONFIG_LS1X_CAN0
 	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 66);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 67);
-	*(volatile int *)0xbfd00420 &= ~(1<<17 | 3<<14 );	/* 与I2C3 SPI0复用 */
+/*	gpio_request(66, NULL);
+	gpio_request(67, NULL);
+	gpio_free(66);
+	gpio_free(67);*/
+	/* 清除与 I2C3 SPI0的复用  */
+	x = __raw_readl(LS1X_MUX_CTRL0);
+	x = x & (~(I2C3_USE_CAN0 | SPI0_USE_CAN0_TX | SPI0_USE_CAN0_RX));
+	__raw_writel(x, LS1X_MUX_CTRL0);
 	#endif
 	#ifdef CONFIG_LS1X_CAN1
 	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 68);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 69);
-	*(volatile int *)0xbfd00420 &= ~(1<<31 | 1<<16 | 3<<12);	/* 与NAND I2C2 SPI1复用 */
-	#endif
-#elif	CONFIG_LS1B_MACH
-	*(volatile int *)0xbfd00424 &= ~(1<<23);	/* 与SPI1复用 */
-	#ifdef CONFIG_LS1X_CAN0
-	/* CAN0复用设置 */
-//	ls1b_gpio_free(NULL, 38);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 39);
-	*(volatile int *)0xbfd00420 &= ~(1<<24);	/* 与I2C1复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<4);	/* 与UART1_2复用 */
-	#endif
-	#ifdef CONFIG_LS1X_CAN1
-	/* CAN1复用设置 */
-//	ls1b_gpio_free(NULL, 40);	/* 引脚设置为CAN模式 */
-//	ls1b_gpio_free(NULL, 41);
-	*(volatile int *)0xbfd00420 &= ~(1<<25);	/* 与I2C2复用 */
-	*(volatile int *)0xbfd00424 &= ~(1<<5);	/* 与UART1_3复用 */
+/*	gpio_request(68, NULL);
+	gpio_request(69, NULL);
+	gpio_free(68);
+	gpio_free(69);*/
+	/* 清除与 I2C2 SPI1 nand的复用  */
+	x = __raw_readl(LS1X_MUX_CTRL0);
+	x = x & (~(NAND3_USE_CAN1 | I2C2_USE_CAN1 | SPI1_USE_CAN1_TX | SPI1_USE_CAN1_RX));
+	__raw_writel(x, LS1X_MUX_CTRL0);
 	#endif
 #endif
 }
