@@ -419,7 +419,8 @@ static void __exit ocores_i2c_exit(void)
 	platform_driver_unregister(&ocores_i2c_driver);
 }
 
-module_init(ocores_i2c_init);
+//module_init(ocores_i2c_init);
+arch_initcall(ocores_i2c_init);
 module_exit(ocores_i2c_exit);
 
 MODULE_AUTHOR("Peter Korsgaard <jacmet@sunsite.dk>");

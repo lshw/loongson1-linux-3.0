@@ -250,16 +250,6 @@ static struct platform_device ls1cv2_toy_device = {
 
 /* I2C */
 /* I2C devices fitted. */
-#ifdef CONFIG_VIDEO_GC0308
-static struct gc0308_platform_data gc0308_plat = {
-	.default_width = 640,
-	.default_height = 480,
-	.pixelformat = V4L2_PIX_FMT_YUYV,
-	.freq = 24000000,
-	.is_mipi = 0,
-};
-#endif //#ifdef CONFIG_VIDEO_GC0308
-
 #ifdef CONFIG_GPIO_PCA953X
 #include <linux/i2c/pca953x.h>
 #define PCA9555_GPIO_BASE 170
@@ -333,12 +323,6 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		.platform_data = &i2c_pca9555_platdata,
 	},
 #endif
-#ifdef CONFIG_VIDEO_GC0308
-	{
-		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
-		.platform_data = &gc0308_plat,
-	},
-#endif
 //#ifdef CONFIG_SND_SOC_ES8388
 #ifdef CONFIG_CODEC_ES8388
 	{
@@ -392,6 +376,78 @@ static struct platform_device ls1x_i2c2_device = {
 	.resource	= ls1x_i2c2_resource,
 };
 #endif //#ifdef CONFIG_I2C_LS1X
+
+/* ls1c300b的i2c控制器添加了中断(添加了中断号，原来1a 1b 1c的i2c控制器中断号都没有引出
+        所以不能使用中断)，与ocores的i2c控制器相同，所以这里使用linux内核提供的ocores i2c控制器驱动
+ */
+#ifdef CONFIG_I2C_OCORES
+#include <linux/i2c-ocores.h>
+static struct i2c_board_info ocores_i2c0_board_info[] = {
+#ifdef CONFIG_RTC_DRV_SD2068
+	{
+		I2C_BOARD_INFO("sd2068", 0x32),
+	},
+#endif
+#ifdef CONFIG_GPIO_PCA953X
+	{
+		I2C_BOARD_INFO("pca9555", 0x20),
+		.irq = LS1X_GPIO_FIRST_IRQ + PCA9555_GPIO_IRQ,
+		.platform_data = &i2c_pca9555_platdata,
+	},
+#endif
+//#ifdef CONFIG_SND_SOC_ES8388
+#ifdef CONFIG_CODEC_ES8388
+	{
+		I2C_BOARD_INFO("es8388", 0x10),
+	},
+#endif
+};
+
+static struct resource ls1x_i2c0_resource[] = {
+	[0]={
+		.start	= LS1X_I2C0_BASE,
+		.end	= LS1X_I2C0_BASE + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1]={
+		.start	= LS1X_I2C0_IRQ,
+		.end	= LS1X_I2C0_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct ocores_i2c_platform_data ocores_i2c0_data = {
+	.regstep = 1,
+//	.clock_khz	= 50000,	/* 输入时钟等于LPB时钟 */
+	.devices	= ocores_i2c0_board_info, /* optional table of devices */
+	.num_devices	= ARRAY_SIZE(ocores_i2c0_board_info), /* table size */
+};
+
+static struct platform_device ls1x_i2c0_device = {
+	.name		= "ocores-i2c",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(ls1x_i2c0_resource),
+	.resource	= ls1x_i2c0_resource,
+	.dev = {
+		.platform_data	= &ocores_i2c0_data,
+	}
+};
+
+static void ls1x_i2c_setup(void)
+{
+	struct ocores_i2c_platform_data *ocores_i2c_data;
+	struct clk *clk;
+
+	clk = clk_get(NULL, "apb");
+	if (IS_ERR(clk))
+		panic("unable to get apb clock, err=%ld", PTR_ERR(clk));
+
+	ocores_i2c_data = &ocores_i2c0_data;
+	ocores_i2c_data->clock_khz = clk_get_rate(clk);
+//	ocores_i2c_data = &ocores_i2c1_data;
+//	ocores_i2c_data->clock_khz = clk_get_rate(clk);
+}
+#endif	//#ifdef CONFIG_I2C_OCORES
 
 /* lcd */
 #if defined(CONFIG_FB_LOONGSON1)
@@ -1218,6 +1274,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1x_i2c1_device,
 	&ls1x_i2c2_device,
 #endif
+#ifdef CONFIG_I2C_OCORES
+	&ls1x_i2c0_device,
+#endif
 #ifdef CONFIG_GPIO_PCA953X
 #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
 	&pca9555_leds,
@@ -1263,6 +1322,10 @@ int __init ls1b_platform_init(void)
 #ifdef CONFIG_CAN_SJA1000_PLATFORM
 	ls1x_can_setup();
 #endif	//#ifdef CONFIG_CAN_SJA1000_PLATFORM
+
+#ifdef CONFIG_I2C_OCORES
+	ls1x_i2c_setup();
+#endif
 
 #ifdef CONFIG_I2C_LS1X
 	i2c_register_board_info(0, ls1x_i2c0_devs, ARRAY_SIZE(ls1x_i2c0_devs));
