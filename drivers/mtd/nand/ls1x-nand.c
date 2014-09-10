@@ -252,15 +252,8 @@ static void inline ls1x_nand_stop(struct ls1x_nand_info *info)
 {
 }
 
-/* K9F5608U0D在读的时候 ls1x的nand flash控制器读取不到完成状态
-   猜测是控制器对该型号flash兼容不好,目前解决办法是添加一段延时 */
-//#define K9F5608U0D 1
-
 static void inline start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
 {
-//	int timeout = 5000;
-//	unsigned long irq_flags;
-
 	writel(0, info->dma_desc + DMA_ORDERED);
 	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
 	writel(DMA_ACCESS_ADDR, info->dma_desc + DMA_DADDR);
@@ -274,34 +267,14 @@ static void inline start_dma_nand(unsigned int flags, struct ls1x_nand_info *inf
 		writel(0x00000001, info->dma_desc + DMA_CMD);
 	}
 
-//	local_irq_save(irq_flags);
 	ls1x_nand_start(info);	/* 使能nand命令 */
 	writel((info->dma_desc_phys & ~0x1F) | 0x8, order_addr_in);	/* 启动DMA */
-	while (readl(order_addr_in) & 0x8) {
-//		printk("%s. %x\n",__func__, readl(order_addr_in));
-//		udelay(5);
-//		timeout--;
-	}
-//	local_irq_restore(irq_flags);
-
-#ifdef K9F5608U0D
-	if (flags) {
-		if (!ls1x_nand_done(info)) {
-			printk("Wait time out!!!\n");
-			ls1x_nand_stop(info);
-		}
-	} else {
-		udelay(80);
-	}
-#else
-	if (!ls1x_nand_done(info)) {
-		printk("Wait time out!!!\n");
-		ls1x_nand_stop(info);
-	}
-#endif
 }
 
-/* 不使用DMA的中断处理 */
+/* K9F5608U0D在读的时候 ls1x的nand flash控制器读取不到完成状态
+   猜测是控制器对该型号flash兼容不好,目前解决办法是添加一段延时 */
+//#define K9F5608U0D 1
+
 static irqreturn_t ls1x_nand_irq(int irq, void *devid)
 {
 	struct ls1x_nand_info *info = devid;
@@ -309,7 +282,20 @@ static irqreturn_t ls1x_nand_irq(int irq, void *devid)
 	switch (info->cmd) {
 		case NAND_CMD_READOOB:
 		case NAND_CMD_READ0:
+		#ifdef K9F5608U0D
+		#else
+			if (!ls1x_nand_done(info)) {
+				printk("Wait time out!!!\n");
+				ls1x_nand_stop(info);
+			}
+		#endif
+			complete(&info->cmd_complete);
+			break;
 		case NAND_CMD_PAGEPROG:
+			if (!ls1x_nand_done(info)) {
+				printk("Wait time out!!!\n");
+				ls1x_nand_stop(info);
+			}
 			complete(&info->cmd_complete);
 			break;
 		default:
@@ -420,7 +406,7 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		*(info->data_buff + 4) = nand_readl(info, NAND_IDL) & 0xff;
 		break;
 	case NAND_CMD_ERASE2:
-//	case NAND_CMD_READ1:
+	case NAND_CMD_READ1:
 		info->buf_count = 0x0;
 		info->buf_start = 0x0;
 		break;
@@ -657,7 +643,7 @@ static int ls1x_nand_probe(struct platform_device *pdev)
 	nand_gpio_init();
 	ls1x_dma_init(info);
 	ls1x_nand_init_hw(info);
-//	chip->cmdfunc(mtd, NAND_CMD_RESET, 0, 0);
+	chip->cmdfunc(mtd, NAND_CMD_RESET, 0, 0);
 	platform_set_drvdata(pdev, info);
 
 	if (ls1x_nand_scan(mtd)) {
@@ -731,14 +717,6 @@ static int ls1x_nand_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int ls1x_nand_suspend(struct platform_device *pdev, pm_message_t pm)
 {
-	struct ls1x_nand_info *info = platform_get_drvdata(pdev);
-	struct mtd_info *mtd = info->mtd;
-
-//	if (info->state != STATE_READY) {
-//		dev_err(&pdev->dev, "driver busy, state = %d\n", info->state);
-//		return -EAGAIN;
-//	}
-
 	return 0;
 }
 
