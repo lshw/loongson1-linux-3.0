@@ -1160,7 +1160,7 @@ static struct platform_device ls1x_gpio_keys = {
 /* 轮询方式探测card的插拔 */
 static int ls1x_sdio_get_ro(struct device *dev)
 {
-	return !gpio_get_value(SDIO_WP_GPIO);
+	return gpio_get_value(SDIO_WP_GPIO);
 }
 
 static int ls1x_sdio_get_cd(struct device *dev)

@@ -48,26 +48,16 @@ struct pwm_device ls1x_pwm_list[] = {
 
 #ifdef CONFIG_MTD_NAND_LS1X
 #include <ls1x_nand.h>
-#define	SZ_100M	(100*1024*1024)
 static struct mtd_partition ls1x_nand_partitions[] = {
-	[0] = {
+	{
 		.name	= "kernel",
-//		.offset	= 0x100000,	/* 1MByte保留作启动用 */
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 0xe00000,
-//		.mask_flags = MTD_WRITEABLE,
-	},
-/*	[1] = {
-		.name	= "data",
-		.offset	= MTDPART_OFS_APPEND,
-		.size	= MTDPART_SIZ_FULL,
-	},*/
-	[1] = {
-		.name	= "os",
+		.size	= 14*1024*1024,
+	}, {
+		.name	= "rootfs",
 		.offset	= MTDPART_OFS_APPEND,
 		.size	= 100*1024*1024,
-	},
-	[2] = {
+	}, {
 		.name	= "data",
 		.offset	= MTDPART_OFS_APPEND,
 		.size	= MTDPART_SIZ_FULL,

@@ -48,20 +48,16 @@
 
 #ifdef CONFIG_MTD_NAND_LS1X
 #include <ls1x_nand.h>
-#define	SZ_100M	(100*1024*1024)
 static struct mtd_partition ls1x_nand_partitions[] = {
-	[0] = {
+	{
 		.name	= "kernel",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 0xe00000,
-//		.mask_flags =   MTD_WRITEABLE,
-	},
-	[1] = {
-		.name	= "os",
+		.size	= 14*1024*1024,
+	}, {
+		.name	= "rootfs",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= SZ_100M,
-	},
-	[2] = {
+		.size	= 100*1024*1024,
+	}, {
 		.name	= "data",
 		.offset	= MTDPART_OFS_APPEND,
 		.size	= MTDPART_SIZ_FULL,

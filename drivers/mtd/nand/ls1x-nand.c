@@ -312,10 +312,10 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 	switch (command) {
 	case NAND_CMD_READOOB:
 		init_completion(&info->cmd_complete);
-		info->buf_count = mtd->oobsize - column;
-		info->buf_start = 0;
+		info->buf_count = mtd->oobsize;
+		info->buf_start = column;
 		nand_writel(info, NAND_CMD, SPARE | READ);
-		nand_writel(info, NAND_ADDR_L, MAIN_SPARE_ADDRL(page_addr) + mtd->writesize + column);
+		nand_writel(info, NAND_ADDR_L, MAIN_SPARE_ADDRL(page_addr) + mtd->writesize);
 		nand_writel(info, NAND_ADDR_H, MAIN_SPARE_ADDRH(page_addr));
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
@@ -324,10 +324,10 @@ static void ls1x_nand_cmdfunc(struct mtd_info *mtd, unsigned command, int column
 		break;
 	case NAND_CMD_READ0:
 		init_completion(&info->cmd_complete);
-		info->buf_count = mtd->oobsize + mtd->writesize - column;
-		info->buf_start = 0;
+		info->buf_count = mtd->oobsize + mtd->writesize;
+		info->buf_start = column;
 		nand_writel(info, NAND_CMD, SPARE | MAIN | READ);
-		nand_writel(info, NAND_ADDR_L, MAIN_SPARE_ADDRL(page_addr) + column);
+		nand_writel(info, NAND_ADDR_L, MAIN_SPARE_ADDRL(page_addr));
 		nand_writel(info, NAND_ADDR_H, MAIN_SPARE_ADDRH(page_addr));
 		nand_writel(info, NAND_OPNUM, info->buf_count);
 		nand_writel(info, NAND_PARAM, (nand_readl(info, NAND_PARAM) & 0xc000ffff) | (info->buf_count << 16)); /* 1C注意 */
