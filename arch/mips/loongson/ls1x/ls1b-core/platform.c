@@ -182,15 +182,7 @@ static struct resource ls1x_ohci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-/*
-static struct ls1x_usbh_data  ls1x_ohci_platform_data={
-#ifdef CONFIG_LS1A_MACH
-	.ports=4,
-#else
-	.ports=1,
-#endif
-};
-*/
+
 static struct platform_device ls1x_ohci_device = {
 	.name           = "ls1x-ohci",
 	.id             = 0,
@@ -203,6 +195,37 @@ static struct platform_device ls1x_ohci_device = {
 	.resource       = ls1x_ohci_resources,
 };
 #endif //#ifdef CONFIG_USB_OHCI_HCD_LS1X
+
+#ifdef CONFIG_USB_OHCI_HCD_PLATFORM
+#include <linux/usb/ohci_pdriver.h>
+static u64 ls1x_ohci_dmamask = DMA_BIT_MASK(32);
+
+static struct resource ls1x_ohci_resources[] = {
+	[0] = {
+		.start	= LS1X_OHCI_BASE,
+		.end	= LS1X_OHCI_BASE + SZ_32K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= LS1X_OHCI_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct usb_ohci_pdata ls1x_ohci_pdata = {
+};
+
+struct platform_device ls1x_ohci_device = {
+	.name		= "ohci-platform",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(ls1x_ohci_resources),
+	.resource	= ls1x_ohci_resources,
+	.dev		= {
+		.dma_mask = &ls1x_ohci_dmamask,
+		.platform_data = &ls1x_ohci_pdata,
+	},
+};
+#endif
 
 /* EHCI */
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
@@ -219,15 +242,7 @@ static struct resource ls1x_ehci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-/*
-static struct ls1x_usbh_data  ls1x_ehci_platform_data={
-#ifdef CONFIG_LS1A_MACH
-	.ports=4,
-#else
-	.ports=1,
-#endif
-};
-*/
+
 static struct platform_device ls1x_ehci_device = {
 	.name           = "ls1x-ehci",
 	.id             = 0,
@@ -945,6 +960,16 @@ static struct flash_platform_data flash __maybe_unused = {
 };
 #endif /* CONFIG_MTD_M25P80 */
 
+#ifdef CONFIG_EEPROM_AT25
+#include <linux/spi/eeprom.h>
+static struct spi_eeprom fm25cl64 = {
+	.byte_len	= SZ_64K / 8,
+	.name		= "fm25cl64",
+	.page_size	= 32,
+	.flags		= EE_ADDR2,
+};
+#endif
+
 #if defined(CONFIG_MMC_SPI) || defined(CONFIG_MMC_SPI_MODULE)
 /* 开发板使用GPIO40(CAN1_RX)引脚作为MMC/SD卡的插拔探测引脚 */
 #define DETECT_GPIO	3
@@ -1045,6 +1070,16 @@ static struct spi_board_info ls1x_spi0_devices[] = {
 		.max_speed_hz 	= 2500000,
 		.mode 			= SPI_MODE_1,
 		.irq			= LS1X_GPIO_FIRST_IRQ + ADS7846_GPIO_IRQ,
+	},
+#endif
+#ifdef CONFIG_EEPROM_AT25
+	{
+		.modalias	= "at25",
+		.bus_num 		= 0,
+		.chip_select	= SPI0_CS1,
+		.max_speed_hz	= 20000000,
+		.mode 			= SPI_MODE_0,
+		.platform_data	= &fm25cl64,
 	},
 #endif
 };
@@ -1777,6 +1812,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 
 #ifdef CONFIG_USB_OHCI_HCD_LS1X
+	&ls1x_ohci_device,
+#endif
+#ifdef CONFIG_USB_OHCI_HCD_PLATFORM
 	&ls1x_ohci_device,
 #endif
 #ifdef CONFIG_USB_EHCI_HCD_LS1X

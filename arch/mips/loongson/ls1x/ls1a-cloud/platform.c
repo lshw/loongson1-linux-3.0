@@ -217,15 +217,7 @@ static struct resource ls1x_ohci_resources[] = {
 		.flags          = IORESOURCE_IRQ,
 	},
 };
-/*
-static struct ls1x_usbh_data  ls1x_ohci_platform_data={
-#ifdef CONFIG_LS1A_MACH
-	.ports=4,
-#else
-	.ports=1,
-#endif
-};
-*/
+
 static struct platform_device ls1x_ohci_device = {
 	.name           = "ls1x-ohci",
 	.id             = 0,
@@ -238,6 +230,37 @@ static struct platform_device ls1x_ohci_device = {
 	.resource       = ls1x_ohci_resources,
 };
 #endif //#ifdef CONFIG_USB_OHCI_HCD_LS1X
+
+#ifdef CONFIG_USB_OHCI_HCD_PLATFORM
+#include <linux/usb/ohci_pdriver.h>
+static u64 ls1x_ohci_dmamask = DMA_BIT_MASK(32);
+
+static struct resource ls1x_ohci_resources[] = {
+	[0] = {
+		.start	= LS1X_OHCI_BASE,
+		.end	= LS1X_OHCI_BASE + SZ_32K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= LS1X_OHCI_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct usb_ohci_pdata ls1x_ohci_pdata = {
+};
+
+struct platform_device ls1x_ohci_device = {
+	.name		= "ohci-platform",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(ls1x_ohci_resources),
+	.resource	= ls1x_ohci_resources,
+	.dev		= {
+		.dma_mask = &ls1x_ohci_dmamask,
+		.platform_data = &ls1x_ohci_pdata,
+	},
+};
+#endif
 
 /* EHCI */
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
@@ -1254,6 +1277,9 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 
 #ifdef CONFIG_USB_OHCI_HCD_LS1X
+	&ls1x_ohci_device,
+#endif
+#ifdef CONFIG_USB_OHCI_HCD_PLATFORM
 	&ls1x_ohci_device,
 #endif
 #ifdef CONFIG_USB_EHCI_HCD_LS1X
