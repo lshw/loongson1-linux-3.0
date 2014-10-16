@@ -778,6 +778,16 @@ config SENSORS_MAX6650
 	  This driver can also be built as a module.  If so, the module
 	  will be called max6650.
 
+config SENSORS_MAX1230
+	tristate "Maxim MAX1226/28/30 ADC chip (EXPERIMENTAL)"
+	depends on SPI_MASTER && EXPERIMENTAL
+	help
+	  Say yes here to build support for Maxim's MAX1226 
+	  MAX1228 MAX1230 analog to digital converter.
+
+	  This driver can also be built as a module. If so, the module will be
+	  called max1230.
+
 config SENSORS_MCP3021
 	tristate "Microchip MCP3021 and compatibles"
 	depends on I2C
