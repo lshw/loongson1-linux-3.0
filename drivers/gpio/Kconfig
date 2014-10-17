@@ -75,6 +75,12 @@ config GPIO_BASIC_MMIO_CORE
 	help
 	  Provides core functionality for basic memory-mapped GPIO controllers.
 
+config GPIO_LS1X_INPUT
+	tristate "loongson1 input gpios support for user"
+	depends on LS1B_MACH
+	help
+	  Say yes here to support the loongson1 input gpios device.
+
 config GPIO_BASIC_MMIO
 	tristate "Basic memory-mapped GPIO controllers support"
 	select GPIO_BASIC_MMIO_CORE
