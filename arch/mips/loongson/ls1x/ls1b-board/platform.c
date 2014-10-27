@@ -37,7 +37,6 @@
 #include <linux/jbt6k74.h>
 
 #include <video/ls1xfb.h>
-#include <media/gc0308_platform.h>
 
 #include <loongson1.h>
 #include <irq.h>
@@ -370,16 +369,6 @@ static struct ft5x0x_ts_platform_data ft5x0x_info = {
 };
 #endif //#ifdef CONFIG_TOUCHSCREEN_FT5X0X
 
-#ifdef CONFIG_VIDEO_GC0308
-static struct gc0308_platform_data gc0308_plat = {
-	.default_width = 640,
-	.default_height = 480,
-	.pixelformat = V4L2_PIX_FMT_YUYV,
-	.freq = 24000000,
-	.is_mipi = 0,
-};
-#endif //#ifdef CONFIG_VIDEO_GC0308
-
 #ifdef CONFIG_SOC_CAMERA_LS1B
 #include <media/ls1b_camera.h>
 static struct ls1b_camera_platform_data gc0307_plat = {
@@ -581,12 +570,6 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),
 		.irq = LS1X_GPIO_FIRST_IRQ + FT5X0X_GPIO_IRQ,
 		.platform_data	= &ft5x0x_info,
-	},
-#endif
-#ifdef CONFIG_VIDEO_GC0308
-	{
-		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
-		.platform_data = &gc0308_plat,
 	},
 #endif
 #ifdef CONFIG_SOC_CAMERA_LS1B

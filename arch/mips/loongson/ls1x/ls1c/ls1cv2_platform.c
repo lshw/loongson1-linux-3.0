@@ -28,7 +28,6 @@
 #include <linux/clk.h>
 
 #include <video/ls1xfb.h>
-#include <media/gc0308_platform.h>
 
 #include <loongson1.h>
 #include <irq.h>
@@ -968,6 +967,18 @@ static struct soc_camera_link s5k5ca_link = {
 };
 #endif
 
+#ifdef CONFIG_SOC_CAMERA_GC0307
+static struct i2c_board_info gc0307_i2c_camera = {
+	I2C_BOARD_INFO("gc0307", 0x21),
+};
+
+static struct soc_camera_link gc0307_link = {
+	.bus_id         = 0,
+	.i2c_adapter_id = 0,
+	.board_info     = &gc0307_i2c_camera,
+};
+#endif
+
 #ifdef CONFIG_SOC_CAMERA
 static struct platform_device ls1x_camera_sensor = {
 	.name	= "soc-camera-pdrv",
@@ -978,6 +989,9 @@ static struct platform_device ls1x_camera_sensor = {
 #endif
 #ifdef CONFIG_SOC_CAMERA_GC0308
 		.platform_data = &gc0308_link,
+#endif
+#ifdef CONFIG_SOC_CAMERA_GC0307
+		.platform_data = &gc0307_link,
 #endif
 	},
 };

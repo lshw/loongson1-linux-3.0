@@ -31,7 +31,6 @@
 #include <linux/leds_pwm.h>
 
 #include <video/ls1xfb.h>
-#include <media/gc0308_platform.h>
 
 #include <loongson1.h>
 #include <irq.h>
@@ -312,17 +311,6 @@ static struct platform_device ls1x_toy_device = {
 #endif //#ifdef CONFIG_RTC_DRV_TOY_LOONGSON1
 
 /* I2C */
-/* I2C devices fitted. */
-#ifdef CONFIG_VIDEO_GC0308
-static struct gc0308_platform_data gc0308_plat = {
-	.default_width = 640,
-	.default_height = 480,
-	.pixelformat = V4L2_PIX_FMT_YUYV,
-	.freq = 24000000,
-	.is_mipi = 0,
-};
-#endif //#ifdef CONFIG_VIDEO_GC0308
-
 #ifdef CONFIG_SOC_CAMERA_LS1B
 #include <media/ls1b_camera.h>
 static struct ls1b_camera_platform_data gc0307_plat = {
@@ -470,12 +458,6 @@ static struct platform_device pca9555_leds = {
 
 #ifdef CONFIG_I2C_LS1X
 static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
-#ifdef CONFIG_VIDEO_GC0308
-	{
-		I2C_BOARD_INFO("GC0308", 0x42 >> 1),
-		.platform_data = &gc0308_plat,
-	},
-#endif
 #ifdef CONFIG_SOC_CAMERA_LS1B
 	{
 		I2C_BOARD_INFO("gc0307", 0x21),

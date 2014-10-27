@@ -859,6 +859,12 @@ config SOC_CAMERA_PLATFORM
 	help
 	  This is a generic SoC camera platform driver, useful for testing
 
+config SOC_CAMERA_GC0307
+	tristate "gc0307 camera support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a gc0307 camera driver
+
 config SOC_CAMERA_OV2640
 	tristate "ov2640 camera support"
 	depends on SOC_CAMERA && I2C
@@ -1028,8 +1034,6 @@ source "drivers/media/video/sn9c102/Kconfig"
 
 source "drivers/media/video/pwc/Kconfig"
 
-
-
 config USB_ZR364XX
 	tristate "USB ZR364XX Camera support"
 	depends on VIDEO_V4L2
@@ -1067,13 +1071,6 @@ config USB_S2255
 	  This driver can be compiled as a module, called s2255drv.
 
 endif # V4L_USB_DRIVERS
-
-config VIDEO_GC0308		#lxy
-	tristate "GC0308 supporting camera driver"
-	depends on I2C && VIDEO_V4L2
-	---help---
-	  This driver supports GC0308 SoC camera module
-	  
 endif # VIDEO_CAPTURE_DRIVERS
 
 menuconfig V4L_MEM2MEM_DRIVERS
