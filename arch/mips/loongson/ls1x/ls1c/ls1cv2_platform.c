@@ -940,7 +940,6 @@ static struct platform_device ls1c_otg_device = {
 };
 #endif
 
-#ifdef	CONFIG_SOC_CAMERA_LS1C
 #ifdef CONFIG_SOC_CAMERA_GC0308
 static struct i2c_board_info gc0308_i2c_camera = {
 	I2C_BOARD_INFO("GC0308", 0x42 >> 1),
@@ -969,25 +968,26 @@ static struct soc_camera_link s5k5ca_link = {
 };
 #endif
 
-static struct platform_device ls1c_camera = {
-//	{
-		.name	= "soc-camera-pdrv",
-		.id	= 0,
-		.dev	= {
+#ifdef CONFIG_SOC_CAMERA
+static struct platform_device ls1x_camera_sensor = {
+	.name	= "soc-camera-pdrv",
+	.id	= 0,
+	.dev	= {
 #ifdef CONFIG_SOC_CAMERA_S5K5CA
-			.platform_data = &s5k5ca_link,
+		.platform_data = &s5k5ca_link,
 #endif
-
 #ifdef CONFIG_SOC_CAMERA_GC0308
-			.platform_data = &gc0308_link,
+		.platform_data = &gc0308_link,
 #endif
-		},
+	},
 };
+#endif
 
+#ifdef CONFIG_SOC_CAMERA_LS1C
 static struct resource ls1c_camera_resources[] = {
 	{
-		.start   = LS1C_CAMERA_BASE,
-		.end     = LS1C_CAMERA_BASE + 0x38 - 1,
+		.start   = LS1X_CAMERA_BASE,
+		.end     = LS1X_CAMERA_BASE + SZ_512K - 1,
 		.flags   = IORESOURCE_MEM,
 	}, {
 		.start   = LS1X_CAM_IRQ,
@@ -1010,6 +1010,35 @@ static struct platform_device ls1c_camera_host = {
 	.num_resources	= ARRAY_SIZE(ls1c_camera_resources),
 };
 #endif	//End of CONFIG_SOC_CAMERA_LS1C
+
+#ifdef CONFIG_VIDEO_LS1X
+#include <ls1x_camera.h>
+static struct resource ls1x_camera_resources[] = {
+	{
+		.start   = LS1X_CAMERA_BASE,
+		.end     = LS1X_CAMERA_BASE + SZ_512K - 1,
+		.flags   = IORESOURCE_MEM,
+	}, {
+		.start   = LS1X_CAM_IRQ,
+		.end     = LS1X_CAM_IRQ,
+		.flags   = IORESOURCE_IRQ,
+	},
+};
+
+static struct ls1x_camera_pdata ls1x_camera_platform_data = {
+	.mclk_10khz = 2400,
+};
+
+struct platform_device ls1x_camera_device = {
+	.name	= "ls1x-camera",
+	.id		= 0,
+	.dev	= {
+		.platform_data = &ls1x_camera_platform_data,
+	},
+	.resource		= ls1x_camera_resources,
+	.num_resources	= ARRAY_SIZE(ls1x_camera_resources),
+};
+#endif	//End of CONFIG_VIDEO_LS1X
 
 #ifdef CONFIG_SENSORS_LS1X
 #include <hwmon.h>
@@ -1265,10 +1294,6 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 	&ls1cv2_toy_device,
 #endif
 
-#ifdef	CONFIG_SOC_CAMERA_LS1C
-	&ls1c_camera,
-#endif
-
 #ifdef CONFIG_I2C_LS1X
 	&ls1x_i2c0_device,
 	&ls1x_i2c1_device,
@@ -1283,8 +1308,14 @@ static struct platform_device *ls1b_platform_devices[] __initdata = {
 #endif
 #endif
 
-#ifdef	CONFIG_SOC_CAMERA_LS1C
+#ifdef CONFIG_SOC_CAMERA_LS1C
 	&ls1c_camera_host,
+#endif
+#ifdef CONFIG_SOC_CAMERA
+	&ls1x_camera_sensor,
+#endif
+#ifdef CONFIG_VIDEO_LS1X
+	&ls1x_camera_device,
 #endif
 
 #ifdef CONFIG_CAN_SJA1000_PLATFORM

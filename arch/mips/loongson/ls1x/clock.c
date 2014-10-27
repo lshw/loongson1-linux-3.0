@@ -210,6 +210,35 @@ static void pll_clk_init(struct clk *clk)
 	pr_info("pllclock=%ldHz\n", clk->rate);
 }
 
+#if defined(CONFIG_LS1C_MACH)
+static void cam_clk_init(struct clk *clk)
+{
+	u32 pll, ctrl;
+
+	pll = clk_get_rate(clk->parent);
+	ctrl = __raw_readl(LS1X_CLK_PLL_DIV) & DIV_CAM;
+	clk->rate = pll / (ctrl >> DIV_CAM_SHIFT);
+}
+
+static int cam_clk_set_rate(struct clk *clk, unsigned long rate, int algo_id)
+{
+	u32 ctrl;
+	unsigned long pll, div;
+
+	pll = clk_get_rate(clk->parent);
+	div = pll / rate;
+
+	ctrl = __raw_readl(LS1X_CLK_PLL_DIV) & (~DIV_CAM);
+	ctrl = ctrl | (div << DIV_CAM_SHIFT) | DIV_CAM_EN;
+	ctrl = ctrl | DIV_CAM_SEL_EN | DIV_CAM_SEL;
+	__raw_writel(ctrl, LS1X_CLK_PLL_DIV);
+
+	clk->rate = rate;
+
+	return 0;
+}
+#endif
+
 static void cpu_clk_init(struct clk *clk)
 {
 	u32 pll, ctrl;
@@ -291,6 +320,13 @@ static struct clk_ops pll_clk_ops = {
 	.init	= pll_clk_init,
 };
 
+#if defined(CONFIG_LS1C_MACH)
+static struct clk_ops cam_clk_ops = {
+	.init	= cam_clk_init,
+	.set_rate = cam_clk_set_rate,
+};
+#endif
+
 static struct clk_ops cpu_clk_ops = {
 	.init	= cpu_clk_init,
 	.set_rate = cpu_clk_set_rate,
@@ -312,6 +348,14 @@ static struct clk pll_clk = {
 	.name	= "pll",
 	.ops	= &pll_clk_ops,
 };
+
+#if defined(CONFIG_LS1C_MACH)
+static struct clk cam_clk = {
+	.name	= "cam",
+	.parent = &pll_clk,
+	.ops	= &cam_clk_ops,
+};
+#endif
 
 static struct clk cpu_clk = {
 	.name	= "cpu",
@@ -356,6 +400,9 @@ EXPORT_SYMBOL(clk_register);
 
 static struct clk *ls1x_clks[] = {
 	&pll_clk,
+#if defined(CONFIG_LS1C_MACH)
+	&cam_clk,
+#endif
 	&cpu_clk,
 	&ddr_clk,
 	&apb_clk,

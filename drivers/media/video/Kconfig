@@ -791,13 +791,13 @@ config SOC_CAMERA_LS1C
 
 config SOC_CAMERA_GC0308
 	tristate "GC0308 camera support for ls1c."
-	depends on SOC_CAMERA_LS1C
+	depends on SOC_CAMERA && I2C
 	help
 	  This is a GC0308 camera driver
 
 config SOC_CAMERA_S5K5CA
 	tristate "S5K5CA camera support for ls1c."
-	depends on SOC_CAMERA_LS1C
+	depends on SOC_CAMERA && I2C
 	help
 	  This is a S5K5CA camera driver
 
@@ -894,6 +894,15 @@ config SOC_CAMERA_LS1B
 	depends on I2C && LS1B_MACH && EXPERIMENTAL
 	help
 	  This is a gc0307 camera driver
+
+config VIDEO_LS1X
+	tristate "Loongson1 CMOS Sensor Interface driver (EXPERIMENTAL)"
+	depends on VIDEO_DEV && LS1C_MACH && SOC_CAMERA
+	depends on EXPERIMENTAL
+	select FIQ
+	select VIDEOBUF_DMA_CONTIG
+	---help---
+	  This is a v4l2 driver for the Loongson1 CMOS Sensor Interface
 
 config MX1_VIDEO
 	bool
