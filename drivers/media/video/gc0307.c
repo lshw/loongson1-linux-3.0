@@ -56,8 +56,9 @@ struct gc0307_priv {
 	enum v4l2_mbus_pixelcode	cfmt_code;
 	const struct gc0307_win_size	*win;
 	int				model;
-	u16				flag_vflip:1;
-	u16				flag_hflip:1;
+
+	u8			contrast;
+	u8			saturation;
 };
 
 #define ENDMARKER { 0xff, 0xff }
@@ -65,18 +66,34 @@ struct gc0307_priv {
 #include "ls1x_gc0307.h"
 
 static const struct regval_list gc0307_qcif_regs[] = {
+	{ 0x09, (H_QCIF >> 8) & 0xff },
+	{ 0x0a, H_QCIF & 0xff },
+	{ 0x0b, (H_QCIF >> 8) & 0xff },
+	{ 0x0c, H_QCIF & 0xff },
 	ENDMARKER,
 };
 
 static const struct regval_list gc0307_qvga_regs[] = {
+	{ 0x09, (H_QVGA >> 8) & 0xff },
+	{ 0x0a, H_QVGA & 0xff },
+	{ 0x0b, (H_QVGA >> 8) & 0xff },
+	{ 0x0c, H_QVGA & 0xff },
 	ENDMARKER,
 };
 
 static const struct regval_list gc0307_cif_regs[] = {
+	{ 0x09, (H_CIF >> 8) & 0xff },
+	{ 0x0a, H_CIF & 0xff },
+	{ 0x0b, (H_CIF >> 8) & 0xff },
+	{ 0x0c, H_CIF & 0xff },
 	ENDMARKER,
 };
 
 static const struct regval_list gc0307_vga_regs[] = {
+	{ 0x09, (H_VGA >> 8) & 0xff },
+	{ 0x0a, H_VGA & 0xff },
+	{ 0x0b, (H_VGA >> 8) & 0xff },
+	{ 0x0c, H_VGA & 0xff },
 	ENDMARKER,
 };
 
@@ -124,6 +141,23 @@ static enum v4l2_mbus_pixelcode gc0307_codes[] = {
  * Supported controls
  */
 static const struct v4l2_queryctrl gc0307_controls[] = {
+	{
+		.id = V4L2_CID_CONTRAST,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.name = "Contrast",
+		.minimum = 0x10,
+		.maximum = 0x30,
+		.step = 1,
+		.default_value = 0x20,
+	}, {
+		.id = V4L2_CID_SATURATION,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.name = "Saturation",
+		.minimum = 0x00,
+		.maximum = 0x80,
+		.step = 1,
+		.default_value = 0x40,
+	},
 };
 
 /*
@@ -212,11 +246,11 @@ static int gc0307_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	struct gc0307_priv *priv = to_gc0307(client);
 
 	switch (ctrl->id) {
-	case V4L2_CID_VFLIP:
-//		ctrl->value = priv->flag_vflip;
+	case V4L2_CID_CONTRAST:
+		ctrl->value = priv->contrast;
 		break;
-	case V4L2_CID_HFLIP:
-//		ctrl->value = priv->flag_hflip;
+	case V4L2_CID_SATURATION:
+		ctrl->value = priv->saturation;
 		break;
 	}
 	return 0;
@@ -227,18 +261,17 @@ static int gc0307_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	struct i2c_client  *client = v4l2_get_subdevdata(sd);
 	struct gc0307_priv *priv = to_gc0307(client);
 	int ret = 0;
-	u8 val;
 
 	switch (ctrl->id) {
-	case V4L2_CID_VFLIP:
-//		val = ctrl->value ? REG04_VFLIP_IMG : 0x00;
-//		priv->flag_vflip = ctrl->value ? 1 : 0;
-//		ret = gc0307_mask_set(client, REG04, REG04_VFLIP_IMG, val);
+	case V4L2_CID_CONTRAST:
+		priv->contrast = ctrl->value;
+		ret = i2c_smbus_write_byte_data(client,
+						0x77, ctrl->value);
 		break;
-	case V4L2_CID_HFLIP:
-//		val = ctrl->value ? REG04_HFLIP_IMG : 0x00;
-//		priv->flag_hflip = ctrl->value ? 1 : 0;
-//		ret = gc0307_mask_set(client, REG04, REG04_HFLIP_IMG, val);
+	case V4L2_CID_SATURATION:
+		priv->saturation = ctrl->value;
+		ret = i2c_smbus_write_byte_data(client,
+						0xa0, ctrl->value);
 		break;
 	}
 
@@ -501,7 +534,7 @@ static int gc0307_video_probe(struct soc_camera_device *icd,
 			      struct i2c_client *client)
 {
 	struct gc0307_priv *priv = to_gc0307(client);
-	u8 pid, ver, midh, midl;
+	u8 pid;
 	const char *devname;
 	int ret;
 

@@ -860,7 +860,7 @@ config SOC_CAMERA_PLATFORM
 	  This is a generic SoC camera platform driver, useful for testing
 
 config SOC_CAMERA_GC0307
-	tristate "gc0307 camera support"
+	tristate "gc0307 camera support (EXPERIMENTAL)"
 	depends on SOC_CAMERA && I2C
 	help
 	  This is a gc0307 camera driver

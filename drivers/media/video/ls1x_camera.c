@@ -71,10 +71,10 @@
 			SOCAM_DATA_ACTIVE_HIGH | SOCAM_DATA_ACTIVE_LOW | \
 			SOCAM_DATAWIDTH_8)
 
-#define MAX_VIDEO_MEM 4	/* Video memory limit in megabytes */
-//#define MAX_VIDEO_MEM 16	/* Video memory limit in megabytes */
+//#define MAX_VIDEO_MEM 4	/* Video memory limit in megabytes */
+#define MAX_VIDEO_MEM 16	/* Video memory limit in megabytes */
 
-//#define POLL_CAMERA	1
+#define POLL_CAMERA	1
 
 
 /* buffer for one video frame */
@@ -578,6 +578,15 @@ static int ls1x_camera_set_bus_param(struct soc_camera_device *icd, __u32 pixfmt
 				common_flags &= ~SOCAM_DATA_ACTIVE_HIGH;
 	}
 
+	if ((common_flags & SOCAM_HSYNC_ACTIVE_HIGH) &&
+		(common_flags & SOCAM_HSYNC_ACTIVE_LOW)) {
+			if (!pcdev->pdata ||
+			     pcdev->pdata->flags & LS1X_CAMERA_HSYNC_HIGH)
+				common_flags &= ~SOCAM_HSYNC_ACTIVE_LOW;
+			else
+				common_flags &= ~SOCAM_HSYNC_ACTIVE_HIGH;
+	}
+
 	ret = icd->ops->set_bus_param(icd, common_flags);
 	if (ret < 0)
 		return ret;
@@ -630,7 +639,7 @@ static int ls1x_camera_set_bus_param(struct soc_camera_device *icd, __u32 pixfmt
 		break;
 	}
 
-//	config |= 0xf2000;
+//	config |= 0xf0040;
 	__raw_writel(config, pcdev->base + CAM_CAMIF_CONFIG);
 
 	return 0;
