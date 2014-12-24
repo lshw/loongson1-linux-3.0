@@ -964,8 +964,10 @@ void gadget_add_eps(struct gadget_wrapper *d)
 		"ep0",
 		"ep1",
 		"ep2",
-//		"ep3in",
-//		"ep4in",
+	#ifdef CONFIG_LS1CV2_MACH
+		"ep3",
+		"ep4",
+	#endif
 //		"ep5in",
 //		"ep6in",
 //		"ep7in",
@@ -979,8 +981,10 @@ void gadget_add_eps(struct gadget_wrapper *d)
 //		"ep15in",
 		"ep1",
 		"ep2",
-//		"ep3out",
-//		"ep4out",
+	#ifdef CONFIG_LS1CV2_MACH
+		"ep3",
+		"ep4",
+	#endif
 //		"ep5out",
 //		"ep6out",
 //		"ep7out",

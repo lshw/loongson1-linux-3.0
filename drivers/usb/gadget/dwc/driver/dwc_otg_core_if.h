@@ -48,7 +48,11 @@ typedef struct dwc_otg_core_if dwc_otg_core_if_t;
 #define MAX_TX_FIFOS 15
 
 /** Maximum number of Endpoints/HostChannels */
+#ifdef CONFIG_LS1CV2_MACH
+#define MAX_EPS_CHANNELS 8
+#else
 #define MAX_EPS_CHANNELS 6
+#endif
 
 extern dwc_otg_core_if_t *dwc_otg_cil_init(const uint32_t * _reg_base_addr);
 extern void dwc_otg_core_init(dwc_otg_core_if_t * _core_if);
@@ -264,7 +268,11 @@ extern int32_t dwc_otg_get_param_max_packet_count(dwc_otg_core_if_t * core_if);
 extern int dwc_otg_set_param_host_channels(dwc_otg_core_if_t * core_if,
 					   int32_t val);
 extern int32_t dwc_otg_get_param_host_channels(dwc_otg_core_if_t * core_if);
+#ifdef CONFIG_LS1CV2_MACH
+#define dwc_param_host_channels_default 8
+#else
 #define dwc_param_host_channels_default 6
+#endif
 
 /** The number of endpoints in addition to EP0 available for device
  * mode operations.
@@ -275,7 +283,11 @@ extern int32_t dwc_otg_get_param_host_channels(dwc_otg_core_if_t * core_if);
 extern int dwc_otg_set_param_dev_endpoints(dwc_otg_core_if_t * core_if,
 					   int32_t val);
 extern int32_t dwc_otg_get_param_dev_endpoints(dwc_otg_core_if_t * core_if);
+#ifdef CONFIG_LS1CV2_MACH
+#define dwc_param_dev_endpoints_default 4
+#else
 #define dwc_param_dev_endpoints_default 2
+#endif
 
 /**
  * Specifies the type of PHY interface to use. By default, the driver
