@@ -33,7 +33,7 @@ static void __iomem *order_addr_in;
 #define DMA_LENGTH		0x0c
 #define DMA_STEP_LENGTH		0x10
 #define DMA_STEP_TIMES		0x14
-#define	DMA_CMD			0x18
+#define DMA_CMD			0x18
 
 /* registers and bit definitions */
 #define NAND_CMD		0x00	/* Control register */
@@ -76,18 +76,18 @@ static void __iomem *order_addr_in;
 	__raw_readl((info)->mmio_base + (off))
 
 #define MAX_BUFF_SIZE	10240	/* 10KByte */
-#define PAGE_SHIFT		12	/* 页内地址(列地址)A0-A11 */
+#define NAND_PAGE_SHIFT		12	/* 页内地址(列地址)A0-A11 */
 
 #if defined(CONFIG_LS1A_MACH) || defined(CONFIG_LS1C_MACH)
 	#define MAIN_ADDRH(x)		(x)
-	#define MAIN_ADDRL(x)		((x) << PAGE_SHIFT)
+	#define MAIN_ADDRL(x)		((x) << NAND_PAGE_SHIFT)
 	#define MAIN_SPARE_ADDRH(x)	(x)
-	#define MAIN_SPARE_ADDRL(x)	((x) << PAGE_SHIFT)
+	#define MAIN_SPARE_ADDRL(x)	((x) << NAND_PAGE_SHIFT)
 #elif defined(CONFIG_LS1B_MACH)
-	#define MAIN_ADDRH(x)		((x) >> (32 - (PAGE_SHIFT - 1)))
-	#define MAIN_ADDRL(x)		((x) << (PAGE_SHIFT - 1))	/* 不访问spare区时A11无效 */
-	#define MAIN_SPARE_ADDRH(x)	((x) >> (32 - PAGE_SHIFT))
-	#define MAIN_SPARE_ADDRL(x)	((x) << PAGE_SHIFT)
+	#define MAIN_ADDRH(x)		((x) >> (32 - (NAND_PAGE_SHIFT - 1)))
+	#define MAIN_ADDRL(x)		((x) << (NAND_PAGE_SHIFT - 1))	/* 不访问spare区时A11无效 */
+	#define MAIN_SPARE_ADDRH(x)	((x) >> (32 - NAND_PAGE_SHIFT))
+	#define MAIN_SPARE_ADDRL(x)	((x) << NAND_PAGE_SHIFT)
 #endif
 
 #define	GPIO_CONF1	(ioremap(0x1fd010c4, 4))
@@ -230,12 +230,13 @@ static int ls1x_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int le
 	return 0;
 }
 
-static int inline ls1x_nand_done(struct ls1x_nand_info *info)
+static int ls1x_nand_done(struct ls1x_nand_info *info)
 {
-	int ret, timeout = 40000;
+	int ret, timeout = 4000;
 
 	do {
 		ret = nand_readl(info, NAND_CMD);
+		ndelay(100);
 		timeout--;
 //		printk("NAND_CMD=0x%2X\n", nand_readl(info, NAND_CMD));
 	} while (((ret & 0x400) != 0x400) && timeout);
@@ -252,7 +253,7 @@ static void inline ls1x_nand_stop(struct ls1x_nand_info *info)
 {
 }
 
-static void inline start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
+static void start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
 {
 	writel(0, info->dma_desc + DMA_ORDERED);
 	writel(info->data_buff_phys, info->dma_desc + DMA_SADDR);
