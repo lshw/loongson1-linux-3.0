@@ -33,20 +33,12 @@
  */
 struct ls1xfb_info;
 
-struct ls1xfb_i2c_chan {
-	struct ls1xfb_info *par;
-	struct i2c_adapter adapter;
-	struct i2c_algo_bit_data algo;
-	unsigned int sda_pin;
-	unsigned int scl_pin;
-};
-
 struct ls1xfb_info {
 	struct device		*dev;
 	struct clk		*clk;
 	struct fb_info		*info;
 
-	struct ls1xfb_i2c_chan chan;
+	struct i2c_adapter *i2c_adapter;
 	unsigned char *edid;
 
 	void __iomem		*reg_base;
@@ -63,6 +55,7 @@ struct ls1xfb_info {
 struct ls1xfb_mach_info {
 	char	id[16];
 
+	int	i2c_bus_num;
 	int		num_modes;
 	struct fb_videomode *modes;
 
@@ -92,8 +85,6 @@ struct ls1b_vga {
 
 #if defined(CONFIG_FB_LS1X_I2C)
 extern int ls1xfb_probe_i2c_connector(struct fb_info *info, u8 **out_edid);
-extern void ls1xfb_create_i2c_busses(struct fb_info *info);
-extern void ls1xfb_delete_i2c_busses(struct fb_info *info);
 #endif
 
 #endif /* __ASM_MACH_LS1XFB_H */

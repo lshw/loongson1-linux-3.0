@@ -232,7 +232,7 @@ static int ls1x_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int le
 
 static int ls1x_nand_done(struct ls1x_nand_info *info)
 {
-	int ret, timeout = 4000;
+	int ret, timeout = 40000;
 
 	do {
 		ret = nand_readl(info, NAND_CMD);

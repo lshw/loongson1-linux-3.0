@@ -757,7 +757,6 @@ static int __devinit ls1xfb_probe(struct platform_device *pdev)
 	 * Set video mode according to platform data.
 	 */
 	#if defined(CONFIG_FB_LS1X_I2C)
-	ls1xfb_create_i2c_busses(info);
 	if (ls1xfb_probe_i2c_connector(info, &fbi->edid)) {
 		/* 使用自定义modes */
 		fb_videomode_to_modelist(mi->modes, mi->num_modes, &info->modelist);
@@ -839,9 +838,6 @@ failed_free_cmap:
 failed_free_clk:
 	clk_disable(fbi->clk);
 failed_free_fbmem:
-#ifdef CONFIG_FB_LS1X_I2C
-	ls1xfb_delete_i2c_busses(info);
-#endif
 	dma_free_coherent(fbi->dev, info->fix.smem_len,
 			info->screen_base, fbi->fb_start_dma);
 failed_free_info:
@@ -867,10 +863,6 @@ static int __devexit ls1xfb_remove(struct platform_device *pdev)
 
 	if (info->cmap.len)
 		fb_dealloc_cmap(&info->cmap);
-
-#ifdef CONFIG_FB_LS1X_I2C
-	ls1xfb_delete_i2c_busses(info);
-#endif
 
 	dma_free_coherent(fbi->dev, PAGE_ALIGN(info->fix.smem_len),
 				info->screen_base, info->fix.smem_start);

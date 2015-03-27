@@ -635,6 +635,7 @@ static struct resource ls1x_fb0_resource[] = {
 
 struct ls1xfb_mach_info ls1x_lcd0_info = {
 	.id			= "Graphic lcd",
+	.i2c_bus_num	= 0,
 	.modes			= video_modes,
 	.num_modes		= ARRAY_SIZE(video_modes),
 	.pix_fmt		= PIX_FMT_RGB565,

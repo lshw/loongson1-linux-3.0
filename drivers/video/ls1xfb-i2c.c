@@ -1,153 +1,109 @@
 /*
- * Based partly on savagefb-i2c.c rivafb-i2c.c
- *
+ * Copyright (c) 2015 Tang Haifeng <tanghaifeng-gz@loongson.cn> or <pengren.mcu@qq.com>
+  *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  */
 
+#include <linux/i2c.h>
 #include <linux/module.h>
-#include <linux/kernel.h>
+#include <linux/platform_device.h>
+#include <linux/slab.h>
 #include <linux/delay.h>
-#include <linux/gfp.h>
-#include <linux/fb.h>
+
 #include <video/ls1xfb.h>
-
-#include <asm/gpio.h>
-
 #include "edid.h"
 
-#define LS1X_DDC 	0x50
+#define DDC_ADDR	0x50
 
-#define VGA_CR_IX	0x3d4
-#define VGA_CR_DATA	0x3d5
-
-//#if defined(CONFIG_LS1A_CLOUD_TERMIAL)
-#if defined(CONFIG_LS1A_MACH)
-#define SCL_GPIO	64
-#define SDA_GPIO	65
-//#elif defined(CONFIG_LS1B_CORE_BOARD)
-#elif defined(CONFIG_LS1B_MACH)
-#define SCL_GPIO	32
-#define SDA_GPIO	33
-#endif
-
-static void ls1x_gpio_setscl(void *data, int val)
+static int ls1x_ddc_read(struct i2c_adapter *adapter,
+		unsigned char *buf, u16 count, u8 offset)
 {
-	struct ls1xfb_i2c_chan *chan = data;
+	int r, retries;
 
-	if (val)
-		gpio_direction_input(chan->scl_pin);
-	else
-		gpio_direction_output(chan->scl_pin, 0);
-}
+	for (retries = 3; retries > 0; retries--) {
+		struct i2c_msg msgs[] = {
+			{
+				.addr   = DDC_ADDR,
+				.flags  = 0,
+				.len    = 1,
+				.buf    = &offset,
+			}, {
+				.addr   = DDC_ADDR,
+				.flags  = I2C_M_RD,
+				.len    = count,
+				.buf    = buf,
+			}
+		};
 
-static void ls1x_gpio_setsda(void *data, int val)
-{
-	struct ls1xfb_i2c_chan *chan = data;
+		r = i2c_transfer(adapter, msgs, 2);
+		if (r == 2)
+			return 0;
 
-	if (val)
-		gpio_direction_input(chan->sda_pin);
-	else
-		gpio_direction_output(chan->sda_pin, 0);
-}
-
-static int ls1x_gpio_getscl(void *data)
-{
-	struct ls1xfb_i2c_chan *chan = data;
-
-	return gpio_get_value(chan->scl_pin);
-}
-
-static int ls1x_gpio_getsda(void *data)
-{
-	struct ls1xfb_i2c_chan *chan = data;
-
-	return gpio_get_value(chan->sda_pin);
-}
-
-static int ls1x_setup_i2c_bus(struct ls1xfb_i2c_chan *chan,
-				const char *name)
-{
-	int rc = 0;
-
-	if (chan->par) {
-		strcpy(chan->adapter.name, name);
-		chan->adapter.owner		= THIS_MODULE;
-		chan->adapter.algo_data		= &chan->algo;
-		chan->adapter.dev.parent	= chan->par->dev;
-		chan->algo.udelay		= 10;
-		chan->algo.timeout		= 20;
-		chan->algo.data 		= chan;
-
-		i2c_set_adapdata(&chan->adapter, chan);
-
-		/* Raise SCL and SDA */
-		chan->algo.setsda(chan, 1);
-		chan->algo.setscl(chan, 1);
-		udelay(20);
-
-		rc = i2c_bit_add_bus(&chan->adapter);
-
-		if (rc == 0)
-			dev_dbg(chan->par->dev,
-				"I2C bus %s registered.\n", name);
-		else
-			dev_warn(chan->par->dev,
-				 "Failed to register I2C bus %s.\n", name);
+		if (r != -EAGAIN)
+			break;
 	}
 
-	return rc;
+	return r < 0 ? r : -EIO;
 }
 
-void ls1xfb_create_i2c_busses(struct fb_info *info)
+static int ls1x_read_edid(struct i2c_adapter *i2c_adapter,
+		u8 *edid, int len)
 {
-	struct ls1xfb_info *par = info->par;
-	par->chan.par	= par;
+	int r, l, bytes_read;
 
-//	switch (par->chip) {
-//	case S3_SAVAGE2000:
-		par->chan.sda_pin = SDA_GPIO;
-		par->chan.scl_pin = SCL_GPIO;
-		gpio_request(par->chan.sda_pin, "sda");
-		gpio_request(par->chan.scl_pin, "scl");
-		gpio_direction_input(par->chan.sda_pin);
-		gpio_direction_input(par->chan.scl_pin);
-//		par->chan.reg         = MM_SERIAL1;
-//		par->chan.ioaddr      = par->mmio.vbase;
-		par->chan.algo.setsda = ls1x_gpio_setsda;
-		par->chan.algo.setscl = ls1x_gpio_setscl;
-		par->chan.algo.getsda = ls1x_gpio_getsda;
-		par->chan.algo.getscl = ls1x_gpio_getscl;
-//		break;
-//	default:
-//		par->chan.par = NULL;
-//	}
+	l = min(EDID_LENGTH, len);
+	r = ls1x_ddc_read(i2c_adapter, edid, l, 0);
+	if (r)
+		return r;
 
-	ls1x_setup_i2c_bus(&par->chan, "LS1X DDC2");
-}
+	bytes_read = l;
 
-void ls1xfb_delete_i2c_busses(struct fb_info *info)
-{
-	struct ls1xfb_info *par = info->par;
+	/* if there are extensions, read second block */
+	if (len > EDID_LENGTH && edid[0x7e] > 0) {
+		l = min(EDID_LENGTH, len - EDID_LENGTH);
 
-	gpio_free(par->chan.sda_pin);
-	gpio_free(par->chan.scl_pin);
-	if (par->chan.par)
-		i2c_del_adapter(&par->chan.adapter);
+		r = ls1x_ddc_read(i2c_adapter, edid + EDID_LENGTH,
+				l, EDID_LENGTH);
+		if (r)
+			return r;
 
-	par->chan.par = NULL;
+		bytes_read += l;
+	}
+
+	return bytes_read;
 }
 
 int ls1xfb_probe_i2c_connector(struct fb_info *info, u8 **out_edid)
 {
-	struct ls1xfb_info *par = info->par;
-	u8 *edid;
+	struct ls1xfb_info *fbi = info->par;
+	struct ls1xfb_mach_info *mi = fbi->dev->platform_data;
+	int i2c_bus_num, r;
+	unsigned char *edid = kmalloc(EDID_LENGTH, GFP_KERNEL);
 
-	if (par->chan.par)
-		edid = fb_ddc_read(&par->chan.adapter);
-	else
+	i2c_bus_num = mi->i2c_bus_num;
+
+	if (i2c_bus_num != -1) {
+		struct i2c_adapter *adapter;
+
+		adapter = i2c_get_adapter(i2c_bus_num);
+		if (!adapter) {
+			dev_err(fbi->dev,
+					"Failed to get I2C adapter, bus %d\n",
+					i2c_bus_num);
+			return -ENODEV;
+		}
+
+		fbi->i2c_adapter = adapter;
+	}
+
+	r = ls1x_ddc_read(fbi->i2c_adapter, edid, 1, 0);
+	if (r == 0) {
+		ls1x_read_edid(fbi->i2c_adapter, edid, EDID_LENGTH);
+	} else {
 		edid = NULL;
+	}
 
 	if (!edid) {
 		/* try to get from firmware */
