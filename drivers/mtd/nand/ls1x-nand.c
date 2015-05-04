@@ -193,8 +193,8 @@ static u16 ls1x_nand_read_word(struct mtd_info *mtd)
 
 	if (!(info->buf_start & 0x1) && info->buf_start < info->buf_count) {
 		retval = *(u16 *)(info->data_buff + info->buf_start);
+		info->buf_start += 2;
 	}
-	info->buf_start += 2;
 	return retval;
 }
 
