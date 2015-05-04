@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2013 Tang, Haifeng <tanghaifeng-gz@loongson.cn>.
  *
+ * base on ds3232
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
  * Free Software Foundation;  either version 2 of the  License, or (at your
@@ -32,10 +33,9 @@
 #define SD2068_MONTH	0x05
 #define SD2068_YEAR		0x06
 
-#define SD2068_ALARM1	0x07	/* Alarm 1 BASE */
-#define SD2068_ALARM2	0x0B	/* Alarm 2 BASE */
+#define SD2068_ALARM	0x07	/* Alarm 1 BASE */
 
-#define SD2068_ALARM_EN	0x0E	/* Alarm 2 BASE */
+#define SD2068_ALARM_EN	0x0E
 #       define SD2068_ALARM_EAY		0x40
 #       define SD2068_ALARM_EAMO	0x20
 #       define SD2068_ALARM_EAD		0x10
@@ -85,6 +85,52 @@ struct sd2068 {
 	int exiting;
 };
 
+static void sd2068_write_enable(struct i2c_client *client)
+{
+	char ret;
+
+	ret = i2c_smbus_read_byte_data(client, SD2068_CTR2);
+	ret = ret | SD2068_CTR2_WRTC1;
+	i2c_smbus_write_byte_data(client, SD2068_CTR2, ret);
+
+	ret = i2c_smbus_read_byte_data(client, SD2068_CTR1);
+	ret = ret | SD2068_CTR1_WRTC3 | SD2068_CTR1_WRTC2;
+	i2c_smbus_write_byte_data(client, SD2068_CTR1, ret);
+}
+
+static void sd2068_write_disable(struct i2c_client *client)
+{
+	char ret;
+
+	ret = i2c_smbus_read_byte_data(client, SD2068_CTR1);
+	ret = ret & (~SD2068_CTR1_WRTC3) & (~SD2068_CTR1_WRTC2);
+	i2c_smbus_write_byte_data(client, SD2068_CTR1, ret);
+
+	ret = i2c_smbus_read_byte_data(client, SD2068_CTR2);
+	ret = ret & (~SD2068_CTR2_WRTC1);
+	i2c_smbus_write_byte_data(client, SD2068_CTR2, ret);
+}
+
+static void sd2068_hw_init(struct i2c_client *client)
+{
+	char ret;
+
+	sd2068_write_enable(client);
+
+	ret = i2c_smbus_read_byte_data(client, SD2068_CTR2);
+	ret = ret & (~SD2068_CTR2_IM);	/* 只使用单事件报警 */
+	ret = ret & ((~SD2068_CTR2_INTS1) | SD2068_CTR2_INTS0);
+	ret = ret & (~SD2068_CTR2_FOBAT);
+	ret = ret & (((~SD2068_CTR2_INTDE) | SD2068_CTR2_INTAE) & (~SD2068_CTR2_INTFE));
+	i2c_smbus_write_byte_data(client, SD2068_CTR2, ret);
+
+	ret = i2c_smbus_read_byte_data(client, SD2068_CTR3);
+	ret = ret & (~SD2068_CTR3_ARST);
+	i2c_smbus_write_byte_data(client, SD2068_CTR3, ret);
+
+	sd2068_write_disable(client);
+}
+
 static int sd2068_read_time(struct device *dev, struct rtc_time *time)
 {
 	struct i2c_client *client = to_i2c_client(dev);
@@ -115,13 +161,13 @@ static int sd2068_read_time(struct device *dev, struct rtc_time *time)
 	time->tm_sec = bcd2bin(second & 0x7f);
 	time->tm_min = bcd2bin(minute & 0x7f);
 	if (twelve_hr) {
+		time->tm_hour = bcd2bin(hour & 0x3f);
+	} else {
 		/* Convert to 24 hr */
 		if (am_pm)
-			time->tm_hour = bcd2bin(hour & 0x1F) + 12;
+			time->tm_hour = bcd2bin(hour & 0x1f) + 12;
 		else
-			time->tm_hour = bcd2bin(hour & 0x1F);
-	} else {
-		time->tm_hour = bcd2bin(hour & 0x3f);
+			time->tm_hour = bcd2bin(hour & 0x1f);
 	}
 
 	time->tm_wday = bcd2bin(week & 0x07);
@@ -147,12 +193,11 @@ static int sd2068_set_time(struct device *dev, struct rtc_time *time)
 	u8 buf[7];
 
 	/* Extract time from rtc_time and load into sd2068*/
-	i2c_smbus_write_byte_data(client, SD2068_CTR2, SD2068_CTR2_WRTC1);
-	i2c_smbus_write_byte_data(client, SD2068_CTR1, SD2068_CTR1_WRTC3 | SD2068_CTR1_WRTC2);
+	sd2068_write_enable(client);
 
 	buf[0] = bin2bcd(time->tm_sec);
 	buf[1] = bin2bcd(time->tm_min);
-	buf[2] = bin2bcd(time->tm_hour);
+	buf[2] = bin2bcd(time->tm_hour) | 0x80; /* only 24 hr? */
 	buf[3] = bin2bcd(time->tm_wday);
 	buf[4] = bin2bcd(time->tm_mday); /* Date */
 	/* linux tm_mon range:0~11, while month range is 1~12 in RTC chip */
@@ -162,11 +207,12 @@ static int sd2068_set_time(struct device *dev, struct rtc_time *time)
 	i2c_smbus_write_i2c_block_data(client, SD2068_SECONDS, 7, buf);
 	i2c_smbus_write_byte_data(client, SD2068_TIME_ADJ, 0x00);
 	
-	return i2c_smbus_write_word_data(client, SD2068_CTR1, 0x0000);
+	sd2068_write_disable(client);
+
+	return 0;
 }
 
 /*
- * SD2068 has two alarm, we only use alarm1
  * According to linux specification, only support one-shot alarm
  * no periodic alarm mode
  */
@@ -180,17 +226,13 @@ static int sd2068_read_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 
 	mutex_lock(&sd2068->mutex);
 
-/*	ret = i2c_smbus_read_byte_data(client, SD2068_SR);
-	if (ret < 0)
-		goto out;
-	stat = ret;*/
 	ret = i2c_smbus_read_byte_data(client, SD2068_CTR2);
 	if (ret < 0)
 		goto out;
 	control = ret;
 	alarm->enabled = (control & SD2068_CTR2_INTAE) ? 1 : 0;
 
-	ret = i2c_smbus_read_i2c_block_data(client, SD2068_ALARM1, 7, buf);
+	ret = i2c_smbus_read_i2c_block_data(client, SD2068_ALARM, 7, buf);
 	if (ret < 0)
 		goto out;
 
@@ -248,7 +290,7 @@ static int sd2068_set_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct sd2068 *sd2068 = i2c_get_clientdata(client);
-	int control, stat;
+	int control;
 	int ret;
 	u8 buf[7];
 
@@ -256,6 +298,8 @@ static int sd2068_set_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 		return -EINVAL;
 
 	mutex_lock(&sd2068->mutex);
+
+	sd2068_write_enable(client);
 
 	buf[0] = bin2bcd(alarm->time.tm_sec);
 	buf[1] = bin2bcd(alarm->time.tm_min);
@@ -275,17 +319,7 @@ static int sd2068_set_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 	if (ret < 0)
 		goto out;
 
-	/* clear any pending alarm flag */
-/*	ret = i2c_smbus_read_byte_data(client, SD2068_SR);
-	if (ret < 0)
-		goto out;
-	stat = ret;
-	stat &= ~(SD2068_SR_A1F | SD2068_SR_A2F);
-	ret = i2c_smbus_write_byte_data(client, SD2068_SR, stat);
-	if (ret < 0)
-		goto out;*/
-
-	ret = i2c_smbus_write_i2c_block_data(client, SD2068_ALARM1, 7, buf);
+	ret = i2c_smbus_write_i2c_block_data(client, SD2068_ALARM, 7, buf);
 
 	ret = i2c_smbus_write_byte_data(client, SD2068_ALARM_EN, 0x7f);
 
@@ -294,6 +328,7 @@ static int sd2068_set_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 		ret = i2c_smbus_write_byte_data(client, SD2068_CTR2, control);
 	}
 out:
+	sd2068_write_disable(client);
 	mutex_unlock(&sd2068->mutex);
 	return ret;
 }
@@ -301,6 +336,7 @@ out:
 static int sd2068_alarm_irq_enable(struct device *dev, unsigned int enabled)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct sd2068 *sd2068 = i2c_get_clientdata(client);
 	unsigned char control;
 
 	pr_debug("%s: aie=%d\n", __func__, enabled);
@@ -308,15 +344,21 @@ static int sd2068_alarm_irq_enable(struct device *dev, unsigned int enabled)
 	if (client->irq <= 0)
 		return -EINVAL;
 
+	sd2068_write_enable(client);
+
 	control = i2c_smbus_read_byte_data(client, SD2068_CTR2);
 
 	if (enabled) {
+		sd2068->rtc->irq_data |= RTC_AF;
 		control |= SD2068_CTR2_INTAE;
 		i2c_smbus_write_byte_data(client, SD2068_CTR2, control);
 	} else {
+		sd2068->rtc->irq_data &= ~RTC_AF;
 		control &= ~SD2068_CTR2_INTAE;
 		i2c_smbus_write_byte_data(client, SD2068_CTR2, control);
 	}
+
+	sd2068_write_disable(client);
 
 	return 0;
 }
@@ -335,29 +377,14 @@ static void sd2068_work(struct work_struct *work)
 {
 	struct sd2068 *sd2068 = container_of(work, struct sd2068, work);
 	struct i2c_client *client = sd2068->client;
-//	int stat, control;
 
 	mutex_lock(&sd2068->mutex);
 
-#if 0
-	control = i2c_smbus_read_byte_data(client, SD2068_CTR1);
-	if (control < 0)
-		goto out;
-	/* disable alarm1 interrupt */
-	control &= ~(SD2068_CR_A1IE);
-	i2c_smbus_write_byte_data(client, SD2068_CTR1, control);
-
-	/* clear the alarm pend flag */
-	stat &= ~SD2068_SR_A1F;
-	i2c_smbus_write_byte_data(client, SD2068_SR, stat);
-#endif
-
 	rtc_update_irq(sd2068->rtc, 1, RTC_AF | RTC_IRQF);
 
-//out:
 	if (!sd2068->exiting)
 		enable_irq(client->irq);
-//unlock:
+
 	mutex_unlock(&sd2068->mutex);
 }
 
@@ -402,6 +429,8 @@ static int __devinit sd2068_probe(struct i2c_client *client,
 			goto out_free;
 		}
 	}
+
+	sd2068_hw_init(client);
 
 	/* Check RTC Time */
 	sd2068_read_time(&client->dev, &rtc_tm);
