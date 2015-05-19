@@ -4,7 +4,7 @@
 #define LS1B_BOARD_ACPI_IRQ		0
 #define LS1A_BOARD_HPET_IRQ		1
 #if defined(CONFIG_LS1C_MACH)
-#define LS1X_UART0_IRQ	3
+#define LS1X_UART0_IRQ	0
 #define LS1X_UART1_IRQ	4
 #define LS1X_UART2_IRQ	5
 #define LS1X_UART3_IRQ	29

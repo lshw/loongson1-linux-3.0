@@ -180,6 +180,15 @@ void __init ls1x_serial_setup(void)
 	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT2) & 0xF87FFFFF, LS1X_CBUS_FOURTHT2);
 	__raw_writel(__raw_readl(LS1X_CBUS_FIFTHT2)  | 0x07800000, LS1X_CBUS_FIFTHT2);
 #endif
+
+#if 0
+	/* 串口0 */
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST2)   & 0xFFFFF3FF, LS1X_CBUS_FIRST2);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2)  | 0x00000C00, LS1X_CBUS_SECOND2);
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD2)   & 0xFFFFF3FF, LS1X_CBUS_THIRD2);
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT2) & 0xFFFFF3FF, LS1X_CBUS_FOURTHT2);
+	__raw_writel(__raw_readl(LS1X_CBUS_FIFTHT2)  & 0xFFFFF3FF, LS1X_CBUS_FIFTHT2);
+#endif
 }
 
 /* USB OHCI */
