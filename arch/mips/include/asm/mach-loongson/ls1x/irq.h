@@ -8,6 +8,14 @@
 #define LS1X_UART1_IRQ	4
 #define LS1X_UART2_IRQ	5
 #define LS1X_UART3_IRQ	29
+#define LS1X_UART4_IRQ	37
+#define LS1X_UART5_IRQ	38
+#define LS1X_UART6_IRQ	39
+#define LS1X_UART7_IRQ	40
+#define LS1X_UART8_IRQ	41
+#define LS1X_UART9_IRQ	45
+#define LS1X_UART10_IRQ	46
+#define LS1X_UART11_IRQ	47
 #else
 #define LS1X_UART0_IRQ	2
 #define LS1X_UART1_IRQ	3

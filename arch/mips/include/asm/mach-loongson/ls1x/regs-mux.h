@@ -157,21 +157,25 @@
 #define LS1X_CBUS_SECOND0		((void __iomem *)0xbfd011d0)
 #define LS1X_CBUS_THIRD0		((void __iomem *)0xbfd011e0)
 #define LS1X_CBUS_FOURTHT0		((void __iomem *)0xbfd011f0)
+#define LS1X_CBUS_FIFTHT0		((void __iomem *)0xbfd01200)
 
 #define LS1X_CBUS_FIRST1		((void __iomem *)0xbfd011c4)
 #define LS1X_CBUS_SECOND1		((void __iomem *)0xbfd011d4)
 #define LS1X_CBUS_THIRD1		((void __iomem *)0xbfd011e4)
 #define LS1X_CBUS_FOURTHT1		((void __iomem *)0xbfd011f4)
+#define LS1X_CBUS_FIFTHT1		((void __iomem *)0xbfd01204)
 
 #define LS1X_CBUS_FIRST2		((void __iomem *)0xbfd011c8)
 #define LS1X_CBUS_SECOND2		((void __iomem *)0xbfd011d8)
 #define LS1X_CBUS_THIRD2		((void __iomem *)0xbfd011e8)
 #define LS1X_CBUS_FOURTHT2		((void __iomem *)0xbfd011f8)
+#define LS1X_CBUS_FIFTHT2		((void __iomem *)0xbfd01208)
 
 #define LS1X_CBUS_FIRST3		((void __iomem *)0xbfd011cc)
 #define LS1X_CBUS_SECOND3		((void __iomem *)0xbfd011dc)
 #define LS1X_CBUS_THIRD3		((void __iomem *)0xbfd011ec)
 #define LS1X_CBUS_FOURTHT3		((void __iomem *)0xbfd011fc)
+#define LS1X_CBUS_FIFTHT3		((void __iomem *)0xbfd0120c)
 
 #endif	//#ifdef	CONFIG_LS1A_MACH
 

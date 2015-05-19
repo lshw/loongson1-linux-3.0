@@ -73,7 +73,7 @@
 #define LS1X_UART1_BASE		0x1fe44000
 #define LS1X_UART2_BASE		0x1fe48000
 #define LS1X_UART3_BASE		0x1fe4c000
-#ifdef	CONFIG_LS1B_MACH	/* Loongson 1B最多可扩展12个3线UART串口 1A只能有4个 */
+#if defined(CONFIG_LS1B_MACH)	/* Loongson 1B最多可扩展12个3线UART串口 1A只能有4个 */
 #define LS1X_UART4_BASE		0x1fe6c000
 #define LS1X_UART5_BASE		0x1fe7c000
 #define LS1X_UART6_BASE		0x1fe41000
@@ -82,9 +82,21 @@
 #define LS1X_UART9_BASE		0x1fe45000
 #define LS1X_UART10_BASE		0x1fe46000
 #define LS1X_UART11_BASE		0x1fe47000
+#elif defined(CONFIG_LS1C_MACH)
+#define LS1X_UART4_BASE		0x1fe4c400
+#define LS1X_UART5_BASE		0x1fe4c500
+#define LS1X_UART6_BASE		0x1fe4c600
+#define LS1X_UART7_BASE		0x1fe4c700
+#define LS1X_UART8_BASE		0x1fe4c800
+#define LS1X_UART9_BASE		0x1fe4c900
+#define LS1X_UART10_BASE		0x1fe4ca00
+#define LS1X_UART11_BASE		0x1fe4cb00
 #endif
 
 #define LS1B_UART_SPLIT			0xbfe78038
+
+/* sata */
+#define LS1X_SATA_BASE			0x1fe30000
 
 #define LS1X_PS2_BASE			0x1fe60000
 

@@ -115,6 +115,16 @@ static struct plat_serial8250_port ls1x_serial8250_port[] = {
 	LS1X_UART(1),
 	LS1X_UART(2),
 	LS1X_UART(3),
+
+	LS1X_UART(4),
+	LS1X_UART(5),
+	LS1X_UART(6),
+	LS1X_UART(7),
+
+	LS1X_UART(8),
+	LS1X_UART(9),
+	LS1X_UART(10),
+	LS1X_UART(11),
 	{},
 };
 
@@ -158,6 +168,17 @@ void __init ls1x_serial_setup(void)
 	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x00060000), LS1X_CBUS_SECOND0);
 	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00003006), LS1X_CBUS_SECOND1);
 	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000003, LS1X_CBUS_FOURTHT0);
+#endif
+
+	/* 如果要使用开发板的串口7 和串口8，则使能以下设置，开发板
+	开发板的串口7 和串口8与IIS控制器复用(gpio87-90)  注意需要把
+	内核的IIS控制器驱动选项关掉 。注意跳线设置，根据实际情况修改 */
+#if 0
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST2)   & 0xF87FFFFF, LS1X_CBUS_FIRST2);
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2)  & 0xF87FFFFF, LS1X_CBUS_SECOND2);
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD2)   & 0xF87FFFFF, LS1X_CBUS_THIRD2);
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT2) & 0xF87FFFFF, LS1X_CBUS_FOURTHT2);
+	__raw_writel(__raw_readl(LS1X_CBUS_FIFTHT2)  | 0x07800000, LS1X_CBUS_FIFTHT2);
 #endif
 }
 
