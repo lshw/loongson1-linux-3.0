@@ -49,14 +49,18 @@ struct pwm_device ls1x_pwm_list[] = {
 #include <ls1x_nand.h>
 static struct mtd_partition ls1x_nand_partitions[] = {
 	{
+		.name	= "bootloader",
+		.offset	= MTDPART_OFS_APPEND,
+		.size	= 1024*1024,
+	},  {
 		.name	= "kernel",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 14*1024*1024,
-	}, {
+		.size	= 13*1024*1024,
+	},  {
 		.name	= "rootfs",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 100*1024*1024,
-	}, {
+		.size	= 50*1024*1024,
+	},  {
 		.name	= "data",
 		.offset	= MTDPART_OFS_APPEND,
 		.size	= MTDPART_SIZ_FULL,
@@ -77,8 +81,6 @@ static struct resource ls1x_nand_resources[] = {
 		.flags          = IORESOURCE_MEM,
 	},
 	[1] = {
-//		.start          = LS1X_NAND_IRQ,
-//		.end            = LS1X_NAND_IRQ,
 		.start          = LS1X_DMA0_IRQ,
         .end            = LS1X_DMA0_IRQ,
 		.flags          = IORESOURCE_IRQ,
@@ -138,6 +140,7 @@ void __init ls1x_serial_setup(void)
 	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x0000003f), LS1X_CBUS_FIRST0);
 	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x0000003f), LS1X_CBUS_SECOND0);
 	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x0000003f), LS1X_CBUS_THIRD0);
+
 	/* UART1 */
 	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x00060000), LS1X_CBUS_FIRST0);
 	__raw_writel(__raw_readl(LS1X_CBUS_FIRST3) & (~0x00000060), LS1X_CBUS_FIRST3);
@@ -303,10 +306,15 @@ static struct i2c_board_info __initdata ls1x_i2c0_devs[] = {
 		I2C_BOARD_INFO("uda1342", 0x1a),
 	},
 #endif
-#ifdef CONFIG_SND_SOC_ES8388
-//#ifdef CONFIG_CODEC_ES8388
+//#ifdef CONFIG_SND_SOC_ES8388
+#ifdef CONFIG_CODEC_ES8388
 	{
 		I2C_BOARD_INFO("es8388", 0x10),
+	},
+#endif
+#ifdef CONFIG_RTC_DRV_ISL12022
+	{
+		I2C_BOARD_INFO("isl12022", 0x6f),
 	},
 #endif
 };
@@ -466,7 +474,7 @@ static struct plat_stmmacphy_data  phy0_private_data = {
 #ifdef CONFIG_RTL8305SC
 	.phy_addr = 4,
 #else
-	.phy_addr = 0,	/* -1自动检测 */
+	.phy_addr = -1,	/* -1自动检测 */
 #endif
 	.phy_mask = 0,
 	.interface = PHY_INTERFACE_MODE_RMII,
