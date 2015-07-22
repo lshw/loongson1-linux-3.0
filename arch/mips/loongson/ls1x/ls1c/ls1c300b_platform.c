@@ -1009,6 +1009,60 @@ static struct soc_camera_link gc0307_link = {
 };
 #endif
 
+/* soc-camera OV2640 */
+#if defined(CONFIG_SOC_CAMERA_OV2640) || \
+	defined(CONFIG_SOC_CAMERA_OV2640_MODULE)
+#include <media/soc_camera.h>
+#define OV2640_GPIO_CAMERA_PW		(PCA9555_GPIO_BASE + 14)
+#define OV2640_GPIO_CAMERA_RST	(PCA9555_GPIO_BASE + 15)
+static int gpio_ini = 1;
+static int ov2640_camera_power(struct device *dev, int on)
+{
+	if (gpio_ini) {
+		gpio_request(OV2640_GPIO_CAMERA_PW, "ov2640_pw");
+		gpio_direction_output(OV2640_GPIO_CAMERA_PW, 1);
+		gpio_request(OV2640_GPIO_CAMERA_RST, "ov2640_rst");
+		gpio_direction_output(OV2640_GPIO_CAMERA_RST, 1);
+		gpio_ini = 0;
+		msleep(20);
+	}
+
+	/* enable or disable the camera */
+	gpio_set_value(OV2640_GPIO_CAMERA_PW, on ? 0 : 1);
+	msleep(20);
+
+	if (!on)
+		goto out;
+
+	/* If enabled, give a reset impulse */
+	gpio_set_value(OV2640_GPIO_CAMERA_RST, 0);
+	msleep(20);
+	gpio_set_value(OV2640_GPIO_CAMERA_RST, 1);
+	msleep(100);
+
+out:
+	return 0;
+}
+
+static unsigned long isi_camera_query_bus_param(struct soc_camera_link *link)
+{
+	/* ISI board for ek using default 8-bits connection */
+	return SOCAM_DATAWIDTH_8;
+}
+
+static struct i2c_board_info i2c_camera = {
+	I2C_BOARD_INFO("ov2640", 0x30),
+};
+
+static struct soc_camera_link iclink_ov2640 = {
+	.bus_id			= 0,
+	.board_info		= &i2c_camera,
+	.i2c_adapter_id		= 0,
+	.power			= ov2640_camera_power,
+	.query_bus_param	= isi_camera_query_bus_param,
+};
+#endif
+
 #ifdef CONFIG_SOC_CAMERA
 static struct platform_device ls1x_camera_sensor = {
 	.name	= "soc-camera-pdrv",
@@ -1022,6 +1076,10 @@ static struct platform_device ls1x_camera_sensor = {
 #endif
 #ifdef CONFIG_SOC_CAMERA_GC0307
 		.platform_data = &gc0307_link,
+#endif
+#if defined(CONFIG_SOC_CAMERA_OV2640) || \
+	defined(CONFIG_SOC_CAMERA_OV2640_MODULE)
+	.platform_data = &iclink_ov2640,
 #endif
 	},
 };
@@ -1426,6 +1484,14 @@ int __init ls1b_platform_init(void)
 
 #ifdef CONFIG_BACKLIGHT_GENERIC
 	gpio_request(GPIO_BACKLIGHT_CTRL, "backlight");
+#endif
+
+#if defined(CONFIG_SOC_CAMERA_OV2640) || \
+	defined(CONFIG_SOC_CAMERA_OV2640_MODULE)
+/*	gpio_request(OV2640_GPIO_CAMERA_PW, "ov2640_pw");
+	gpio_direction_output(OV2640_GPIO_CAMERA_PW, 1);
+	gpio_request(OV2640_GPIO_CAMERA_RST, "ov2640_rst");
+	gpio_direction_output(OV2640_GPIO_CAMERA_RST, 1);*/
 #endif
 
 #if defined(CONFIG_MMC_LS1X)
