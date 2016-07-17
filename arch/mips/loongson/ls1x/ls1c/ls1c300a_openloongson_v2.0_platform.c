@@ -131,28 +131,48 @@ void __init ls1x_serial_setup(void)
 	for (p = ls1x_serial8250_port; p->flags != 0; ++p)
 		p->uartclk = clk_get_rate(clk);
 
-#if 0
-	/* 设置复用关系(EJTAG) */
-	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x0000003f), LS1X_CBUS_FIRST0);
-	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x0000003f), LS1X_CBUS_SECOND0);
-	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x0000003f), LS1X_CBUS_THIRD0);
+	__raw_writel(0,LS1X_CBUS_FIFTHT0);//disable p0-p31 Function5 disable
+	__raw_writel(0,LS1X_CBUS_FIFTHT1);//disable p31-p63 Function5 disable
+	__raw_writel(0,LS1X_CBUS_FIFTHT2);//disable p63-p95 Function5 disable
+	__raw_writel(0,LS1X_CBUS_FIFTHT3);//disable p96-p127 Function5 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT1) & (~0x030C3000), LS1X_CBUS_FOURTHT1);//P44,P45,P50,P51,P56,P57 Function4 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) & (~0x00780000), LS1X_CBUS_FOURTHT0);//P19,P20 Function4 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD3) & (~0x00000006), LS1X_CBUS_THIRD3);//P97,P98 Function3 disable
 
-	/* UART1 */
-	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x00060000), LS1X_CBUS_FIRST0);
-	__raw_writel(__raw_readl(LS1X_CBUS_FIRST3) & (~0x00000060), LS1X_CBUS_FIRST3);
-	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00000300), LS1X_CBUS_SECOND1);
-	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2) & (~0x00003000), LS1X_CBUS_SECOND2);
-	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x0000000c, LS1X_CBUS_FOURTHT0);
-	/* UART2 */
-	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00000c30), LS1X_CBUS_SECOND1);
-	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x18000000), LS1X_CBUS_THIRD0);
-	__raw_writel(__raw_readl(LS1X_CBUS_THIRD3) & (~0x00000180), LS1X_CBUS_THIRD3);
-	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000030, LS1X_CBUS_FOURTHT0);
-	/* UART3 */
-	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x00060000), LS1X_CBUS_SECOND0);
-	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00003006), LS1X_CBUS_SECOND1);
-	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000003, LS1X_CBUS_FOURTHT0);
-#endif
+
+	/* P0-P5 Function1-3 disable */
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x0000003f), LS1X_CBUS_FIRST0);//P0,P1,P2,P3,P4,P5 Function1 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x0000003f), LS1X_CBUS_SECOND0);//P0,P1,P2,P3,P4,P5 Function1 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x0000003f), LS1X_CBUS_THIRD0); //P0,P1,P2,P3,P4,P5 Function1 disable
+
+	/* UART0 P74-RX0,P75-TX0 */ 
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x01800000), LS1X_CBUS_THIRD0);//P23,P24 Function3 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD3) & (~0x00000018), LS1X_CBUS_THIRD3);//P99,P100 Function3 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST2) & (~0x00003000), LS1X_CBUS_FIRST2);//P76,P77 Function1 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2) | 0x00000C00, LS1X_CBUS_SECOND2);//P74,P75 Function2 enable
+
+	
+	/* UART1 P2-RX1 P3-TX1 */ 
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST0) & (~0x00060000), LS1X_CBUS_FIRST0); //P17,P18 Function1 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST3) & (~0x00000060), LS1X_CBUS_FIRST3); //P101,P102 Function1 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00000300), LS1X_CBUS_SECOND1);//P40,P41 Function2 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2) & (~0x00003000), LS1X_CBUS_SECOND2); //P76,P77 Function2 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x0000000c, LS1X_CBUS_FOURTHT0);//P2-RX1,P3-TX1  Function4 enable
+
+	/* UART2  P35-RX2 P36-TX2 */
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00000030), LS1X_CBUS_SECOND1);//P42,P43 Function2 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD0) & (~0x18000000), LS1X_CBUS_THIRD0);  //P27,P28 Function3 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD3) & (~0x00000180), LS1X_CBUS_THIRD3);  //P103,P104 Function3 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST1) & (~0x00000030), LS1X_CBUS_FIRST1);//P36,P37 Function1 disable
+//	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000030, LS1X_CBUS_FOURTHT0); //P4-RX0,P5-TX0 Function4 enable 
+//	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) | 0x00000030, LS1X_CBUS_SECOND0); //P4-PWM0, P4=PWM1 Function2 enable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) | 0x00000030, LS1X_CBUS_SECOND1);//P36-RX2,P37-TX2 Function2 , this is pmon uart port 
+	
+
+	/* UART3 P0-RX3 P1-TX3 */
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND0) & (~0x00060000), LS1X_CBUS_SECOND0); //P17,P18 Function2 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND1) & (~0x00003006), LS1X_CBUS_SECOND1); //P33,P34,P44,P45 Function2 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT0) | 0x00000003, LS1X_CBUS_FOURTHT0); //P0-RX3,P1-TX3 Function4 enable
 }
 
 /* USB OHCI */
@@ -359,6 +379,28 @@ static struct platform_device ls1x_i2c2_device = {
 	.num_resources	= ARRAY_SIZE(ls1x_i2c2_resource),
 	.resource	= ls1x_i2c2_resource,
 };
+
+static void ls1x_i2c_setup(void)
+{
+	/* 使能I2C控制器 */
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) & (~I2C0_SHUT), LS1X_MUX_CTRL0);
+	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) & (~I2C1_SHUT), LS1X_MUX_CTRL0);
+//	__raw_writel(__raw_readl(LS1X_MUX_CTRL0) & (~I2C2_SHUT), LS1X_MUX_CTRL0);
+
+	/*
+	 * PIN74    GPIO85    I2C_SDA0
+	 * PIN75    GPIO86    I2C_SCL0
+	 *
+	 * PIN3    GPIO76    I2C_SDA1
+	 * PIN6    GPIO77    I2C_SCL1
+	 */
+	__raw_writel(__raw_readl(LS1X_CBUS_FIRST2)   & 0xFFCFCFFF, LS1X_CBUS_FIRST2);  //P86,P85,P78,P77 Function1 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_SECOND2)  & 0xFFCFCFFF, LS1X_CBUS_SECOND2); //P86,P85,P78,P77 Function2 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_THIRD2)   & 0xFFCFCFFF, LS1X_CBUS_THIRD2);  //P86,P85,P78,P77 Function3 disable
+	__raw_writel(__raw_readl(LS1X_CBUS_FOURTHT2) | 0x00303000, LS1X_CBUS_FOURTHT2);//P86,P85,P78,P77 Function4 enable
+	__raw_writel(__raw_readl(LS1X_CBUS_FIFTHT2)  & 0xFFCFCFFF, LS1X_CBUS_FIFTHT2); //P86,P85,P78,P77 Function5 disable
+}
+
 #endif //#ifdef CONFIG_I2C_LS1X
 
 /* lcd */
@@ -1201,6 +1243,7 @@ int __init ls1b_platform_init(void)
 #endif	//#ifdef CONFIG_CAN_SJA1000_PLATFORM
 
 #ifdef CONFIG_I2C_LS1X
+	ls1x_i2c_setup();
 	i2c_register_board_info(0, ls1x_i2c0_devs, ARRAY_SIZE(ls1x_i2c0_devs));
 #endif
 
