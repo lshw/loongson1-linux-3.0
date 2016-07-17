@@ -28,7 +28,7 @@
 #include <loongson1.h>
 
 #define TIMEOUT_MIN		0
-#define TIMEOUT_MAX		45
+#define TIMEOUT_MAX		17
 #define TIMEOUT_DEFAULT	TIMEOUT_MAX /* second */
 
 #define WDT_EN		0x00
@@ -82,7 +82,6 @@ static int ls1x_wdt_release(struct inode *inode, struct file *file)
 	if (expect_close == 42) {
 		ls1x_disable();
 	} else {
-		printk(KERN_EMERG "Unexpected close, not stopping watchdog\n");
 		ls1x_ping();
 	}
 
@@ -261,7 +260,7 @@ static int ls1x_wdt_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, wdt);
 	
 	dev_info(&pdev->dev,
-		"ls1x WDT at 0x%p, timeout %d sec (no wayout= %d)\n", wdt->regs, wdt->timeout, nowayout);
+		"ls1x WDT at 0x%p, timeout %d sec (no wayout= %d)\n", wdt->regs, wdt->timeout / clk_get_rate(wdt_clock), nowayout);
 
 	return 0;
 
