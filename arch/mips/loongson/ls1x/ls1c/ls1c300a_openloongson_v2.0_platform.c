@@ -49,17 +49,13 @@ struct pwm_device ls1x_pwm_list[] = {
 #include <ls1x_nand.h>
 static struct mtd_partition ls1x_nand_partitions[] = {
 	{
-		.name	= "bootloader",
-		.offset	= MTDPART_OFS_APPEND,
-		.size	= 1024*1024,
-	},  {
 		.name	= "kernel",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 13*1024*1024,
+		.size	= 14*1024*1024,
 	},  {
 		.name	= "rootfs",
 		.offset	= MTDPART_OFS_APPEND,
-		.size	= 50*1024*1024,
+		.size	= 100*1024*1024,
 	},  {
 		.name	= "data",
 		.offset	= MTDPART_OFS_APPEND,
