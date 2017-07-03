@@ -273,7 +273,7 @@ static void start_dma_nand(unsigned int flags, struct ls1x_nand_info *info)
 }
 
 /* K9F5608U0D在读的时候 ls1x的nand flash控制器读取不到完成状态
-   猜测是控制器对该型号flash兼容不好,目前解决办法是添加一段延时 */
+   猜测是控制器对该型号flash兼容不好,目前解决办法是无视完成状态 */
 //#define K9F5608U0D 1
 
 static irqreturn_t ls1x_nand_irq(int irq, void *devid)
